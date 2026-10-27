@@ -42,6 +42,9 @@ public struct GameState: Codable, Sendable, Hashable {
 
     public var isWon: Bool { completed.count == GameState.suitsToWin }
 
+    /// Cards in the stock before the first deal (5 deals of 10).
+    public static let fullStockCount = 50
+
     /// Remaining deals shown as stacked backs in the bottom-right corner.
     public var dealsRemaining: Int { stock.count / GameState.columnCount }
 

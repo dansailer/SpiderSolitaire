@@ -24,13 +24,15 @@ public struct Options: Codable, Sendable, Hashable {
     public var soundsEnabled: Bool = false
     /// Classic (traditional English-pattern art) is the default; Simple is the code-drawn face.
     public var cardFaces: CardFaceStyle = .classic
+    /// New games use deals the solver has proved winnable. Off by default.
+    public var winnableDealsOnly: Bool = false
 
     public init() {}
 
     // Tolerant decoding: a missing or unknown field falls back to its default, so adding options
     // later never throws away a user's settings file.
     private enum CodingKeys: String, CodingKey {
-        case difficulty, undoPolicy, animationsEnabled, saveOnExit, openOnStart, soundsEnabled, cardFaces
+        case difficulty, undoPolicy, animationsEnabled, saveOnExit, openOnStart, soundsEnabled, cardFaces, winnableDealsOnly
     }
 
     public init(from decoder: Decoder) throws {
@@ -43,5 +45,6 @@ public struct Options: Codable, Sendable, Hashable {
         openOnStart = (try? c.decode(StartOpenPolicy.self, forKey: .openOnStart)) ?? d.openOnStart
         soundsEnabled = (try? c.decode(Bool.self, forKey: .soundsEnabled)) ?? d.soundsEnabled
         cardFaces = (try? c.decode(CardFaceStyle.self, forKey: .cardFaces)) ?? d.cardFaces
+        winnableDealsOnly = (try? c.decode(Bool.self, forKey: .winnableDealsOnly)) ?? d.winnableDealsOnly
     }
 }

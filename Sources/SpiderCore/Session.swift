@@ -7,10 +7,25 @@ public struct SavedSession: Codable, Sendable {
     public var game: SpiderGame
     /// True once this game's win or loss is in the statistics, so it is never counted twice.
     public var resultRecorded: Bool = false
+    /// Play time, undo and hint counts for achievements.
+    public var tracker: GameTracker = GameTracker()
 
     public init(game: SpiderGame, resultRecorded: Bool = false) {
         self.game = game
         self.resultRecorded = resultRecorded
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, game, resultRecorded, tracker
+    }
+
+    /// Saves from before achievements have no tracker: their history is unknown.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decode(Int.self, forKey: .version)
+        game = try c.decode(SpiderGame.self, forKey: .game)
+        resultRecorded = try c.decode(Bool.self, forKey: .resultRecorded)
+        tracker = try c.decodeIfPresent(GameTracker.self, forKey: .tracker) ?? GameTracker.unknownHistory
     }
 
     /// Started (at least one move or deal), not won, not yet counted: quitting it is a loss.
@@ -52,15 +67,20 @@ public enum LaunchDecision: Hashable, Sendable {
 public struct SessionController: Sendable {
     public private(set) var session: SavedSession
     public private(set) var statistics: Statistics
+    public private(set) var achievements: AchievementBook
+    /// Unlocked since the last `commitUnlocks`, in order (the app dates, stores and announces them).
+    public private(set) var pendingUnlocks: [AchievementID] = []
     public var options: Options {
         didSet { session.game.undoPolicy = options.undoPolicy }
     }
 
     public var game: SpiderGame { session.game }
 
-    public init(options: Options, statistics: Statistics, seed: UInt64) {
+    public init(options: Options, statistics: Statistics, achievements: AchievementBook = AchievementBook(),
+                seed: UInt64) {
         self.options = options
         self.statistics = statistics
+        self.achievements = achievements
         session = SavedSession(game: SpiderGame(difficulty: options.difficulty, seed: seed, undoPolicy: options.undoPolicy))
     }
 
@@ -93,7 +113,9 @@ public struct SessionController: Sendable {
 
     /// The player declined a saved game at launch (or options say never open): it is abandoned.
     public mutating func discard(_ saved: SavedSession) {
-        if saved.isInProgress { statistics[saved.game.state.difficulty].recordLoss() }
+        guard saved.isInProgress else { return }
+        statistics[saved.game.state.difficulty].recordLoss()
+        evaluate(.resultRecorded, state: saved.game.state, tracker: saved.tracker)
     }
 
     // MARK: Play
@@ -101,9 +123,11 @@ public struct SessionController: Sendable {
     @discardableResult
     public mutating func perform(_ action: Action) throws -> ActionOutcome {
         let outcome = try session.game.perform(action)
+        evaluate(.played)
         if outcome.didWin, !session.resultRecorded {
             statistics[session.game.state.difficulty].recordWin(score: session.game.state.score)
             session.resultRecorded = true
+            evaluate(.resultRecorded)
         }
         return outcome
     }
@@ -114,6 +138,41 @@ public struct SessionController: Sendable {
     public mutating func undo() throws {
         guard !session.game.state.isWon else { throw GameError.gameOver }
         try session.game.undo()
+        session.tracker.undoCount += 1
+    }
+
+    // MARK: Achievements and play time
+
+    /// A hint was shown (counts against No Peeking).
+    public mutating func noteHint() {
+        session.tracker.hintCount += 1
+    }
+
+    /// The game clock runs while the game is not won (the app pauses it when inactive).
+    public var isClockRunning: Bool { !session.game.state.isWon && !session.resultRecorded }
+
+    public mutating func addPlayTime(_ seconds: Double) {
+        guard isClockRunning, seconds > 0 else { return }
+        session.tracker.elapsedSeconds += seconds
+    }
+
+    /// Dates the pending unlocks (seconds since 1970), adds them to `achievements` and returns them.
+    public mutating func commitUnlocks(at date: Double) -> [AchievementID] {
+        let unlocked = pendingUnlocks
+        pendingUnlocks = []
+        for id in unlocked where !achievements.isUnlocked(id) { achievements.unlocked[id] = date }
+        return unlocked
+    }
+
+    private mutating func evaluate(_ event: AchievementEvent) {
+        evaluate(event, state: session.game.state, tracker: session.tracker)
+    }
+
+    private mutating func evaluate(_ event: AchievementEvent, state: GameState, tracker: GameTracker) {
+        var book = achievements
+        for id in pendingUnlocks { book.unlocked[id] = 0 }
+        pendingUnlocks += AchievementEvaluator.newlyUnlocked(by: event, state: state, tracker: tracker,
+                                                             statistics: statistics, book: book)
     }
 
     // MARK: Quit and launch
@@ -151,5 +210,6 @@ public struct SessionController: Sendable {
         guard session.isInProgress else { return }
         statistics[session.game.state.difficulty].recordLoss()
         session.resultRecorded = true
+        evaluate(.resultRecorded)
     }
 }

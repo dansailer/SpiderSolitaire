@@ -2,12 +2,15 @@ import Foundation
 import SpiderCore
 
 /// JSON files in Application Support/SpiderSolitaire:
-/// statistics.json, options.json, savedgame.json (the single XP save slot).
+/// statistics.json, options.json, savedgame.json (the single XP save slot), achievements.json
+/// (unlock dates) and winnable.json (winnable seeds found ahead of time).
 public struct SpiderStore: Sendable {
     public static let folderName = "SpiderSolitaire"
     public static let statisticsFile = "statistics.json"
     public static let optionsFile = "options.json"
     public static let savedGameFile = "savedgame.json"
+    public static let achievementsFile = "achievements.json"
+    public static let winnableFile = "winnable.json"
 
     public let directory: URL
 
@@ -31,6 +34,16 @@ public struct SpiderStore: Sendable {
 
     public func loadOptions() -> Options { (try? read(Options.self, SpiderStore.optionsFile)) ?? Options() }
     public func saveOptions(_ options: Options) throws { try write(options, SpiderStore.optionsFile) }
+
+    public func loadAchievements() -> AchievementBook {
+        (try? read(AchievementBook.self, SpiderStore.achievementsFile)) ?? AchievementBook()
+    }
+    public func saveAchievements(_ book: AchievementBook) throws { try write(book, SpiderStore.achievementsFile) }
+
+    public func loadWinnableSeeds() -> WinnableSeedCache {
+        (try? read(WinnableSeedCache.self, SpiderStore.winnableFile)) ?? WinnableSeedCache()
+    }
+    public func saveWinnableSeeds(_ cache: WinnableSeedCache) throws { try write(cache, SpiderStore.winnableFile) }
 
     // MARK: Saved game (one slot, like XP)
 

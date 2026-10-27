@@ -23,6 +23,9 @@ let package = Package(
                           resources: [.copy("Resources/Cards")]),
         // Renders the 1024 px app icon PNG (CoreGraphics); used by scripts/package.sh.
         .executableTarget(name: "SpiderIcon", dependencies: ["SpiderBoard"]),
+        // Developer tool (not shipped): solver benchmarks and the bundled winnable-seed list.
+        .executableTarget(name: "SpiderTools", dependencies: ["SpiderCore"],
+                          linkerSettings: [.linkedLibrary("m", .when(platforms: [.linux]))]),
         .testTarget(name: "SpiderCoreTests", dependencies: ["SpiderCore"]),
         .testTarget(name: "SpiderBoardTests", dependencies: ["SpiderBoard", "SpiderCore"]),
         .testTarget(name: "SpiderPersistenceTests", dependencies: ["SpiderPersistence", "SpiderCore"]),

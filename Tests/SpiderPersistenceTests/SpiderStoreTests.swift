@@ -102,4 +102,32 @@ final class SpiderStoreTests: XCTestCase {
         XCTAssertEqual(relaunched.statistics[.oneSuit].played, 0, "resuming is not a loss")
         XCTAssertTrue(relaunched.canUndo)
     }
+
+    func testAchievementsAndWinnableSeedsRoundTrip() throws {
+        let store = SpiderStore(directory: dir)
+        XCTAssertEqual(store.loadAchievements(), AchievementBook())
+        XCTAssertEqual(store.loadWinnableSeeds(), WinnableSeedCache())
+
+        var book = AchievementBook()
+        book.unlocked[.firstWin] = 1_767_225_600.5
+        book.unlocked[.century] = 1_800_000_000
+        try store.saveAchievements(book)
+        XCTAssertEqual(SpiderStore(directory: dir).loadAchievements(), book)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent("achievements.json").path))
+
+        var cache = WinnableSeedCache()
+        cache.add(0xFEDC_BA98_7654_3210, for: .fourSuits)
+        _ = cache.takeBundled(.oneSuit)
+        try store.saveWinnableSeeds(cache)
+        var loaded = SpiderStore(directory: dir).loadWinnableSeeds()
+        XCTAssertEqual(loaded, cache)
+        XCTAssertEqual(loaded.takeReady(.fourSuits), 0xFEDC_BA98_7654_3210)
+        XCTAssertEqual(loaded.takeBundled(.oneSuit), WinnableDeals.bundled[.oneSuit]?[1], "bundled position kept")
+    }
+
+    func testCorruptAchievementsFileGivesEmptyBook() throws {
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data("nope".utf8).write(to: dir.appendingPathComponent("achievements.json"))
+        XCTAssertEqual(SpiderStore(directory: dir).loadAchievements(), AchievementBook())
+    }
 }
