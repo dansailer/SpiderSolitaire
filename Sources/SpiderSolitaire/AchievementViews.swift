@@ -84,8 +84,8 @@ struct AchievementsMenuButton: View {
     @Environment(\.openWindow) private var openWindow: OpenWindowAction
 
     var body: some View {
-        Button("Achievements…") { openWindow(id: AchievementsView.windowID) }
-            .keyboardShortcut("a", modifiers: [EventModifiers.command, EventModifiers.shift])
+        Button(MenuCommand.achievements.title) { openWindow(id: AchievementsView.windowID) }
+            .keyboardShortcut(MenuCommand.achievements.keyboardShortcut)
     }
 }
 

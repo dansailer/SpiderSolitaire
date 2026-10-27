@@ -123,6 +123,19 @@ public struct SessionController: Sendable {
     @discardableResult
     public mutating func perform(_ action: Action) throws -> ActionOutcome {
         let outcome = try session.game.perform(action)
+        return recordPlayed(outcome)
+    }
+
+    public var canRedo: Bool { session.game.canRedo }
+
+    /// Redo the last undone action (scored and counted like a move).
+    @discardableResult
+    public mutating func redo() throws -> ActionOutcome {
+        let outcome = try session.game.redo()
+        return recordPlayed(outcome)
+    }
+
+    private mutating func recordPlayed(_ outcome: ActionOutcome) -> ActionOutcome {
         evaluate(.played)
         if outcome.didWin, !session.resultRecorded {
             statistics[session.game.state.difficulty].recordWin(score: session.game.state.score)

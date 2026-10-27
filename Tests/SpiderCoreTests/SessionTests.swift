@@ -181,7 +181,7 @@ final class OptionsSoundTests: XCTestCase {
 final class OptionsCardFaceTests: XCTestCase {
     func testClassicIsTheDefaultAndOldFilesDecodeAsClassic() throws {
         XCTAssertEqual(Options().cardFaces, CardFaceStyle.classic)
-        // An M7-era options.json has no cardFaces key.
+        // An options.json from before Classic faces has no cardFaces key.
         let old = #"{"difficulty": 4, "soundsEnabled": true, "saveOnExit": "prompt"}"#
         let o = try JSONDecoder().decode(Options.self, from: Data(old.utf8))
         XCTAssertEqual(o.cardFaces, CardFaceStyle.classic)

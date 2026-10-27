@@ -13,7 +13,7 @@ should look and play like the XP version, with Mac conventions where the two dif
 | Wikipedia "Microsoft Spider Solitaire", Baidu Baike "Spider Solitaire", Microsoft Q&A | Descriptions of the rules, scoring and hints | The rules below. |
 
 **Art and IP:** we do not ship Microsoft's card faces, card backs, sounds or the XP name and logo. Cards
-are drawn in code (vector suit symbols and court-card lettering), or come from a CC0 set added in M7.
+are drawn in code (vector suit symbols and court-card lettering), or come from a CC0 set (Classic faces, §3.6a).
 The look is "XP-like", not a copy of the XP assets.
 
 ## 2. Rules (implemented in `SpiderCore`)
@@ -46,7 +46,7 @@ The look is "XP-like", not a copy of the XP assets.
   to the undo history.
 
 ### 2.4 Dealing
-- Clicking the stock (or pressing **D**) deals **one face-up card onto each of the 10 columns**,
+- Clicking the stock (or Game ▸ Deal Next Row, ⌘D) deals **one face-up card onto each of the 10 columns**,
   left to right.
 - **No deal is allowed while any column is empty.** XP shows the message "You are not allowed to
   deal a new row while there are any empty slots."
@@ -56,7 +56,7 @@ The look is "XP-like", not a copy of the XP assets.
 
 ### 2.5 Completed suits
 - When the top 13 cards of a column form a face-up **K→A run of one suit**, they are removed to the
-  foundation automatically (animated in M4) and earn **+100**. The newly exposed card turns face up.
+  foundation automatically and earn **+100**. The newly exposed card turns face up.
 - The game is **won when all 8 suits are complete**. Win animation and dialog: §3.6.
 
 ### 2.6 Scoring (XP)
@@ -80,7 +80,7 @@ The look is "XP-like", not a copy of the XP assets.
 - *Decision:* the XP bug where undoing a final, suit-completing move kept the +100 is **not**
   reproduced.
 
-### 2.8 Hints ("Show an available move", **M**)
+### 2.8 Hints (Game ▸ Show Hint, ⌘T, or a click on the score box)
 - `GameState.hints()` returns the moves in XP's order:
   1. moves onto a **same-suit** card,
   2. moves onto a card of **another suit**,
@@ -103,7 +103,7 @@ The look is "XP-like", not a copy of the XP assets.
 - There is one window, titled "Spider Solitaire". The default size is 800×600 and the window can be
   resized. Cards scale with the window width, with a minimum card width of 50 pt and a maximum of
   110 pt.
-- The background is green felt: `#007F0E`, with a subtle radial vignette added in M7.
+- The background is green felt: `#007F0E`, with a subtle radial vignette.
 - Card proportions are 71:96, the classic Windows card ratio, with rounded corners and a 1 px dark
   border.
 - Card backs are a blue pattern, drawn in code.
@@ -123,37 +123,75 @@ The look is "XP-like", not a copy of the XP assets.
 - **Right:** the stock, with up to 5 stacked backs. Clicking it deals.
 
 ### 3.4 Interaction
-- **Drag and drop (M3):**
+- **Drag and drop:**
   - Pressing on a movable card lifts it and every card above it.
   - The dragged run follows the cursor with a shadow.
   - On release, the run drops onto the column whose top card's frame, or empty slot, overlaps it
     most.
   - An illegal drop animates the run back.
   - Cards the player cannot lift give no drag feedback.
-- **Click-to-move (M3, optional):** double-clicking a movable run sends it to the best legal target,
+- **Click-to-move:** double-clicking a movable run sends it to the best legal target,
   using the same ordering as the hints.
 - **Animations:**
   - dealing sweeps 10 cards from the stock, staggered by 45 ms. Each card stays face down on its pile until it leaves,
   - a completed run flies to the foundation one card at a time, starting with the top card (A) and ending with the K, staggered by 40 ms, about 0.3 s per card. The foundation king appears once all 13 cards have landed,
   - an exposed card flips over.
-  Options → "Show animations" turns all of these off.
+  Settings → "Show animations" turns all of these off.
 
 ### 3.5 Menus and shortcuts
-| XP menu item | XP key | Mac shortcut |
-|---|---|---|
-| Game ▸ New Game | F2 | ⌘N and F2 |
-| Game ▸ Restart This Game | n/a | ⇧⌘N |
-| Game ▸ Undo | Ctrl+Z | ⌘Z |
-| Game ▸ Deal Next Row | D | D |
-| Game ▸ Show An Available Move | M | M (H also works) |
-| Game ▸ Difficulty… | n/a | ⌘D (sheet: Easy, Medium, Difficult) |
-| Game ▸ Statistics… | n/a | ⌘I |
-| Game ▸ Options… | n/a | ⌘, (Settings) |
-| Game ▸ Achievements… | n/a | ⇧⌘A (opens the Achievements window) |
-| Game ▸ Save This Game | Ctrl+S | ⌘S |
-| Game ▸ Open Last Saved Game | Ctrl+O | ⌘O |
-| Game ▸ Exit | Alt+F4 | ⌘Q |
-| Help ▸ Contents / About | F1 | ⌘? |
+The menu bar follows the macOS HIG: one game window (a `Window` scene, so no New Window), no window
+tabs, no File, Edit or View menu. Titles are Title Case; an ellipsis marks only items that open a
+window needing more input. Titles and shortcuts for the app's own items live in one table,
+`MenuCommand` (SpiderBoard), which tests check for duplicates, for clashes with
+`MenuCommand.reservedShortcuts` (system and standard app/Window-menu shortcuts) and for bare keys.
+There are no bare-key shortcuts and no F2; clicking the stock deals and clicking the score box shows
+a hint.
+
+| Menu | Item | Shortcut | XP equivalent |
+|---|---|---|---|
+| Spider Solitaire | About Spider Solitaire | | Help ▸ About |
+| | Settings… (XP's Options) | ⌘, | Game ▸ Options |
+| | Services ▸ | | |
+| | Hide Spider Solitaire | ⌘H | |
+| | Hide Others | ⌥⌘H | |
+| | Show All | | |
+| | Quit Spider Solitaire | ⌘Q | Game ▸ Exit |
+| Game | New Game | ⌘N | F2 |
+| | Restart Game | ⇧⌘N | |
+| | Undo | ⌘Z | Ctrl+Z |
+| | Redo | ⇧⌘Z | (none) |
+| | Deal Next Row | ⌘D | D |
+| | Show Hint | ⌘T | M |
+| | Difficulty ▸ One Suit / Two Suits / Four Suits (checked = current game) | ⌘1 / ⌘2 / ⌘4 | Game ▸ Difficulty |
+| | Statistics… | ⌘I | Game ▸ Statistics |
+| | Achievements… | ⇧⌘A | |
+| | Save Game | ⌘S | Ctrl+S |
+| | Open Saved Game | ⌘O | Ctrl+O |
+| | Close Window | ⌘W | |
+| Window | Minimize | ⌘M | |
+| | Zoom | | |
+| | Enter Full Screen / Exit Full Screen | ⌃⌘F | |
+| | (window list, Bring All to Front, and the macOS 15 tiling items) | | |
+| Help | Spider Solitaire Help (placeholder, disabled) and the menu search field | | F1 |
+
+Why these keys:
+- **⌘D Deal Next Row:** the HIG's ⌘D is Duplicate, which has no meaning in a card game. It keeps XP's D.
+  The Difficulty dialog it used to open became a submenu with ⌘1 / ⌘2 / ⌘4 for 1, 2 and 4 suits.
+- **⌘T Show Hint ("tip"):** ⌘H is Hide and ⌘M Minimize. ⌘T is Show Fonts or New Tab elsewhere, and
+  this app has no Format menu and no tabs.
+- **⌘I Statistics:** like Finder's Get Info; there is no text to make italic.
+- **⇧⌘N Restart Game:** pairs with ⌘N; it is only New Folder in Finder.
+- **Redo** replays the last undone action as a new move: it costs the move penalty and counts on the
+  Moves counter, since undo's own penalty is never refunded. Any new action clears the redo
+  history. In Classic XP undo mode, redo can only bring back what undo could reach.
+- **Close Window** sits in the Game menu because there is no File menu. Closing the game window quits
+  the app (the usual quit-time save rules apply).
+- SwiftUI still inserts File, Edit and View menus even with all their groups replaced, so
+  `MainMenuCleaner` removes every menu other than the app menu, Game, Window and Help. It identifies
+  them by structure, not title: position 0, `NSApp.windowsMenu`, `NSApp.helpMenu`, and the menu
+  holding ⌘N. It moves AppKit's `toggleFullScreen:` item into the Window menu after Zoom, and it runs
+  again whenever a menu gains an item. Start Dictation and Emoji & Symbols are switched off with the
+  `NSDisabledDictationMenuItem` and `NSDisabledCharacterPaletteMenuItem` defaults.
 
 - Choosing a new difficulty, or a new game while a game is in progress, first asks "Are you sure you
   want to quit this game?" If the player confirms, the abandoned game counts as a loss, as in XP.
@@ -168,7 +206,7 @@ The look is "XP-like", not a copy of the XP assets.
   appears straight away.
 
 ### 3.6a Card faces
-- Options → Card faces: **Classic** (default) or **Simple**. It is saved in options.json; older files
+- Settings → Card faces: **Classic** (default) or **Simple**. It is saved in options.json; older files
   without the key decode as Classic.
 - Classic: 240 × 360 px PNGs, the source's own 2:3 aspect, drawn with `.aspectRatio(contentMode: .fit)` (uniform
   scale, white side margins). The source deck's pips are drawn 2:3 (too tall); the build rescales them to normal
@@ -181,7 +219,7 @@ The look is "XP-like", not a copy of the XP assets.
   an image can't be found, it falls back to the code-drawn face. Card backs are unchanged.
 
 ### 3.6b Winnable deals and the game clock
-- Options → "Only deal winnable games" (off by default; older options.json files decode as off).
+- Settings → "Only deal winnable games" (off by default; older options.json files decode as off).
 - With it on, a new game uses a seed the solver (§6) has proved winnable:
   1. a seed found earlier in the background (`winnable.json`), so the deal is instant;
   2. otherwise a search of random seeds for up to 5 s, off the main thread, while the board shows
@@ -199,10 +237,10 @@ The look is "XP-like", not a copy of the XP assets.
 - Game ▸ Achievements… (⇧⌘A) opens a window with a grid of medals drawn in code (`BadgeArt`):
   gold with the unlock date once earned, grey with the hint before. No spider motifs.
 
-### 3.7 Sound (M7, optional)
+### 3.7 Sound
 - The game plays short cues for deal, drop, cannot-deal, hint, no-hint and win.
 - The cues are built-in macOS system sounds played with `NSSound(named:)` (Pop, Tink, Basso, Ping, Funk,
-  Glass, Hero, and Purr for an achievement); no Microsoft or bundled audio. Options → "Play sounds" is off by default.
+  Glass, Hero, and Purr for an achievement); no Microsoft or bundled audio. Settings → "Play sounds" is off by default.
 
 ## 4. Persistence and statistics
 - **Statistics** (`Statistics`, `DifficultyStatistics` in the core), kept per difficulty:
@@ -275,7 +313,7 @@ SpiderSolitaire (Swift package)
 - **Toolchain:**
   - swift-tools-version 5.9, macOS 14 deployment target, Swift 5 language mode.
   - Builds with Xcode 15 or later. Tested on the Swift 6.0.3 Linux toolchain.
-- **Packaging (M8):**
+- **Packaging:**
   - `scripts/package.sh` runs `swift build -c release`, renders the icon with the `SpiderIcon`
     tool (CoreGraphics), builds the `.icns` with `sips`/`iconutil`, assembles
     `build/Spider Solitaire.app/Contents/{MacOS,Resources,Info.plist,PkgInfo}`, ad-hoc codesigns it

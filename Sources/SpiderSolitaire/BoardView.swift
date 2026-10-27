@@ -84,14 +84,8 @@ struct BoardView: View {
         } message: { (current: BoardAlert) in
             Text(current.message)
         }
-        .sheet(isPresented: $model.showDifficultySheet) {
-            DifficultySheet(model: model)
-        }
         .sheet(isPresented: $model.showStatisticsSheet) {
             StatisticsSheet(model: model)
-        }
-        .sheet(isPresented: $model.showOptionsSheet) {
-            OptionsSheet(model: model)
         }
     }
 

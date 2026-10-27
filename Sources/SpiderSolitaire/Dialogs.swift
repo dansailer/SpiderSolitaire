@@ -2,40 +2,6 @@
 import SpiderCore
 import SwiftUI
 
-/// XP "Difficulty" dialog: three radio buttons, OK starts a new game at that level.
-struct DifficultySheet: View {
-    @ObservedObject var model: GameModel
-    @State private var selection: Difficulty
-
-    init(model: GameModel) {
-        self.model = model
-        _selection = State<Difficulty>(initialValue: model.game.state.difficulty)
-    }
-
-    var body: some View {
-        VStack(alignment: HorizontalAlignment.leading, spacing: 14) {
-            Text("Difficulty").font(Font.headline)
-            Text("Select the game difficulty level that you want:")
-            Picker("", selection: $selection) {
-                ForEach(Difficulty.allCases, id: \.self) { (difficulty: Difficulty) in
-                    Text(difficulty.displayName).tag(difficulty)
-                }
-            }
-            .pickerStyle(RadioGroupPickerStyle())
-            .labelsHidden()
-            HStack {
-                Spacer()
-                Button("Cancel", role: ButtonRole.cancel) { model.showDifficultySheet = false }
-                    .keyboardShortcut(KeyboardShortcut.cancelAction)
-                Button("OK") { model.chooseDifficulty(selection) }
-                    .keyboardShortcut(KeyboardShortcut.defaultAction)
-            }
-        }
-        .padding(20)
-        .frame(width: 340)
-    }
-}
-
 /// XP "Statistics" dialog, one page per difficulty, with Reset.
 struct StatisticsSheet: View {
     @ObservedObject var model: GameModel
@@ -100,73 +66,70 @@ struct StatRow: View {
     }
 }
 
-/// XP "Options" dialog plus this clone's extras (undo mode, animations).
-struct OptionsSheet: View {
+/// Spider Solitaire ▸ Settings… (⌘,): XP's Options plus this clone's extras. As in other Mac
+/// apps, changes apply at once (no OK/Cancel).
+struct SettingsView: View {
     @ObservedObject var model: GameModel
-    @State private var draft: Options
-
-    init(model: GameModel) {
-        self.model = model
-        _draft = State<Options>(initialValue: model.options)
-    }
 
     var body: some View {
-        VStack(alignment: HorizontalAlignment.leading, spacing: 14) {
-            Text("Options").font(Font.headline)
-
-            Toggle("Show animations", isOn: $draft.animationsEnabled)
-            Toggle("Play sounds", isOn: $draft.soundsEnabled)
-            VStack(alignment: HorizontalAlignment.leading, spacing: 2) {
-                Toggle("Only deal winnable games", isOn: $draft.winnableDealsOnly)
-                Text("New games use deals a solver has proved can be won.")
-                    .font(Font.caption)
-                    .foregroundColor(Color.secondary)
+        Form {
+            Section {
+                Toggle("Show animations", isOn: binding(\Options.animationsEnabled))
+                Toggle("Play sounds", isOn: binding(\Options.soundsEnabled))
+                Toggle(isOn: binding(\Options.winnableDealsOnly)) {
+                    Text("Only deal winnable games")
+                    Text("New games use deals a solver has proved can be won.")
+                }
             }
-
-            Text("Card faces")
-            Picker("", selection: $draft.cardFaces) {
-                Text("Classic (traditional English pattern)").tag(CardFaceStyle.classic)
-                Text("Simple").tag(CardFaceStyle.simple)
+            Section("Card faces") {
+                Picker("Card faces", selection: binding(\Options.cardFaces)) {
+                    Text("Classic (traditional English pattern)").tag(CardFaceStyle.classic)
+                    Text("Simple").tag(CardFaceStyle.simple)
+                }
+                .pickerStyle(RadioGroupPickerStyle())
+                .labelsHidden()
             }
-            .pickerStyle(RadioGroupPickerStyle())
-            .labelsHidden()
-
-            Text("Undo")
-            Picker("", selection: $draft.undoPolicy) {
-                Text("Unlimited (back to the start of the game)").tag(UndoPolicy.unlimited)
-                Text("Classic XP (stops at deals and completed suits)").tag(UndoPolicy.xpClassic)
+            Section("Undo") {
+                Picker("Undo", selection: binding(\Options.undoPolicy)) {
+                    Text("Unlimited (back to the start of the game)").tag(UndoPolicy.unlimited)
+                    Text("Classic XP (stops at deals and completed suits)").tag(UndoPolicy.xpClassic)
+                }
+                .pickerStyle(RadioGroupPickerStyle())
+                .labelsHidden()
             }
-            .pickerStyle(RadioGroupPickerStyle())
-            .labelsHidden()
-
-            Text("When the game is closed")
-            Picker("", selection: $draft.saveOnExit) {
-                Text("Always save the game").tag(ExitSavePolicy.always)
-                Text("Never save the game (counts as a loss)").tag(ExitSavePolicy.never)
-                Text("Prompt to save the game").tag(ExitSavePolicy.prompt)
+            Section("When the game is closed") {
+                Picker("When the game is closed", selection: binding(\Options.saveOnExit)) {
+                    Text("Always save the game").tag(ExitSavePolicy.always)
+                    Text("Never save the game (counts as a loss)").tag(ExitSavePolicy.never)
+                    Text("Prompt to save the game").tag(ExitSavePolicy.prompt)
+                }
+                .pickerStyle(RadioGroupPickerStyle())
+                .labelsHidden()
             }
-            .pickerStyle(RadioGroupPickerStyle())
-            .labelsHidden()
-
-            Text("When the game starts")
-            Picker("", selection: $draft.openOnStart) {
-                Text("Always open the saved game").tag(StartOpenPolicy.always)
-                Text("Never open the saved game").tag(StartOpenPolicy.never)
-                Text("Prompt to open the saved game").tag(StartOpenPolicy.prompt)
-            }
-            .pickerStyle(RadioGroupPickerStyle())
-            .labelsHidden()
-
-            HStack {
-                Spacer()
-                Button("Cancel", role: ButtonRole.cancel) { model.showOptionsSheet = false }
-                    .keyboardShortcut(KeyboardShortcut.cancelAction)
-                Button("OK") { model.applyOptions(draft) }
-                    .keyboardShortcut(KeyboardShortcut.defaultAction)
+            Section("When the game starts") {
+                Picker("When the game starts", selection: binding(\Options.openOnStart)) {
+                    Text("Always open the saved game").tag(StartOpenPolicy.always)
+                    Text("Never open the saved game").tag(StartOpenPolicy.never)
+                    Text("Prompt to open the saved game").tag(StartOpenPolicy.prompt)
+                }
+                .pickerStyle(RadioGroupPickerStyle())
+                .labelsHidden()
             }
         }
-        .padding(20)
-        .frame(width: 400)
+        .formStyle(GroupedFormStyle())
+        .frame(width: 440)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func binding<Value>(_ keyPath: WritableKeyPath<Options, Value>) -> Binding<Value> {
+        Binding<Value>(
+            get: { model.options[keyPath: keyPath] },
+            set: { (value: Value) in
+                var options: Options = model.options
+                options[keyPath: keyPath] = value
+                model.applyOptions(options)
+            }
+        )
     }
 }
 #endif

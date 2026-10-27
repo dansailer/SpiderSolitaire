@@ -1,7 +1,7 @@
 import Foundation
 import XCTest
 
-/// Guards the M8 packaging inputs (Packaging/Info.plist, scripts/package.sh) without needing macOS.
+/// Guards the packaging inputs (Packaging/Info.plist, scripts/package.sh) without needing macOS.
 final class PackagingTests: XCTestCase {
     private var repoRoot: URL {
         URL(fileURLWithPath: #filePath)

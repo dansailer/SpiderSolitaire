@@ -56,9 +56,7 @@ final class GameModel: ObservableObject {
     @Published private(set) var highlight: HintHighlight? = nil
     @Published private(set) var hasSavedGame: Bool = false
     @Published var alert: BoardAlert? = nil
-    @Published var showDifficultySheet: Bool = false
     @Published var showStatisticsSheet: Bool = false
-    @Published var showOptionsSheet: Bool = false
     /// The running win animation (nil when none). The view samples it every frame.
     @Published private(set) var celebration: Celebration? = nil
     /// Set while a winnable deal is being searched for (the board shows "Dealing a winnable game…").
@@ -145,10 +143,11 @@ final class GameModel: ObservableObject {
     var statistics: Statistics { session.statistics }
     var achievements: AchievementBook { session.achievements }
     var canUndo: Bool { session.canUndo }
+    var canRedo: Bool { session.canRedo }
 
     // MARK: Game menu
 
-    /// New Game (⌘N / F2), Difficulty dialog OK. `nil` keeps the current difficulty.
+    /// New Game (⌘N), Game ▸ Difficulty (⌘1 / ⌘2 / ⌘4). `nil` keeps the current difficulty.
     func requestNewGame(_ difficulty: Difficulty?) {
         requestAbandon(AbandonReason.newGame(difficulty ?? game.state.difficulty))
     }
@@ -176,15 +175,8 @@ final class GameModel: ObservableObject {
         }
     }
 
-    /// Difficulty dialog OK: close the sheet first, then start (and maybe confirm) once it is gone.
-    func chooseDifficulty(_ difficulty: Difficulty) {
-        showDifficultySheet = false
-        schedule(Step.newGame(difficulty), after: 0.3, cancellable: false)
-    }
-
     func applyOptions(_ options: Options) {
         session.options = options
-        showOptionsSheet = false
         persistOptions()
         if options.winnableDealsOnly { prefillWinnableSeeds(options.difficulty) }
     }
@@ -226,6 +218,12 @@ final class GameModel: ObservableObject {
         perform(Action.deal)
     }
 
+    /// Redo (⇧⌘Z): plays the last undone action again, with the usual animations.
+    func redo() {
+        guard let action: Action = game.nextRedo, session.canRedo else { return }
+        perform(action, redo: true)
+    }
+
     func undo() {
         guard session.canUndo else { return }
         settleAnimations(announce: false)
@@ -259,7 +257,7 @@ final class GameModel: ObservableObject {
 
     // MARK: Hints
 
-    /// M key / click on the score box: flash the next hint (source run, then target).
+    /// Game ▸ Show Hint (⌘T) / click on the score box: flash the next hint (source run, then target).
     func showHint() {
         settleAnimations(announce: true)
         guard !game.state.isWon else { return }
@@ -507,7 +505,7 @@ final class GameModel: ObservableObject {
         let delta: Double = min(now - lastTick, 2)
         lastTick = now
         guard NSApplication.shared.isActive, session.isClockRunning, dealingDifficulty == nil, celebration == nil,
-              alert == nil, !showOptionsSheet, !showDifficultySheet, !showStatisticsSheet else { return }
+              alert == nil, !showStatisticsSheet else { return }
         session.addPlayTime(delta)
     }
 
@@ -532,7 +530,7 @@ final class GameModel: ObservableObject {
 
     // MARK: Actions and their animations
 
-    private func perform(_ action: Action) {
+    private func perform(_ action: Action, redo: Bool = false) {
         settleAnimations(announce: true)
         clearHighlight()
         if action == Action.deal, !game.state.canDeal {
@@ -553,7 +551,7 @@ final class GameModel: ObservableObject {
             // No implicit animation: the dealt cards stay drawn on the pile they came from and
             // leave one by one below.
             pointer.reset()
-            outcome = try? session.perform(action)
+            outcome = try? (redo ? session.redo() : session.perform(action))
             if let outcome, animated {
                 animations.beginDeal(outcome, dealsBefore: dealsBefore)
                 animations.beginFlights(outcome.completedRuns, columns: game.state.columns)
@@ -566,7 +564,7 @@ final class GameModel: ObservableObject {
         } else {
             animate(Animation.easeOut(duration: 0.22)) {
                 pointer.reset()
-                outcome = try? session.perform(action)
+                outcome = try? (redo ? session.redo() : session.perform(action))
                 if let outcome, animated {
                     animations.beginFlights(outcome.completedRuns, columns: game.state.columns)
                 }

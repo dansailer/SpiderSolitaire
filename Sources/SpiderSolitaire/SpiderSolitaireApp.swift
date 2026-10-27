@@ -1,5 +1,6 @@
 #if canImport(SwiftUI)
 import AppKit
+import SpiderBoard
 import SpiderCore
 import SwiftUI
 
@@ -8,8 +9,15 @@ struct SpiderSolitaireApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate: AppDelegate
     @StateObject private var model: GameModel = GameModel()
 
+    static let boardWindowID: String = "board"
+
+    init() {
+        MainMenuCleaner.prepare()
+    }
+
     var body: some Scene {
-        WindowGroup("Spider Solitaire") {
+        // One game window (a `Window`, not a `WindowGroup`): no New Window, no tabs.
+        Window("Spider Solitaire", id: SpiderSolitaireApp.boardWindowID) {
             BoardView(model: model)
                 .frame(minWidth: 640, minHeight: 480)
                 .onAppear { appDelegate.model = model }
@@ -23,74 +31,134 @@ struct SpiderSolitaireApp: App {
             AchievementsView(model: model)
         }
         .defaultSize(width: 720, height: 560)
+
+        // Spider Solitaire ▸ Settings… (⌘,)
+        Settings {
+            SettingsView(model: model)
+        }
     }
 }
 
-/// XP's Game menu (Mac shortcuts per SPEC.md §3.5). F2 is handled by AppDelegate's key monitor.
+/// The menu bar (SPEC.md §3.5). Titles and shortcuts come from `MenuCommand` in SpiderBoard,
+/// where tests check them for clashes. Edit, View and File are emptied here and removed by
+/// `MainMenuCleaner`; Enter Full Screen moves to the Window menu.
 struct GameCommands: Commands {
     @ObservedObject var model: GameModel
 
     var body: some Commands {
-        // One window, no documents: drop File ▸ New Window, and keep Undo in the Game menu like XP.
+        CommandGroup(replacing: CommandGroupPlacement.appInfo) {
+            Button("About Spider Solitaire") { AboutPanel.show() }
+        }
+        // File menu: nothing (single window; saving lives in the Game menu).
         CommandGroup(replacing: CommandGroupPlacement.newItem) {}
+        CommandGroup(replacing: CommandGroupPlacement.saveItem) {}
+        CommandGroup(replacing: CommandGroupPlacement.importExport) {}
+        CommandGroup(replacing: CommandGroupPlacement.printItem) {}
+        // Edit menu: nothing (Undo and Redo are in the Game menu).
         CommandGroup(replacing: CommandGroupPlacement.undoRedo) {}
-        CommandGroup(replacing: CommandGroupPlacement.appSettings) {
-            Button("Options…") { model.showOptionsSheet = true }
-                .keyboardShortcut(",", modifiers: EventModifiers.command)
+        CommandGroup(replacing: CommandGroupPlacement.pasteboard) {}
+        CommandGroup(replacing: CommandGroupPlacement.textEditing) {}
+        CommandGroup(replacing: CommandGroupPlacement.textFormatting) {}
+        // View menu: nothing.
+        CommandGroup(replacing: CommandGroupPlacement.toolbar) {}
+        CommandGroup(replacing: CommandGroupPlacement.sidebar) {}
+        // Help: placeholder until there is help to show.
+        CommandGroup(replacing: CommandGroupPlacement.help) {
+            Button(MenuCommand.help.title) {}
+                .disabled(true)
         }
 
-        CommandMenu("Game") {
-            Button("New Game") { model.requestNewGame(nil) }
-                .keyboardShortcut("n", modifiers: EventModifiers.command)
-            Button("Restart This Game") { model.requestRestart() }
-                .keyboardShortcut("n", modifiers: [EventModifiers.command, EventModifiers.shift])
+        CommandMenu(MenuCommand.Menu.game.rawValue) {
+            CommandButton(MenuCommand.newGame) { model.requestNewGame(nil) }
+            CommandButton(MenuCommand.restartGame) { model.requestRestart() }
             Divider()
-            Button("Undo") { model.undo() }
-                .keyboardShortcut("z", modifiers: EventModifiers.command)
+            CommandButton(MenuCommand.undo) { model.undo() }
                 .disabled(!model.canUndo)
-            Button("Deal Next Row") { model.deal() }
-                .keyboardShortcut("d", modifiers: [])
-            Button("Show an Available Move") { model.showHint() }
-                .keyboardShortcut("m", modifiers: [])
+            CommandButton(MenuCommand.redo) { model.redo() }
+                .disabled(!model.canRedo)
             Divider()
-            Button("Difficulty…") { model.showDifficultySheet = true }
-                .keyboardShortcut("d", modifiers: EventModifiers.command)
-            Button("Statistics…") { model.showStatisticsSheet = true }
-                .keyboardShortcut("i", modifiers: EventModifiers.command)
-            Button("Options…") { model.showOptionsSheet = true }
+            CommandButton(MenuCommand.dealNextRow) { model.deal() }
+            CommandButton(MenuCommand.showHint) { model.showHint() }
+            Divider()
+            Menu(MenuCommand.Menu.difficulty.rawValue) {
+                DifficultyItem(model: model, command: MenuCommand.oneSuit, difficulty: Difficulty.oneSuit)
+                DifficultyItem(model: model, command: MenuCommand.twoSuits, difficulty: Difficulty.twoSuits)
+                DifficultyItem(model: model, command: MenuCommand.fourSuits, difficulty: Difficulty.fourSuits)
+            }
+            Divider()
+            CommandButton(MenuCommand.statistics) { model.showStatisticsSheet = true }
             AchievementsMenuButton()
             Divider()
-            Button("Save This Game") { model.saveGame() }
-                .keyboardShortcut("s", modifiers: EventModifiers.command)
-            Button("Open Last Saved Game") { model.requestOpenSavedGame() }
-                .keyboardShortcut("o", modifiers: EventModifiers.command)
+            CommandButton(MenuCommand.saveGame) { model.saveGame() }
+            CommandButton(MenuCommand.openSavedGame) { model.requestOpenSavedGame() }
                 .disabled(!model.hasSavedGame)
             Divider()
-            Button("Exit") { NSApplication.shared.terminate(nil) }
+            CommandButton(MenuCommand.closeWindow) { NSApplication.shared.keyWindow?.performClose(nil) }
         }
     }
 }
 
-/// Quit handling (save / don't save / prompt, per Options), close-window-quits, and the F2 key.
+/// A menu button whose title and shortcut come from the `MenuCommand` table.
+struct CommandButton: View {
+    let command: MenuCommand
+    let action: () -> Void
+
+    init(_ command: MenuCommand, action: @escaping () -> Void) {
+        self.command = command
+        self.action = action
+    }
+
+    var body: some View {
+        Button(command.title, action: action)
+            .keyboardShortcut(command.keyboardShortcut)
+    }
+}
+
+/// Game ▸ Difficulty ▸ One/Two/Four Suits: checked for the current game; choosing one starts a
+/// new game at that difficulty (asking first if a game is in progress).
+struct DifficultyItem: View {
+    @ObservedObject var model: GameModel
+    let command: MenuCommand
+    let difficulty: Difficulty
+
+    var body: some View {
+        Toggle(command.title, isOn: Binding<Bool>(
+            get: { model.game.state.difficulty == difficulty },
+            set: { (_: Bool) in model.requestNewGame(difficulty) }
+        ))
+        .keyboardShortcut(command.keyboardShortcut)
+    }
+}
+
+extension MenuCommand {
+    var keyboardShortcut: KeyboardShortcut? {
+        guard let s: MenuShortcut = shortcut else { return nil }
+        var modifiers: EventModifiers = []
+        if s.command { modifiers.insert(EventModifiers.command) }
+        if s.shift { modifiers.insert(EventModifiers.shift) }
+        if s.option { modifiers.insert(EventModifiers.option) }
+        if s.control { modifiers.insert(EventModifiers.control) }
+        return KeyboardShortcut(KeyEquivalent(s.key), modifiers: modifiers)
+    }
+}
+
+/// Quit handling (save / don't save / prompt, per Options), close-window-quits, menu clean-up,
+/// and "any key skips the win animation".
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     weak var model: GameModel?
     private var keyMonitor: Any?
 
-    /// Virtual key code of F2 on Mac keyboards.
-    static let f2KeyCode: UInt16 = 120
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSWindow.allowsAutomaticWindowTabbing = false
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        MainMenuCleaner.shared.start()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: NSEvent.EventTypeMask.keyDown) {
             [weak self] (event: NSEvent) -> NSEvent? in
-            guard let model = self?.model else { return event }
-            // Any key skips the win animation (and is swallowed).
-            if model.isCelebrating {
-                model.skipCelebration()
-                return nil
-            }
-            guard event.keyCode == AppDelegate.f2KeyCode else { return event }
-            model.requestNewGame(nil)
+            guard let model = self?.model, model.isCelebrating else { return event }
+            model.skipCelebration()
             return nil
         }
     }

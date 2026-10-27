@@ -40,6 +40,7 @@ public enum GameError: Error, Equatable, Sendable {
     case cannotDealWithEmptyColumn
     case stockEmpty
     case nothingToUndo
+    case nothingToRedo
     case gameOver
 }
 
@@ -72,8 +73,26 @@ public struct SpiderGame: Codable, Sendable {
         var before: GameState
         /// Penalty charged by the undone action; it is not refunded by undo.
         var penaltyCharged: Int
+        /// The action itself, for redo (nil in saves from before redo existed).
+        var action: Action?
     }
     private var undoStack: [UndoEntry] = []
+    /// Undone actions, most recent last. Any new action clears it.
+    private var redoStack: [Action] = []
+
+    private enum CodingKeys: String, CodingKey {
+        case state, undoPolicy, scoring, undoStack, redoStack
+    }
+
+    /// Saves from before redo have no `redoStack`.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        state = try c.decode(GameState.self, forKey: .state)
+        undoPolicy = try c.decode(UndoPolicy.self, forKey: .undoPolicy)
+        scoring = try c.decode(ScoringRules.self, forKey: .scoring)
+        undoStack = try c.decode([UndoEntry].self, forKey: .undoStack)
+        redoStack = try c.decodeIfPresent([Action].self, forKey: .redoStack) ?? []
+    }
 
     public init(difficulty: Difficulty, seed: UInt64, undoPolicy: UndoPolicy = .unlimited,
                 scoring: ScoringRules = ScoringRules()) {
@@ -89,6 +108,9 @@ public struct SpiderGame: Codable, Sendable {
 
     public var canUndo: Bool { !undoStack.isEmpty }
     public var undoDepth: Int { undoStack.count }
+    public var canRedo: Bool { !redoStack.isEmpty && !state.isWon }
+    /// What Redo would do next.
+    public var nextRedo: Action? { state.isWon ? nil : redoStack.last }
 
     public func canPerform(_ action: Action) -> Bool {
         guard !state.isWon else { return false }
@@ -100,8 +122,25 @@ public struct SpiderGame: Codable, Sendable {
         }
     }
 
+    /// Performs a new action. This clears the redo history.
     @discardableResult
     public mutating func perform(_ action: Action) throws -> ActionOutcome {
+        let outcome = try apply(action)
+        redoStack.removeAll()
+        return outcome
+    }
+
+    /// Performs the most recently undone action again. It counts as a move like any other (penalty
+    /// and Moves counter), since undo's own penalty is never refunded.
+    @discardableResult
+    public mutating func redo() throws -> ActionOutcome {
+        guard let action = nextRedo else { throw state.isWon ? GameError.gameOver : GameError.nothingToRedo }
+        let outcome = try apply(action)
+        redoStack.removeLast()
+        return outcome
+    }
+
+    private mutating func apply(_ action: Action) throws -> ActionOutcome {
         guard !state.isWon else { throw GameError.gameOver }
         let before = state
         var outcome = ActionOutcome()
@@ -138,7 +177,7 @@ public struct SpiderGame: Codable, Sendable {
         if clearsHistory {
             undoStack.removeAll()
         } else {
-            undoStack.append(UndoEntry(before: before, penaltyCharged: penalty))
+            undoStack.append(UndoEntry(before: before, penaltyCharged: penalty, action: action))
         }
         return outcome
     }
@@ -147,6 +186,11 @@ public struct SpiderGame: Codable, Sendable {
     /// is lost, and the undo itself costs `undoPenalty`. The move counter keeps counting up.
     public mutating func undo() throws {
         guard let entry = undoStack.popLast() else { throw GameError.nothingToUndo }
+        if let action = entry.action {
+            redoStack.append(action)
+        } else {
+            redoStack.removeAll()
+        }
         let score = entry.before.score - entry.penaltyCharged - scoring.undoPenalty
         let moves = state.moves + 1
         state = entry.before

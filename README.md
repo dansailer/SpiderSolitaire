@@ -3,10 +3,7 @@
 A native macOS clone of Windows XP Spider Solitaire, written in Swift and SwiftUI.
 
 - The rules and UI are described in [SPEC.md](SPEC.md).
-- The plan is in [MILESTONES.md](MILESTONES.md). Milestone **M1** (the rules engine) is done. **M2** (the
-  board, with cards drawn in code) and **M3** (drag and drop, click the stock to deal, double-click to
-  auto-move) build on a Mac. **M4** (deal and completed-suit animations) and **M5** (hints, undo modes,
-  the no-more-moves dialog) are implemented.
+- It builds, tests and packages on macOS 14; the rules engine also builds and tests on Linux.
 
 ## Requirements
 - macOS 14 (Sonoma) or later
@@ -79,19 +76,35 @@ Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
 - **Drag** any face-up card that starts a same-suit descending run (the run comes with it) onto a
   card one rank higher, or onto an empty column. An illegal drop slides the cards back.
 - **Double-click** a card to send its run to the best legal column.
-- **Click the stock** (bottom right) or press **D** to deal a row.
-- **M**, or a click on the score box, flashes the next available move. Press again to cycle through them.
-- **Options** (Game ▸ Options…) has a "Play sounds" switch (off by default; macOS system sounds) and
-  **Card faces: Classic / Simple**. Classic (the default) uses traditional English-pattern art; Simple is
-  the code-drawn set.
-- **Only deal winnable games** (Options): new games use deals a built-in solver has proved winnable.
-  Usually instant; otherwise "Dealing a winnable game…" appears for up to 5 s (Cancel deals a random game).
+- **Click the stock** (bottom right) or choose Game ▸ Deal Next Row (⌘D) to deal a row.
+- **Click the score box**, or Game ▸ Show Hint (⌘T), to flash the next available move. Repeat to cycle.
+- **Settings…** (⌘,) has animations, sounds (off by default; macOS system sounds), **Card faces:
+  Classic / Simple**, **Only deal winnable games**, the undo mode and the save/open-at-launch rules.
+  Changes apply at once.
+- **Only deal winnable games:** new games use deals a built-in solver has proved winnable. Usually
+  instant; otherwise "Dealing a winnable game…" appears for up to 5 s (Cancel deals a random game).
 - **Achievements** (Game ▸ Achievements…, ⇧⌘A): 14 medals, listed with their thresholds in SPEC.md §7.
   A banner appears at the top of the board when one unlocks. The score box shows the game's play time.
 - After a win, click or press any key to skip the celebration.
-- **⌘Z** undoes a move. Game ▸ Classic XP Undo makes undo stop at deals and completed suits, like
-  XP. **⌘N** starts a new game. File ▸ New Game With Difficulty chooses 1, 2 or 4
-  suits.
+
+### Menus and shortcuts
+| Menu | Item | Shortcut |
+|---|---|---|
+| Spider Solitaire | About Spider Solitaire, Settings… (⌘,), Services, Hide (⌘H), Hide Others (⌥⌘H), Show All, Quit (⌘Q) | |
+| Game | New Game | ⌘N |
+| | Restart Game | ⇧⌘N |
+| | Undo / Redo | ⌘Z / ⇧⌘Z |
+| | Deal Next Row | ⌘D |
+| | Show Hint | ⌘T |
+| | Difficulty ▸ One Suit / Two Suits / Four Suits | ⌘1 / ⌘2 / ⌘4 |
+| | Statistics… | ⌘I |
+| | Achievements… | ⇧⌘A |
+| | Save Game / Open Saved Game | ⌘S / ⌘O |
+| | Close Window | ⌘W |
+| Window | Minimize, Zoom, Enter Full Screen | ⌘M, –, ⌃⌘F |
+| Help | Spider Solitaire Help (placeholder) | |
+
+There is no File, Edit or View menu and no window tabs. SPEC.md §3.5 explains each choice.
 
 ## Solver tool (developers)
 ```bash
@@ -125,5 +138,5 @@ scripts/package.sh         builds, signs and zips build/Spider Solitaire.app
 Tests/SpiderCoreTests/     XCTest suite for the rules
 Tests/SpiderBoardTests/    XCTest suite for layout, hit-testing, drag/drop and double-click
 Tests/SpiderPersistenceTests/ XCTest suite for saving, loading and quit/resume
-SPEC.md  MILESTONES.md
+SPEC.md
 ```
