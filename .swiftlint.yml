@@ -13,6 +13,8 @@ disabled_rules:
   - trailing_comma # swift-format adds trailing commas to multi-line collections
   - opening_brace # swift-format puts `{` on its own line after a wrapped signature
   - closure_parameter_position # swift-format wraps long typed closure parameter lists
+  - statement_position # `} else {` placement is swift-format's; the rule also needs SourceKit,
+    # which the static Linux binary used in CI does not have, so CI and macOS run the same rules
 
 opt_in_rules:
   - array_init
