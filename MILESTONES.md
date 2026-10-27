@@ -3,7 +3,7 @@
 Each milestone is small enough to review on its own and ends in a state you can check. Milestones
 M2 to M8 need a Mac with Xcode 15 or later. M1 can also be checked on Linux.
 
-Status: **M1 is done.** M2 and M3 build and pass their tests on a Mac; the on-screen play test is still pending. M4 and M5 are implemented and unit-tested on Linux, and are waiting for a Mac check. M6 to M8 are not started.
+Status: **M1 is done.** M2 and M3 build and pass their tests on a Mac; the on-screen play test is still pending. M4 and M5 build and pass their tests on a Mac. M6 is implemented and unit-tested on Linux, and is waiting for a Mac check. M7 and M8 are not started.
 
 ---
 
@@ -127,7 +127,17 @@ Not done yet: `docs/QA.md`.
 - In a blocked position with stock left, the stock flashes. In a blocked position with an empty
   stock, the "No more moves" dialog appears.
 
-### M6: Menus, difficulty, new game, statistics and saving
+### M6: Menus, difficulty, new game, statistics and saving 🟡 (implemented, waiting for a Mac check)
+**Implemented:**
+- **Core (tested):** `Options`, `SavedSession` and `SessionController`. Abandoning a started game counts as a loss once. A win is counted once. The controller also makes the quit and launch decisions, and handles restart (same seed), open, discard and resetting statistics.
+- **`SpiderPersistence` (tested on Linux with temporary folders):** `SpiderStore`. It writes JSON atomically to the Application Support folder. Opening the single save slot uses it up.
+- **UI:**
+  - the XP Game menu
+  - F2, via a key monitor
+  - the Difficulty, Statistics and Options sheets
+  - one enum-driven alert for all dialogs
+  - `AppDelegate`, which handles save, don't save or prompt on quit, and quits when the last window closes
+
 **Scope:**
 - `Commands` that recreate the XP Game menu (see §3.5)
 - a Difficulty sheet

@@ -178,12 +178,18 @@ The look is "XP-like", not a copy of the XP assets.
   `~/Library/Application Support/SpiderSolitaire/statistics.json`. Game ▸ Statistics shows them and
   has a Reset button.
 - **Saved game:** `SpiderGame` is `Codable`, including its undo history.
-  - ⌘S writes `savedgame.json`. There is only one slot, as in XP.
-  - ⌘O restores it.
+  - ⌘S writes `savedgame.json`. There is only one slot, as in XP. Saving on quit uses the same slot.
+  - ⌘O restores it. Opening the save, or declining it at launch, **uses up the slot**. This stops a player from replaying a save after losing. A saved game that is declined counts as a loss if it was in progress.
   - When the app quits, it saves automatically and resumes on the next launch. This follows the XP
     option "Always save game on exit" and is the default. Options also offers Prompt or Never.
-- **Preferences** (`UserDefaults`): difficulty, undo policy, animations, sounds, and the
-  save-on-exit choice.
+- **Preferences** (`options.json`):
+  - difficulty
+  - undo policy
+  - animations
+  - save on exit (always, never or prompt). "Never" means an unfinished game counts as a loss.
+  - open on start (always, never or prompt)
+
+  Missing or unknown fields fall back to their defaults.
 - **Counting rule:** a game counts as played once the player makes a move or a deal.
   - It counts as **lost** when the player abandons it: a new game, a difficulty change, or quitting
     with "Never save".

@@ -57,32 +57,50 @@ struct BoardView: View {
                     }
             )
         }
-        .alert("Spider Solitaire", isPresented: alertBinding) {
-            Button("OK", role: ButtonRole.cancel) { model.alertMessage = nil }
-        } message: {
-            Text(model.alertMessage ?? "")
+        .alert(Text(model.alert?.title ?? "Spider Solitaire"), isPresented: alertBinding, presenting: model.alert) {
+            (current: BoardAlert) in
+            alertButtons(current)
+        } message: { (current: BoardAlert) in
+            Text(current.message)
         }
-        .alert("Spider Solitaire", isPresented: $model.showNoMovesAlert) {
-            if model.game.canUndo {
+        .sheet(isPresented: $model.showDifficultySheet) {
+            DifficultySheet(model: model)
+        }
+        .sheet(isPresented: $model.showStatisticsSheet) {
+            StatisticsSheet(model: model)
+        }
+        .sheet(isPresented: $model.showOptionsSheet) {
+            OptionsSheet(model: model)
+        }
+    }
+
+    @ViewBuilder
+    private func alertButtons(_ current: BoardAlert) -> some View {
+        switch current {
+        case .info:
+            Button("OK", role: ButtonRole.cancel) {}
+        case .noMoves:
+            if model.canUndo {
                 Button("Undo") { model.undo() }
             }
-            Button("New Game") { model.newGame(model.game.state.difficulty) }
+            Button("New Game") { model.requestNewGameFromAlert() }
             Button("OK", role: ButtonRole.cancel) {}
-        } message: {
-            Text("There are no more moves.")
-        }
-        .alert("Congratulations, you won!", isPresented: $model.showWinAlert) {
-            Button("New Game") { model.newGame(model.game.state.difficulty) }
-            Button("Not Now", role: ButtonRole.cancel) {}
-        } message: {
-            Text("Score: \(model.game.state.score)")
+        case .won:
+            Button("Yes") { model.requestNewGameFromAlert() }
+            Button("No", role: ButtonRole.cancel) {}
+        case .confirmAbandon(let reason):
+            Button("Yes") { model.confirmAbandon(reason) }
+            Button("No", role: ButtonRole.cancel) {}
+        case .openSavedGame:
+            Button("Yes") { model.answerOpenSavedGame(true) }
+            Button("No") { model.answerOpenSavedGame(false) }
         }
     }
 
     private var alertBinding: Binding<Bool> {
         Binding<Bool>(
-            get: { model.alertMessage != nil },
-            set: { (shown: Bool) in if !shown { model.alertMessage = nil } }
+            get: { model.alert != nil },
+            set: { (shown: Bool) in if !shown { model.alert = nil } }
         )
     }
 }

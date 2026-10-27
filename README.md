@@ -56,8 +56,10 @@ On Linux, the app target compiles to a small console stub, because SwiftUI is no
 Package.swift
 Sources/SpiderCore/        rules engine (Card, Deck, GameState, SpiderGame, Hints, Statistics)
 Sources/SpiderBoard/       pure-Swift board geometry and pointer handling (BoardLayout, PointerController)
+Sources/SpiderPersistence/ JSON files in Application Support (SpiderStore)
 Sources/SpiderSolitaire/   SwiftUI app (App and menus, GameModel, BoardView, CardView)
 Tests/SpiderCoreTests/     XCTest suite for the rules
 Tests/SpiderBoardTests/    XCTest suite for layout, hit-testing, drag/drop and double-click
+Tests/SpiderPersistenceTests/ XCTest suite for saving, loading and quit/resume
 SPEC.md  MILESTONES.md
 ```
