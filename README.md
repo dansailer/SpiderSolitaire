@@ -120,25 +120,43 @@ The app does not replace itself: that would need Developer ID signing and notari
 updater such as Sparkle, which this project does not use yet.
 
 ## Releases, CI and the website
-All workflows run only on a push to `main`, a `v*` tag push (release) or a manual dispatch, and only
-for `dansailer` in `dansailer/SpiderSolitaire`. Every action is pinned to a commit SHA, the token is
-read only by default, and checkouts do not keep credentials.
+Work happens on branches; `main` only changes through pull requests whose checks passed. The cycle
+(details in [CONTRIBUTING.md](CONTRIBUTING.md)):
+
+1. Branch from `main` (`feature/…`, `fix/…`, `ci/…`), commit, run `swift test` and `scripts/lint.sh`.
+2. Push and open a pull request into `main`.
+3. The required checks run: **Linux tests**, **macOS build and tests**, **SwiftLint**,
+   **swift-format** and **jactionlint**. The `protect-main` ruleset blocks the merge until all are
+   green and the branch is up to date with `main`; direct pushes to `main` are rejected.
+4. Merge (squash, merge commit or rebase); the branch is deleted.
+5. To release, tag the merged `main` (the tag is the version), which runs the Release workflow.
+
+Workflows only run for `dansailer` in `dansailer/SpiderSolitaire`: pull requests from branches of
+this repository, pushes to `main`, `v*` tags and manual dispatches. They use `pull_request` (never
+`pull_request_target`), so pull request runs get a read-only token and no secrets; fork pull
+requests also need approval before anything runs. Every action is pinned to a commit SHA, each job
+gets only the permissions it needs, and checkouts do not keep credentials.
 
 | Workflow | Does |
 |---|---|
-| `ci.yml` | Linux `swift test` in a pinned container; macOS `swift test` plus `scripts/package.sh` |
-| `release.yml` | On a `v*` tag: tests, `VERSION=<tag without v> UNIVERSAL=1 scripts/package.sh`, then a GitHub release with `SpiderSolitaire.zip`, its `.sha256` and generated notes (a tag with `-` becomes a prerelease) |
-| `pages.yml` | Deploys `docs/` to GitHub Pages (Settings ▸ Pages ▸ Source must be "GitHub Actions") |
-| `jactionlint.yml` | Lints the workflows with jactionlint |
+| `ci.yml` | Linux `swift test` in a pinned container; macOS `swift test` plus `scripts/package.sh`; SwiftLint (pinned, checksum-verified release binary); `swift format lint --strict` in a pinned Swift 6.3 container |
+| `jactionlint.yml` | Lints the workflows and `dependabot.yml` with jactionlint, pedantic profile, failing on any finding |
+| `release.yml` | On a `v*` tag on `main` or a `release/x.y` branch: tests, `VERSION=<tag without v> UNIVERSAL=1 scripts/package.sh`, then a GitHub release with `SpiderSolitaire.zip`, its `.sha256` and generated notes (a tag with `-` becomes a prerelease) |
+| `pages.yml` | Deploys `docs/` to GitHub Pages on pushes to `main` that change it (Settings ▸ Pages ▸ Source must be "GitHub Actions") |
 
-Cut a release from an up to date `main`:
+Cut a release from an up to date `main` after the pull request is merged:
 ```bash
-git tag -a v1.0.0 -m "Spider Solitaire 1.0.0"
-git push origin v1.0.0
+git switch main && git pull --ff-only
+git tag -a v1.1.0 -m "Spider Solitaire 1.1.0"
+git push origin v1.1.0
 ```
 If the run fails after the tag exists, fix it and rerun from Actions ▸ Release ▸ Run workflow with
-the tag (the workflow builds the tagged commit). Lint the workflows locally with
-`pipx run jactionlint` (or `pip install jactionlint`).
+the tag (the workflow builds the tagged commit). Tags are never moved or reused.
+
+Lint locally with `scripts/lint.sh` (`--fix` formats and applies SwiftLint's fixes first): it runs
+`swift format` from the toolchain with `.swift-format` and SwiftLint with `.swiftlint.yml`, which
+`scripts/install-swiftlint.sh` downloads to `.build/tools` (pinned version, SHA-256 checked). Lint the
+workflows with `pipx run jactionlint --profile pedantic` (or `pip install jactionlint`).
 
 The website in `docs/` is static HTML, CSS and a little vanilla JavaScript with no build step and no
 third party requests; fonts (Cormorant Garamond, Manrope, SIL OFL) and Phosphor icons are committed.
@@ -184,6 +202,8 @@ Sources/SpiderSolitaire/Resources/Cards/  Classic card faces (52 PNGs, CC0/publi
 scripts/cards/             build_classic_cards.py (download, licence check, pip fix, render), preview.py, preview_faces.py
 Packaging/Info.plist       app bundle Info.plist template
 scripts/package.sh         builds, signs and zips build/Spider Solitaire.app
+scripts/lint.sh            swift-format and SwiftLint (.swift-format, .swiftlint.yml), as in CI
+scripts/install-swiftlint.sh  downloads the pinned, checksum-verified SwiftLint to .build/tools
 Tests/SpiderCoreTests/     XCTest suite for the rules
 Tests/SpiderBoardTests/    XCTest suite for layout, hit-testing, drag/drop and double-click
 Tests/SpiderPersistenceTests/ XCTest suite for saving, loading and quit/resume

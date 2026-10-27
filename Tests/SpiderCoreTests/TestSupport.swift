@@ -15,8 +15,10 @@ struct Table {
     }
 
     /// State with the given columns (padded to 10 with single face-up kings unless `pad` is false).
-    mutating func state(_ columns: [[Card]], stock: [Card] = [], completed: [Suit] = [],
-                        pad: Bool = true) -> GameState {
+    mutating func state(
+        _ columns: [[Card]], stock: [Card] = [], completed: [Suit] = [],
+        pad: Bool = true
+    ) -> GameState {
         var cols = columns
         while cols.count < GameState.columnCount { cols.append(pad ? [c(.king, .clubs)] : []) }
         return GameState(difficulty: .fourSuits, seed: 0, columns: cols, stock: stock, completed: completed)

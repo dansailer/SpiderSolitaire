@@ -7,6 +7,7 @@
 import Foundation
 import SpiderBoard
 import SpiderCore
+
 #if canImport(CoreGraphics) && canImport(ImageIO)
 import CoreGraphics
 import ImageIO
@@ -42,8 +43,10 @@ if arguments.first == "--card-back" {
 }
 guard arguments.count == 1 else { fail("usage: SpiderIcon [--card-back] <output.png|output.svg>", code: 2) }
 let outputURL: URL = URL(fileURLWithPath: arguments[0])
-let scene: VectorScene = cardBack
-    ? CardBackArt.scene(size: BoardSize(width: BoardLayout.maxCardWidth, height: BoardLayout.maxCardWidth * BoardLayout.cardAspect))
+let scene: VectorScene =
+    cardBack
+    ? CardBackArt.scene(
+        size: BoardSize(width: BoardLayout.maxCardWidth, height: BoardLayout.maxCardWidth * BoardLayout.cardAspect))
     : AppIconArt.scene()
 
 if outputURL.pathExtension.lowercased() == "svg" {
@@ -85,8 +88,9 @@ enum SceneRenderer {
         let width: Int = Int(scene.size.width * scale)
         let height: Int = Int(scene.size.height * scale)
         guard let space: CGColorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-              let ctx: CGContext = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-                                             space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+            let ctx: CGContext = CGContext(
+                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
         else { throw RenderError.context }
         // Top-left origin, y down, like the scene. Shadows ignore the CTM, hence -dy below.
         ctx.translateBy(x: 0, y: CGFloat(height))
@@ -99,7 +103,9 @@ enum SceneRenderer {
                 ctx.clip()
             }
             if let s: SpiderBoard.Shadow = item.shadow {
-                ctx.setShadow(offset: CGSize(width: s.dx * scale, height: -s.dy * scale), blur: CGFloat(s.blur * scale), color: color(s.color))
+                ctx.setShadow(
+                    offset: CGSize(width: s.dx * scale, height: -s.dy * scale), blur: CGFloat(s.blur * scale),
+                    color: color(s.color))
             }
             let shape: CGPath = path(item.path)
             switch item.fill {
@@ -114,8 +120,12 @@ enum SceneRenderer {
                 ctx.addPath(shape)
                 ctx.clip()
                 if let g: CGGradient = gradient(space, from, to) {
-                    ctx.drawLinearGradient(g, start: point(start), end: point(end),
-                                           options: [CGGradientDrawingOptions.drawsBeforeStartLocation, CGGradientDrawingOptions.drawsAfterEndLocation])
+                    ctx.drawLinearGradient(
+                        g, start: point(start), end: point(end),
+                        options: [
+                            CGGradientDrawingOptions.drawsBeforeStartLocation,
+                            CGGradientDrawingOptions.drawsAfterEndLocation,
+                        ])
                 }
                 ctx.restoreGState()
             case .radial(let center, let radius, let from, let to)?:
@@ -123,8 +133,9 @@ enum SceneRenderer {
                 ctx.addPath(shape)
                 ctx.clip()
                 if let g: CGGradient = gradient(space, from, to) {
-                    ctx.drawRadialGradient(g, startCenter: point(center), startRadius: 0, endCenter: point(center),
-                                           endRadius: CGFloat(radius), options: CGGradientDrawingOptions.drawsAfterEndLocation)
+                    ctx.drawRadialGradient(
+                        g, startCenter: point(center), startRadius: 0, endCenter: point(center),
+                        endRadius: CGFloat(radius), options: CGGradientDrawingOptions.drawsAfterEndLocation)
                 }
                 ctx.restoreGState()
             }
@@ -140,7 +151,8 @@ enum SceneRenderer {
         }
 
         guard let image: CGImage = ctx.makeImage(),
-              let destination: CGImageDestination = CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil)
+            let destination: CGImageDestination = CGImageDestinationCreateWithURL(
+                url as CFURL, "public.png" as CFString, 1, nil)
         else { throw RenderError.encode }
         CGImageDestinationAddImage(destination, image, nil)
         guard CGImageDestinationFinalize(destination) else { throw RenderError.encode }
@@ -161,7 +173,8 @@ do {
 #else
 // No CoreGraphics (Linux): write a 1×1 placeholder PNG so package.sh can be dry-run. Use an .svg
 // output path for a real preview.
-let placeholder: String = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgaGD4DwAChAGA+gVWHQAAAABJRU5ErkJggg=="
+let placeholder: String =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgaGD4DwAChAGA+gVWHQAAAABJRU5ErkJggg=="
 do {
     try Data(base64Encoded: placeholder)!.write(to: outputURL)
     print(outputURL.path + " (placeholder: CoreGraphics unavailable; pass an .svg path for a preview)")

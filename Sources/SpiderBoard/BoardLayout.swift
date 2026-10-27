@@ -76,7 +76,9 @@ public struct BoardLayout: Sendable, Equatable {
     }
 
     public func cardFrames(column: Int, cards: [Card]) -> [BoardRect] {
-        cardOffsets(for: cards).map { BoardRect(x: columnX[column], y: $0, width: cardSize.width, height: cardSize.height) }
+        cardOffsets(for: cards).map {
+            BoardRect(x: columnX[column], y: $0, width: cardSize.width, height: cardSize.height)
+        }
     }
 
     public func cardFrames(in state: GameState) -> [[BoardRect]] {
@@ -105,8 +107,9 @@ public struct BoardLayout: Sendable, Equatable {
         let step = cardSize.width * BoardLayout.stockStepRatio
         let right = columnX[GameState.columnCount - 1]
         return (0..<dealsRemaining).map { i in
-            BoardRect(x: right - Double(dealsRemaining - 1 - i) * step, y: bottomRowY,
-                 width: cardSize.width, height: cardSize.height)
+            BoardRect(
+                x: right - Double(dealsRemaining - 1 - i) * step, y: bottomRowY,
+                width: cardSize.width, height: cardSize.height)
         }
     }
 
@@ -134,16 +137,18 @@ public struct BoardLayout: Sendable, Equatable {
     /// Outline of the empty foundation area (8 fanned cards wide).
     public var foundationAreaFrame: BoardRect {
         let step = cardSize.width * BoardLayout.foundationStepRatio
-        return BoardRect(x: columnX[0], y: bottomRowY,
-                    width: cardSize.width + Double(GameState.suitsToWin - 1) * step, height: cardSize.height)
+        return BoardRect(
+            x: columnX[0], y: bottomRowY,
+            width: cardSize.width + Double(GameState.suitsToWin - 1) * step, height: cardSize.height)
     }
 
     /// XP's centred "Score / Moves" box.
     public var scoreBoxFrame: BoardRect {
         let width = min(cardSize.width * 3.2, boardSize.width * 0.36)
         let height = cardSize.height * 0.62
-        return BoardRect(x: boardSize.width / 2 - width / 2, y: bottomRowY + (cardSize.height - height) / 2,
-                    width: width, height: height)
+        return BoardRect(
+            x: boardSize.width / 2 - width / 2, y: bottomRowY + (cardSize.height - height) / 2,
+            width: width, height: height)
     }
 
     // MARK: Dropping

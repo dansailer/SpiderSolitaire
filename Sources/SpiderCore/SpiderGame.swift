@@ -94,8 +94,10 @@ public struct SpiderGame: Codable, Sendable {
         redoStack = try c.decodeIfPresent([Action].self, forKey: .redoStack) ?? []
     }
 
-    public init(difficulty: Difficulty, seed: UInt64, undoPolicy: UndoPolicy = .unlimited,
-                scoring: ScoringRules = ScoringRules()) {
+    public init(
+        difficulty: Difficulty, seed: UInt64, undoPolicy: UndoPolicy = .unlimited,
+        scoring: ScoringRules = ScoringRules()
+    ) {
         self.init(state: .newGame(difficulty: difficulty, seed: seed), undoPolicy: undoPolicy, scoring: scoring)
     }
 
@@ -115,7 +117,7 @@ public struct SpiderGame: Codable, Sendable {
     public func canPerform(_ action: Action) -> Bool {
         guard !state.isWon else { return false }
         switch action {
-        case let .move(from, index, to):
+        case .move(let from, let index, let to):
             return state.columns.indices.contains(from) && state.canMove(from: from, index: index, to: to)
         case .deal:
             return state.canDeal
@@ -147,7 +149,7 @@ public struct SpiderGame: Codable, Sendable {
         let penalty: Int
 
         switch action {
-        case let .move(from, index, to):
+        case .move(let from, let index, let to):
             guard canPerform(action) else { throw GameError.illegalMove }
             let run = state.columns[from][index...]
             state.columns[to].append(contentsOf: run)
@@ -211,8 +213,10 @@ public struct SpiderGame: Codable, Sendable {
             guard let suit = state.completedRun(in: col) else { continue }
             let cards = Array(state.columns[col].suffix(13))
             state.columns[col].removeLast(13)
-            outcome.completedRuns.append(CompletedRun(column: col, suit: suit, cards: cards,
-                                                      foundationSlot: state.completed.count))
+            outcome.completedRuns.append(
+                CompletedRun(
+                    column: col, suit: suit, cards: cards,
+                    foundationSlot: state.completed.count))
             state.completed.append(suit)
             state.score += scoring.completedSuitBonus
             if let id = flipTop(of: col) { outcome.revealedCardIDs.append(id) }

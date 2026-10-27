@@ -3,7 +3,7 @@
 
 Linux can't compile the SwiftUI code, and `Commands`/`Scene` builders stop at 10 items, so this
 counts statements directly inside `{ ... }` blocks of SwiftUI files: a child is a line at the
-block's depth that doesn't start with `.`, `//`, `}`, `)` or a control keyword's continuation.
+block's depth, outside any open ( or [, that doesn't start with `.`, `//`, `}`, `)` or a control keyword's continuation.
 Usage: check_builders.py [files...] (default: Sources/SpiderSolitaire/*.swift).
 Blocks opened on a func/init/type line are skipped (imperative code), so a @ViewBuilder func is not checked. Exit 1 on > 10."""
 import glob, re, sys
@@ -14,7 +14,7 @@ SKIP = re.compile(r'^\s*(\.|//|\}|\)|\]|case |default:|else|#|@|let |var |guard 
 def check(path):
     bad = []
     lines = open(path, encoding='utf-8').read().split('\n')
-    stack = []  # (line number, child count, is builder-ish)
+    stack = []  # (line number, child count, is builder-ish, open bracket depth)
     pending_decl = False  # a func/init signature that continues onto the next lines
     for n, raw in enumerate(lines, 1):
         line = re.sub(r'"(?:\\.|[^"\\])*"', '""', raw.split('//')[0] if '"' not in raw else raw)
@@ -30,12 +30,17 @@ def check(path):
                                and not re.search(r'\b(ForEach|List|Table|Section|Group)\b', stripped))
                 pending_decl = False
                 stack.append([n, 0, opener, 0])
+            elif ch in '([':
+                if stack:
+                    stack[-1][3] += 1  # open bracket: the next lines continue this child
+            elif ch in ')]':
+                if stack and stack[-1][3] > 0:
+                    stack[-1][3] -= 1
             elif ch == '}':
                 if stack:
                     start, count, builderish, _ = stack.pop()
                     if builderish and count > LIMIT:
                         bad.append((start, count))
-        # mark multi-line expressions: children counted only at line starts of the block
     return bad
 
 files = sys.argv[1:] or sorted(glob.glob('Sources/SpiderSolitaire/*.swift'))

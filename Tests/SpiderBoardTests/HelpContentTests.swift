@@ -1,5 +1,6 @@
-import XCTest
 import SpiderCore
+import XCTest
+
 @testable import SpiderBoard
 
 final class HelpContentTests: XCTestCase {
@@ -14,8 +15,9 @@ final class HelpContentTests: XCTestCase {
 
     func testSectionsInOrderWithTitles() {
         XCTAssertEqual(HelpContent.sections.map(\.id), HelpSection.ID.allCases)
-        XCTAssertEqual(HelpContent.sections.map(\.title),
-                       ["Rules", "Scoring", "Tips", "Achievements", "Keyboard Shortcuts"])
+        XCTAssertEqual(
+            HelpContent.sections.map(\.title),
+            ["Rules", "Scoring", "Tips", "Achievements", "Keyboard Shortcuts"])
         for section in HelpContent.sections { XCTAssertFalse(section.blocks.isEmpty) }
     }
 
@@ -23,8 +25,9 @@ final class HelpContentTests: XCTestCase {
         let rows = tableRows(.shortcuts)
         for command in MenuCommand.allCases {
             guard let shortcut = command.shortcut else { continue }
-            XCTAssertTrue(rows.contains { $0[0] == shortcut.description && $0[1].hasSuffix(command.title) },
-                          "\(command) \(shortcut) missing from Keyboard Shortcuts")
+            XCTAssertTrue(
+                rows.contains { $0[0] == shortcut.description && $0[1].hasSuffix(command.title) },
+                "\(command) \(shortcut) missing from Keyboard Shortcuts")
         }
         for standard in HelpContent.standardShortcuts {
             XCTAssertTrue(rows.contains { $0 == [standard.shortcut.description, standard.title] })
@@ -49,14 +52,19 @@ final class HelpContentTests: XCTestCase {
         XCTAssertEqual(rows[4][1], r.dealPenalty == 0 ? "free" : "−\(r.dealPenalty)")
         let t = text(.scoring)
         XCTAssertTrue(t.contains("starts at \(GameState.initialScore) points"))
-        XCTAssertTrue(t.contains("score \(GameState.initialScore + GameState.suitsToWin * r.completedSuitBonus) points"))
+        XCTAssertTrue(
+            t.contains("score \(GameState.initialScore + GameState.suitsToWin * r.completedSuitBonus) points"))
     }
 
     /// The help's "final score = 1305 − Moves" claim, checked on a real won game (with an undo and a redo).
     func testFinalScoreFormulaHoldsOnARealWin() throws {
         let seed: UInt64 = 12345
-        guard case .solved(let line) = Solver.solve(difficulty: .oneSuit, seed: seed,
-                                                    budget: SolverBudget(maxNodes: 60_000)).result else {
+        guard
+            case .solved(let line) = Solver.solve(
+                difficulty: .oneSuit, seed: seed,
+                budget: SolverBudget(maxNodes: 60_000)
+            ).result
+        else {
             return XCTFail("solver")
         }
         var game = SpiderGame(difficulty: .oneSuit, seed: seed)
@@ -78,8 +86,9 @@ final class HelpContentTests: XCTestCase {
         XCTAssertTrue(rules.contains("enough for 5 more deals"))
         for section in HelpContent.sections {
             let t = HelpContent.markdown(section).lowercased()
-            XCTAssertFalse(t.replacingOccurrences(of: "spider solitaire", with: "").contains("spider"),
-                           "\(section.title): no spiders")
+            XCTAssertFalse(
+                t.replacingOccurrences(of: "spider solitaire", with: "").contains("spider"),
+                "\(section.title): no spiders")
             XCTAssertFalse(t.contains("..."), "use the ellipsis character")
         }
     }

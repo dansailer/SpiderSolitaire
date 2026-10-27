@@ -16,8 +16,10 @@ public struct GameState: Codable, Sendable, Hashable {
     /// XP's "Moves" counter: card moves, deals and undos all count.
     public var moves: Int
 
-    public init(difficulty: Difficulty, seed: UInt64, columns: [[Card]], stock: [Card],
-                completed: [Suit] = [], score: Int = GameState.initialScore, moves: Int = 0) {
+    public init(
+        difficulty: Difficulty, seed: UInt64, columns: [[Card]], stock: [Card],
+        completed: [Suit] = [], score: Int = GameState.initialScore, moves: Int = 0
+    ) {
         self.difficulty = difficulty
         self.seed = seed
         self.columns = columns
@@ -70,7 +72,8 @@ public struct GameState: Codable, Sendable, Hashable {
     /// A run may land on an empty column or on a card exactly one rank higher, any suit.
     public func canMove(from source: Int, index: Int, to destination: Int) -> Bool {
         guard source != destination, columns.indices.contains(destination),
-              canPickUp(column: source, from: index) else { return false }
+            canPickUp(column: source, from: index)
+        else { return false }
         guard let target = columns[destination].last else { return true }
         return target.isFaceUp && target.rank.rawValue == columns[source][index].rank.rawValue + 1
     }

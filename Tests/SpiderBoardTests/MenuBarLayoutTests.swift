@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import SpiderBoard
 
 final class MenuBarLayoutTests: XCTestCase {
@@ -11,8 +12,9 @@ final class MenuBarLayoutTests: XCTestCase {
     }
 
     func testEveryCommandAppearsExactlyOnceInItsMenu() {
-        XCTAssertEqual(MenuBarLayout.commands.sorted { $0.rawValue < $1.rawValue },
-                       MenuCommand.allCases.sorted { $0.rawValue < $1.rawValue })
+        XCTAssertEqual(
+            MenuBarLayout.commands.sorted { $0.rawValue < $1.rawValue },
+            MenuCommand.allCases.sorted { $0.rawValue < $1.rawValue })
         for top in MenuBarLayout.menuBar {
             for entry in top.entries {
                 switch entry {
@@ -50,15 +52,19 @@ final class MenuBarLayoutTests: XCTestCase {
     }
 
     func testGameMenuShortcutsUnchanged() {
-        let game = MenuBarLayout.shortcuts.filter { pair in MenuCommand.items(in: .game).contains { $0.title == pair.1 } }
-        XCTAssertEqual(game.map { "\($0.0) \($0.1)" }, [
-            "⌘N New Game", "⇧⌘N Restart Game", "⌘Z Undo", "⇧⌘Z Redo", "⌘D Deal Next Row", "⌘T Show Hint",
-            "⌘I Statistics…", "⇧⌘A Achievements…", "⌘S Save Game", "⌘O Open Saved Game", "⌘W Close Window",
-        ])
+        let game = MenuBarLayout.shortcuts.filter { pair in MenuCommand.items(in: .game).contains { $0.title == pair.1 }
+        }
+        XCTAssertEqual(
+            game.map { "\($0.0) \($0.1)" },
+            [
+                "⌘N New Game", "⇧⌘N Restart Game", "⌘Z Undo", "⇧⌘Z Redo", "⌘D Deal Next Row", "⌘T Show Hint",
+                "⌘I Statistics…", "⇧⌘A Achievements…", "⌘S Save Game", "⌘O Open Saved Game", "⌘W Close Window",
+            ])
     }
 
     func testAppAndHelpMenuOrder() {
-        XCTAssertEqual(Array(MenuBarLayout.menuBar[0].entries.prefix(3)), [.app(.about), .command(.checkForUpdates), .separator])
+        XCTAssertEqual(
+            Array(MenuBarLayout.menuBar[0].entries.prefix(3)), [.app(.about), .command(.checkForUpdates), .separator])
         XCTAssertEqual(MenuBarLayout.menuBar[3].entries, [.command(.help), .separator, .command(.visitWebsite)])
     }
 

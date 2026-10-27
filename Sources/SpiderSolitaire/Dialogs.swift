@@ -47,8 +47,12 @@ struct StatisticsSheet: View {
     }
 
     private func currentStreak(_ stats: DifficultyStatistics) -> String {
-        if stats.currentWinStreak > 0 { return "\(stats.currentWinStreak) win" + (stats.currentWinStreak == 1 ? "" : "s") }
-        if stats.currentLossStreak > 0 { return "\(stats.currentLossStreak) loss" + (stats.currentLossStreak == 1 ? "" : "es") }
+        if stats.currentWinStreak > 0 {
+            return "\(stats.currentWinStreak) win" + (stats.currentWinStreak == 1 ? "" : "s")
+        }
+        if stats.currentLossStreak > 0 {
+            return "\(stats.currentLossStreak) loss" + (stats.currentLossStreak == 1 ? "" : "es")
+        }
         return "0"
     }
 }

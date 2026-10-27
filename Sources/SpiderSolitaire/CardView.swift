@@ -86,7 +86,7 @@ struct ClassicCardFaceView: View {
                 .resizable()
                 .interpolation(Image.Interpolation.high)
                 .antialiased(true)
-                .aspectRatio(contentMode: ContentMode.fit)
+                .scaledToFit()
                 .frame(width: size.width, height: size.height)
             RoundedRectangle(cornerRadius: radius)
                 .strokeBorder(CardStyle.border, lineWidth: 1)
@@ -122,8 +122,11 @@ struct CardFaceView: View {
     private var cornerIndex: some View {
         VStack(spacing: -size.width * 0.02) {
             Text(card.rank.label)
-                .font(Font.system(size: size.width * (card.rank == Rank.ten ? 0.17 : 0.2),
-                                  weight: Font.Weight.bold, design: Font.Design.default))
+                .font(
+                    Font.system(
+                        size: size.width * (card.rank == Rank.ten ? 0.17 : 0.2),
+                        weight: Font.Weight.bold, design: Font.Design.default)
+                )
                 .kerning(card.rank == Rank.ten ? -1 : 0)
             Text(card.suit.symbol)
                 .font(Font.system(size: size.width * 0.17))
@@ -143,7 +146,8 @@ struct CardFaceView: View {
                 .foregroundColor(CardStyle.color(card.suit))
                 .position(x: size.width / 2, y: size.height / 2)
         } else {
-            ForEach(Array(CardFace.pips(for: card.rank).enumerated()), id: \.offset) { (item: (offset: Int, element: Pip)) in
+            ForEach(Array(CardFace.pips(for: card.rank).enumerated()), id: \.offset) {
+                (item: (offset: Int, element: Pip)) in
                 Text(card.suit.symbol)
                     .font(Font.system(size: size.width * 0.22))
                     .foregroundColor(CardStyle.color(card.suit))
@@ -172,9 +176,10 @@ struct CourtPanel: View {
         let half: CGSize = CGSize(width: panel.width, height: panel.height / 2)
         ZStack {
             Rectangle()
-                .fill(LinearGradient(
-                    gradient: Gradient(colors: [Color.white, CardStyle.gold.opacity(0.25)]),
-                    startPoint: UnitPoint.top, endPoint: UnitPoint.bottom))
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color.white, CardStyle.gold.opacity(0.25)]),
+                        startPoint: UnitPoint.top, endPoint: UnitPoint.bottom))
             VStack(spacing: 0) {
                 CourtHalf(card: card, size: half)
                 CourtHalf(card: card, size: half)
@@ -279,8 +284,11 @@ struct CapShape: Shape {
         p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.maxY), control: CGPoint(x: rect.midX, y: rect.minY))
         p.closeSubpath()
         p.move(to: CGPoint(x: rect.midX + w * 0.1, y: rect.minY + h * 0.45))
-        p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY), control: CGPoint(x: rect.maxX - w * 0.05, y: rect.minY + h * 0.4))
-        p.addQuadCurve(to: CGPoint(x: rect.midX + w * 0.1, y: rect.minY + h * 0.45), control: CGPoint(x: rect.midX + w * 0.2, y: rect.minY))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.minY), control: CGPoint(x: rect.maxX - w * 0.05, y: rect.minY + h * 0.4))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.midX + w * 0.1, y: rect.minY + h * 0.45),
+            control: CGPoint(x: rect.midX + w * 0.2, y: rect.minY))
         return p
     }
 }
@@ -291,8 +299,10 @@ struct CardBackView: View {
     let size: CGSize
 
     var body: some View {
-        VectorSceneView(scene: CardBackArt.scene(size: BoardSize(width: Double(size.width), height: Double(size.height))))
-            .frame(width: size.width, height: size.height)
+        VectorSceneView(
+            scene: CardBackArt.scene(size: BoardSize(width: Double(size.width), height: Double(size.height)))
+        )
+        .frame(width: size.width, height: size.height)
     }
 }
 
@@ -302,7 +312,7 @@ struct VectorSceneView: View {
 
     var body: some View {
         let scene: VectorScene = self.scene
-        Canvas { (context: inout GraphicsContext, size: CGSize) in
+        Canvas { (context: inout GraphicsContext, _: CGSize) in
             VectorSceneView.draw(scene, in: &context)
         }
     }
@@ -314,16 +324,20 @@ struct VectorSceneView: View {
                 layer.clip(to: path(clip))
             }
             if let s: SpiderBoard.Shadow = item.shadow {
-                layer.addFilter(GraphicsContext.Filter.shadow(color: color(s.color), radius: CGFloat(s.blur / 2),
-                                                              x: CGFloat(s.dx), y: CGFloat(s.dy)))
+                layer.addFilter(
+                    GraphicsContext.Filter.shadow(
+                        color: color(s.color), radius: CGFloat(s.blur / 2),
+                        x: CGFloat(s.dx), y: CGFloat(s.dy)))
             }
             let shape: Path = path(item.path)
             if let fill: SpiderBoard.Paint = item.fill {
                 layer.fill(shape, with: shading(fill))
             }
             if let stroke: SpiderBoard.Stroke = item.stroke {
-                layer.stroke(shape, with: GraphicsContext.Shading.color(color(stroke.color)),
-                             style: StrokeStyle(lineWidth: CGFloat(stroke.width), lineCap: CGLineCap.round, lineJoin: CGLineJoin.round))
+                layer.stroke(
+                    shape, with: GraphicsContext.Shading.color(color(stroke.color)),
+                    style: StrokeStyle(
+                        lineWidth: CGFloat(stroke.width), lineCap: CGLineCap.round, lineJoin: CGLineJoin.round))
             }
         }
     }
@@ -352,11 +366,13 @@ struct VectorSceneView: View {
         case .solid(let c):
             return GraphicsContext.Shading.color(color(c))
         case .linear(let start, let end, let from, let to):
-            return GraphicsContext.Shading.linearGradient(Gradient(colors: [color(from), color(to)]),
-                                                          startPoint: point(start), endPoint: point(end))
+            return GraphicsContext.Shading.linearGradient(
+                Gradient(colors: [color(from), color(to)]),
+                startPoint: point(start), endPoint: point(end))
         case .radial(let center, let radius, let from, let to):
-            return GraphicsContext.Shading.radialGradient(Gradient(colors: [color(from), color(to)]),
-                                                          center: point(center), startRadius: 0, endRadius: CGFloat(radius))
+            return GraphicsContext.Shading.radialGradient(
+                Gradient(colors: [color(from), color(to)]),
+                center: point(center), startRadius: 0, endRadius: CGFloat(radius))
         }
     }
 }

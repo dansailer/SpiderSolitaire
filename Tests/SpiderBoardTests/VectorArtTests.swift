@@ -1,5 +1,6 @@
-import XCTest
 import SpiderCore
+import XCTest
+
 @testable import SpiderBoard
 
 final class VectorArtTests: XCTestCase {
@@ -10,8 +11,10 @@ final class VectorArtTests: XCTestCase {
 
     /// The spade is never stretched: same proportions in a wide, a tall and a square box.
     func testSpadeKeepsItsAspectInAnyBox() {
-        let boxes = [BoardRect(x: 0, y: 0, width: 300, height: 100), BoardRect(x: 10, y: 20, width: 50, height: 400),
-                     BoardRect(x: -5, y: 5, width: 80, height: 80)]
+        let boxes = [
+            BoardRect(x: 0, y: 0, width: 300, height: 100), BoardRect(x: 10, y: 20, width: 50, height: 400),
+            BoardRect(x: -5, y: 5, width: 80, height: 80),
+        ]
         for box in boxes {
             let b = SpadePip.path(in: box).bounds
             XCTAssertEqual(b.width / b.height, SpadePip.aspect, accuracy: 1e-9, "\(box)")

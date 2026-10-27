@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import SpiderCore
 
 final class LayoutTests: XCTestCase {
@@ -22,8 +23,9 @@ final class LayoutTests: XCTestCase {
     }
 
     func testSameSeedSameGame() {
-        XCTAssertEqual(GameState.newGame(difficulty: .fourSuits, seed: 5),
-                       GameState.newGame(difficulty: .fourSuits, seed: 5))
+        XCTAssertEqual(
+            GameState.newGame(difficulty: .fourSuits, seed: 5),
+            GameState.newGame(difficulty: .fourSuits, seed: 5))
     }
 
     func testOneSuitGameIsAllSpades() {

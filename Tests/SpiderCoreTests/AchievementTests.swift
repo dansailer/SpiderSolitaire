@@ -1,21 +1,26 @@
 import XCTest
+
 @testable import SpiderCore
 
 final class AchievementTests: XCTestCase {
     /// One move from winning: 7 suits done, K..2 and an ace of spades left.
     private func nearWin(_ difficulty: Difficulty = .oneSuit, moves: Int = 90, tracker: GameTracker = GameTracker())
-        -> SavedSession {
+        -> SavedSession
+    {
         var t = Table()
         let columns = [t.run(.king, .two), [t.c(.ace)]] + Array(repeating: [Card](), count: 8)
-        let state = GameState(difficulty: difficulty, seed: 0, columns: columns, stock: [],
-                              completed: Array(repeating: .spades, count: 7), score: 1000, moves: moves)
+        let state = GameState(
+            difficulty: difficulty, seed: 0, columns: columns, stock: [],
+            completed: Array(repeating: .spades, count: 7), score: 1000, moves: moves)
         var session = SavedSession(game: SpiderGame(state: state))
         session.tracker = tracker
         return session
     }
 
-    private func controller(_ session: SavedSession, statistics: Statistics = Statistics(),
-                            book: AchievementBook = AchievementBook()) -> SessionController {
+    private func controller(
+        _ session: SavedSession, statistics: Statistics = Statistics(),
+        book: AchievementBook = AchievementBook()
+    ) -> SessionController {
         var c = SessionController(options: Options(), statistics: statistics, achievements: book, seed: 1)
         c.open(session)
         return c
@@ -24,7 +29,9 @@ final class AchievementTests: XCTestCase {
     private let winningMove = Action.move(from: 1, index: 0, to: 0)
 
     /// Unlocks from finishing `session`.
-    private func unlocks(winning session: SavedSession, statistics: Statistics = Statistics()) throws -> Set<AchievementID> {
+    private func unlocks(winning session: SavedSession, statistics: Statistics = Statistics()) throws -> Set<
+        AchievementID
+    > {
         var c = controller(session, statistics: statistics)
         try c.perform(winningMove)
         XCTAssertTrue(c.game.state.isWon)
@@ -217,7 +224,8 @@ final class AchievementTests: XCTestCase {
 
     func testOldSavedGameWithoutTrackerDecodesWithUnknownHistory() throws {
         let saved = SavedSession(game: SpiderGame(difficulty: .twoSuits, seed: 8))
-        var object = try XCTUnwrap(try JSONSerialization.jsonObject(with: JSONEncoder().encode(saved)) as? [String: Any])
+        var object = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(saved)) as? [String: Any])
         XCTAssertNotNil(object["tracker"])
         object["tracker"] = nil
         let old = try JSONSerialization.data(withJSONObject: object)

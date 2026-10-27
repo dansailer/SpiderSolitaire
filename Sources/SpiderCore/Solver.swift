@@ -76,20 +76,25 @@ public struct SolverReport: Sendable, Hashable {
 
 public enum Solver {
     /// Searches from the start of `difficulty`/`seed`.
-    public static func solve(difficulty: Difficulty, seed: UInt64, budget: SolverBudget,
-                             shouldStop: (() -> Bool)? = nil) -> SolverReport {
+    public static func solve(
+        difficulty: Difficulty, seed: UInt64, budget: SolverBudget,
+        shouldStop: (() -> Bool)? = nil
+    ) -> SolverReport {
         solve(GameState.newGame(difficulty: difficulty, seed: seed), budget: budget, shouldStop: shouldStop)
     }
 
-    public static func solve(_ start: GameState, budget: SolverBudget, shouldStop: (() -> Bool)? = nil) -> SolverReport {
+    public static func solve(_ start: GameState, budget: SolverBudget, shouldStop: (() -> Bool)? = nil) -> SolverReport
+    {
         var search = Search(root: Position(start), budget: budget, shouldStop: shouldStop)
         let result = search.run()
         return SolverReport(result: result, nodes: search.nodes)
     }
 
     /// Runs `SolverBudget.attempts(for:)` and returns a verified winning line, or nil.
-    public static func winningLine(difficulty: Difficulty, seed: UInt64,
-                                   shouldStop: (() -> Bool)? = nil) -> [Action]? {
+    public static func winningLine(
+        difficulty: Difficulty, seed: UInt64,
+        shouldStop: (() -> Bool)? = nil
+    ) -> [Action]? {
         for budget in SolverBudget.attempts(for: difficulty) {
             if let shouldStop, shouldStop() { return nil }
             switch solve(difficulty: difficulty, seed: seed, budget: budget, shouldStop: shouldStop).result {
@@ -178,7 +183,7 @@ struct Position {
 
     mutating func apply(_ move: Move) {
         switch move {
-        case let .move(from, index, to):
+        case .move(let from, let index, let to):
             columns[to].append(contentsOf: columns[from][index...])
             columns[from].removeSubrange(index...)
             _ = flipTop(from)
@@ -214,7 +219,7 @@ enum Move: Hashable {
 
     var action: Action {
         switch self {
-        case let .move(from, index, to): return .move(from: from, index: index, to: to)
+        case .move(let from, let index, let to): return .move(from: from, index: index, to: to)
         case .deal: return .deal
         }
     }
@@ -356,13 +361,15 @@ struct Search {
             for index in start..<cards.count {
                 let card = cards[index]
                 let parent: UInt8? = index > 0 ? cards[index - 1] : nil
-                let onNaturalParent = parent.map { Position.isUp($0) && Position.rank($0) == Position.rank(card) + 1 } ?? false
+                let onNaturalParent =
+                    parent.map { Position.isUp($0) && Position.rank($0) == Position.rank(card) + 1 } ?? false
                 for to in p.columns.indices where to != from {
                     guard let target = p.columns[to].last, Position.isUp(target),
-                          Position.rank(target) == Position.rank(card) + 1 else { continue }
+                        Position.rank(target) == Position.rank(card) + 1
+                    else { continue }
                     let sameSuit = Position.suit(target) == Position.suit(card)
                     // Splitting a run, or moving between two equal parents, only pays off in suit.
-                    if (index > start || onNaturalParent), !sameSuit { continue }
+                    if index > start || onNaturalParent, !sameSuit { continue }
                     moves.append(.move(from: from, index: index, to: to))
                 }
                 // Into an empty column: the first one only, whole runs only, never a whole column.

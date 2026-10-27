@@ -42,7 +42,9 @@ public struct PointerController: Sendable {
         return column == drag.from && index >= drag.index
     }
 
-    public mutating func pointerChanged(start: BoardPoint, translation: BoardSize, state: GameState, layout: BoardLayout) {
+    public mutating func pointerChanged(
+        start: BoardPoint, translation: BoardSize, state: GameState, layout: BoardLayout
+    ) {
         if pressStart != start {
             drag = nil
             pressStart = start
@@ -57,8 +59,10 @@ public struct PointerController: Sendable {
         }
     }
 
-    public mutating func pointerEnded(start: BoardPoint, translation: BoardSize, time: Double,
-                                      state: GameState, layout: BoardLayout) -> Result {
+    public mutating func pointerEnded(
+        start: BoardPoint, translation: BoardSize, time: Double,
+        state: GameState, layout: BoardLayout
+    ) -> Result {
         defer { pressed = nil; pressStart = nil; drag = nil }
 
         if let drag {

@@ -1,8 +1,14 @@
 name: CI
 
-# Only the owner's pushes to main and manual runs. No pull_request (or pull_request_target,
-# issue or comment) triggers: this public repository does not run code from forks.
+# Checks every pull request into main, every push to main and manual runs. The job names are the
+# required status checks of the "protect-main" ruleset, so keep them stable.
+#
+# pull_request (never pull_request_target): runs get a read-only token and no secrets. Jobs run
+# only for the owner's same-repository branches; fork pull requests also need a maintainer's
+# approval before any workflow runs (all external contributors).
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
@@ -13,14 +19,17 @@ defaults:
   run:
     shell: bash
 
+# One run per pull request (or branch); a new push to a pull request cancels the older run.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   linux:
-    name: Linux (core, board and updates tests)
-    if: ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer' }}
+    name: Linux tests
+    if: >-
+      ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer'
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -35,8 +44,10 @@ jobs:
       - run: swift test
 
   macos:
-    name: macOS (tests and app bundle)
-    if: ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer' }}
+    name: macOS build and tests
+    if: >-
+      ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer'
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: macos-15
     timeout-minutes: 30
     permissions:
@@ -55,3 +66,36 @@ jobs:
           path: build/SpiderSolitaire.zip
           if-no-files-found: error
           retention-days: 14
+
+  swiftlint:
+    name: SwiftLint
+    if: >-
+      ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer'
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read # check out the repository
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Downloads the static SwiftLint release binary pinned (version and SHA-256) in the script.
+      - run: scripts/lint.sh swiftlint
+
+  swift-format:
+    name: swift-format
+    if: >-
+      ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer'
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read # check out the repository
+    # swift:6.3.3, pinned by digest: its `swift format` matches the Swift 6.3 toolchain used locally.
+    container: swift:6.3.3@sha256:1038d54c80063f5cdfabc4560990c30af64b5de8ebf28161deb22ca4ad5db866
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: scripts/lint.sh swift-format

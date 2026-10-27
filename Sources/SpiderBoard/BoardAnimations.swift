@@ -66,9 +66,11 @@ public struct BoardAnimations: Hashable, Sendable {
         for run in runs {
             let below = columns.indices.contains(run.column) ? columns[run.column] : []
             for (i, card) in run.cards.enumerated() {
-                flying.append(FlyingCard(card: card, column: run.column, runIndex: i,
-                                         foundationSlot: run.foundationSlot, columnBelow: below,
-                                         run: run.cards, arrived: false))
+                flying.append(
+                    FlyingCard(
+                        card: card, column: run.column, runIndex: i,
+                        foundationSlot: run.foundationSlot, columnBelow: below,
+                        run: run.cards, arrived: false))
             }
         }
     }

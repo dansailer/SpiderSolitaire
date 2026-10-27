@@ -1,5 +1,6 @@
-import XCTest
 import SpiderCore
+import XCTest
+
 @testable import SpiderBoard
 
 final class BadgeArtTests: XCTestCase {
@@ -38,7 +39,8 @@ final class BadgeArtTests: XCTestCase {
         }
         for emblem in AchievementEmblem.allCases {
             let locked = colours(BadgeArt.scene(emblem, unlocked: false, size: 64))
-            XCTAssertTrue(locked.allSatisfy { abs($0.r - $0.g) < 0.001 && abs($0.g - $0.b) < 0.001 }, "\(emblem) locked is grey")
+            XCTAssertTrue(
+                locked.allSatisfy { abs($0.r - $0.g) < 0.001 && abs($0.g - $0.b) < 0.001 }, "\(emblem) locked is grey")
             let gold = colours(BadgeArt.scene(emblem, unlocked: true, size: 64))
             XCTAssertTrue(gold.contains { $0.r - $0.b > 0.3 }, "\(emblem) unlocked is gold")
         }

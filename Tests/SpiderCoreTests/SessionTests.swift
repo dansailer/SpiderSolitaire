@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import SpiderCore
 
 final class SessionTests: XCTestCase {
@@ -15,10 +16,14 @@ final class SessionTests: XCTestCase {
     /// A position one move from winning (7 suits done, K..2 + A of spades left).
     private func nearWin() -> SavedSession {
         var t = Table()
-        let state = t.state([t.run(.king, .two), [t.c(.ace)]], completed: Array(repeating: .spades, count: 7), pad: false)
-        return SavedSession(game: SpiderGame(state: GameState(difficulty: .oneSuit, seed: 0, columns: state.columns,
-                                                              stock: [], completed: state.completed,
-                                                              score: 1000, moves: 90)))
+        let state = t.state(
+            [t.run(.king, .two), [t.c(.ace)]], completed: Array(repeating: .spades, count: 7), pad: false)
+        return SavedSession(
+            game: SpiderGame(
+                state: GameState(
+                    difficulty: .oneSuit, seed: 0, columns: state.columns,
+                    stock: [], completed: state.completed,
+                    score: 1000, moves: 90)))
     }
 
     func testUntouchedGameIsNotInProgressAndAbandonsFreely() {

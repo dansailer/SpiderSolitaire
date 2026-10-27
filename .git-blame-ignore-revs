@@ -1,0 +1,4 @@
+# Layout-only commits, hidden from git blame (GitHub does this automatically; locally:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs).
+# swift-format adoption
+6ef443f8a7d0148b84a0752f9521ff5a26e728ab

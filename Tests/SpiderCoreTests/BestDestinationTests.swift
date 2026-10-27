@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import SpiderCore
 
 final class BestDestinationTests: XCTestCase {
@@ -22,12 +23,12 @@ final class BestDestinationTests: XCTestCase {
     func testNearestToTheRightWithWrapAround() {
         var t = Table()
         let state = t.state([
-            [t.c(.six, .clubs)],     // 0
-            [t.c(.ace)],             // 1
-            [t.c(.three)],           // 2
-            [t.c(.five, .hearts)],   // 3 source
-            [t.c(.nine)],            // 4
-            [t.c(.six, .diamonds)],  // 5
+            [t.c(.six, .clubs)], // 0
+            [t.c(.ace)], // 1
+            [t.c(.three)], // 2
+            [t.c(.five, .hearts)], // 3 source
+            [t.c(.nine)], // 4
+            [t.c(.six, .diamonds)], // 5
         ])
         XCTAssertEqual(state.bestDestination(from: 3, index: 0), 5)
         let wrap = t.state([[t.c(.six, .clubs)], [t.c(.ace)], [t.c(.three)], [t.c(.five, .hearts)]])

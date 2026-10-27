@@ -1,9 +1,10 @@
+import SpiderCore
+
 #if canImport(Darwin)
 import Darwin
 #else
 import Glibc
 #endif
-import SpiderCore
 
 /// The win animation as a pure function of time: completed-suit cards launch from the
 /// foundation and bounce across the felt leaving short trails (classic Windows style), while
@@ -104,8 +105,10 @@ public struct WinCelebration: Sendable {
             let count = WinCelebration.particlesPerBurst
             let angles = (0..<count).map { i in 2 * Double.pi * Double(i) / Double(count) + 0.2 * unit() }
             let speeds = (0..<count).map { _ in min(w, h) * (0.22 + 0.22 * unit()) }
-            bursts.append(Burst(start: bt, origin: origin, colorIndex: colour % WinCelebration.paletteSize,
-                                speeds: speeds, angles: angles))
+            bursts.append(
+                Burst(
+                    start: bt, origin: origin, colorIndex: colour % WinCelebration.paletteSize,
+                    speeds: speeds, angles: angles))
             colour += 1
             bt += WinCelebration.burstInterval * (0.7 + 0.6 * unit())
         }
@@ -164,10 +167,13 @@ public struct WinCelebration: Sendable {
             let alpha = 1 - age / WinCelebration.particleLife
             for i in burst.angles.indices {
                 let v = burst.speeds[i]
-                let p = BoardPoint(x: burst.origin.x + cos(burst.angles[i]) * v * age,
-                                   y: burst.origin.y + sin(burst.angles[i]) * v * age + sparkGravity * age * age / 2)
-                sparks.append(Sprite(kind: .spark(colorIndex: burst.colorIndex), center: p,
-                                     alpha: alpha, radius: max(1.5, cardSize.width * 0.035)))
+                let p = BoardPoint(
+                    x: burst.origin.x + cos(burst.angles[i]) * v * age,
+                    y: burst.origin.y + sin(burst.angles[i]) * v * age + sparkGravity * age * age / 2)
+                sparks.append(
+                    Sprite(
+                        kind: .spark(colorIndex: burst.colorIndex), center: p,
+                        alpha: alpha, radius: max(1.5, cardSize.width * 0.035)))
             }
         }
         return trails + heads + sparks

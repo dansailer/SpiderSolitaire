@@ -1,8 +1,10 @@
 name: jactionlint
 
-# Lints the workflows and dependabot.yml (https://jactionlint.jdx.dev), as in jactionlint's own
-# recommended workflow, but only for the owner's pushes to main and manual runs.
+# Lints the workflows and dependabot.yml (https://jactionlint.jdx.dev) with the pedantic profile,
+# failing on any finding. Same triggers and guard as CI; the job name is a required status check.
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
@@ -10,13 +12,15 @@ on:
 permissions: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   jactionlint:
-    name: Lint workflows
-    if: ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer' }}
+    name: jactionlint
+    if: >-
+      ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer'
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -26,3 +30,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: jdx/jactionlint@a65ab044e916760429068fe5794b8306abdfcbb9 # v2.3.0
+        with:
+          profile: pedantic
+          strict-exit: true

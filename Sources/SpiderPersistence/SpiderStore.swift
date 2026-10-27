@@ -20,7 +20,8 @@ public struct SpiderStore: Sendable {
 
     /// ~/Library/Application Support/SpiderSolitaire on macOS (XDG data dir on Linux).
     public static func defaultDirectory() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        let base =
+            FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         return base.appendingPathComponent(folderName, isDirectory: true)
     }
@@ -29,7 +30,9 @@ public struct SpiderStore: Sendable {
 
     // MARK: Statistics and options (missing or unreadable files give defaults)
 
-    public func loadStatistics() -> Statistics { (try? read(Statistics.self, SpiderStore.statisticsFile)) ?? Statistics() }
+    public func loadStatistics() -> Statistics {
+        (try? read(Statistics.self, SpiderStore.statisticsFile)) ?? Statistics()
+    }
     public func saveStatistics(_ statistics: Statistics) throws { try write(statistics, SpiderStore.statisticsFile) }
 
     public func loadOptions() -> Options { (try? read(Options.self, SpiderStore.optionsFile)) ?? Options() }
@@ -54,7 +57,8 @@ public struct SpiderStore: Sendable {
     /// Reads the saved game without removing it. Nil if missing, corrupt or from a newer version.
     public func peekSavedGame() -> SavedSession? {
         guard let saved = try? read(SavedSession.self, SpiderStore.savedGameFile),
-              saved.version <= SavedSession.currentVersion else { return nil }
+            saved.version <= SavedSession.currentVersion
+        else { return nil }
         return saved
     }
 

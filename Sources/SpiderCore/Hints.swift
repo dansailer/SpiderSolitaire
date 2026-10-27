@@ -47,9 +47,12 @@ extension GameState {
 
                 for to in columns.indices where to != from {
                     guard let target = columns[to].last, target.isFaceUp,
-                          target.rank.rawValue == card.rank.rawValue + 1 else { continue }
+                        target.rank.rawValue == card.rank.rawValue + 1
+                    else { continue }
                     if target.suit == card.suit {
-                        if !sitsOnSameSuitParent { result.append(Hint(from: from, index: index, to: to, kind: .sameSuit)) }
+                        if !sitsOnSameSuitParent {
+                            result.append(Hint(from: from, index: index, to: to, kind: .sameSuit))
+                        }
                     } else if !sitsOnAnyParent {
                         result.append(Hint(from: from, index: index, to: to, kind: .otherSuit))
                     }
