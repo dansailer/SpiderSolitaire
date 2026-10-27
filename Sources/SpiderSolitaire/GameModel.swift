@@ -53,16 +53,16 @@ final class GameModel: ObservableObject {
     @Published private(set) var session: SessionController
     @Published private(set) var pointer: PointerController = PointerController()
     @Published private(set) var animations: BoardAnimations = BoardAnimations()
-    @Published private(set) var highlight: HintHighlight? = nil
+    @Published private(set) var highlight: HintHighlight?
     @Published private(set) var hasSavedGame: Bool = false
-    @Published var alert: BoardAlert? = nil
+    @Published var alert: BoardAlert?
     @Published var showStatisticsSheet: Bool = false
     /// The running win animation (nil when none). The view samples it every frame.
-    @Published private(set) var celebration: Celebration? = nil
+    @Published private(set) var celebration: Celebration?
     /// Set while a winnable deal is being searched for (the board shows "Dealing a winnable game…").
-    @Published private(set) var dealingDifficulty: Difficulty? = nil
+    @Published private(set) var dealingDifficulty: Difficulty?
     /// The achievement banner at the top of the board (nil when none).
-    @Published private(set) var toast: Achievement? = nil
+    @Published private(set) var toast: Achievement?
 
     struct Celebration: Sendable {
         let suits: [Suit]
@@ -83,15 +83,15 @@ final class GameModel: ObservableObject {
 
     /// Winnable seeds found ahead of time (winnable.json) and the searches that fill it.
     private var seedCache: WinnableSeedCache
-    private var dealTask: Task<Void, Never>? = nil
+    private var dealTask: Task<Void, Never>?
     private var dealGeneration: Int = 0
-    private var prefillTask: Task<Void, Never>? = nil
+    private var prefillTask: Task<Void, Never>?
     private var prefillGeneration: Int = 0
     /// Achievements waiting for their banner, and the banner on screen.
     private var toastQueue: [Achievement] = []
     private var toastID: Int = 0
     /// Game clock: ticks once a second; play time only counts while the app is active.
-    private var clockTask: Task<Void, Never>? = nil
+    private var clockTask: Task<Void, Never>?
     private var lastTick: Double = ProcessInfo.processInfo.systemUptime
 
     /// One timed step of an animation, hint flash or deferred request.
@@ -564,7 +564,7 @@ final class GameModel: ObservableObject {
 
         let animated: Bool = session.options.animationsEnabled
         let dealsBefore: Int = game.state.dealsRemaining
-        var outcome: ActionOutcome? = nil
+        var outcome: ActionOutcome?
         var flightsStart: Double = 0
 
         if action == Action.deal {

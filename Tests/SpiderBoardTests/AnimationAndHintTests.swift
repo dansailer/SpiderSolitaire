@@ -151,7 +151,7 @@ final class HintCyclerTests: XCTestCase {
 
     func testDealThenNoMoves() {
         var k = Cards()
-        let blocked = (0..<10).map { i in [k.c(i % 2 == 0 ? .two : .nine)] }
+        let blocked = (0..<10).map { i in [k.c(i.isMultiple(of: 2) ? .two : .nine)] }
         var cycler = HintCycler()
         XCTAssertEqual(cycler.next(for: k.state(blocked, stock: 10)), .deal)
         XCTAssertEqual(cycler.next(for: k.state(blocked)), .noMoves)

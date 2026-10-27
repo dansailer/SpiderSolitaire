@@ -246,8 +246,9 @@ public enum Rosette {
             VectorItem(path: lozenge, fill: .solid(navy.withAlpha(0.35)), stroke: Stroke(gold, width: lineWidth)))
         for k in 0..<8 {
             let angle = Double(k) * Double.pi / 4
-            let petal = petalPath(center: c, angle: angle, length: r * (k % 2 == 0 ? 0.92 : 0.7), halfWidth: r * 0.2)
-            items.append(VectorItem(path: petal, fill: .solid(k % 2 == 0 ? gold : cream.withAlpha(0.9))))
+            let petal = petalPath(
+                center: c, angle: angle, length: r * (k.isMultiple(of: 2) ? 0.92 : 0.7), halfWidth: r * 0.2)
+            items.append(VectorItem(path: petal, fill: .solid(k.isMultiple(of: 2) ? gold : cream.withAlpha(0.9))))
         }
         items.append(
             VectorItem(

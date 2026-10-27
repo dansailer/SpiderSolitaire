@@ -86,7 +86,7 @@ struct ClassicCardFaceView: View {
                 .resizable()
                 .interpolation(Image.Interpolation.high)
                 .antialiased(true)
-                .aspectRatio(contentMode: ContentMode.fit)
+                .scaledToFit()
                 .frame(width: size.width, height: size.height)
             RoundedRectangle(cornerRadius: radius)
                 .strokeBorder(CardStyle.border, lineWidth: 1)
@@ -312,7 +312,7 @@ struct VectorSceneView: View {
 
     var body: some View {
         let scene: VectorScene = self.scene
-        Canvas { (context: inout GraphicsContext, size: CGSize) in
+        Canvas { (context: inout GraphicsContext, _: CGSize) in
             VectorSceneView.draw(scene, in: &context)
         }
     }

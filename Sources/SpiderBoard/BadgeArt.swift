@@ -54,6 +54,8 @@ public enum BadgeArt {
 
     // MARK: Emblems (inside the 26...74 box)
 
+    // One flat case per emblem: splitting the switch would only scatter the drawing.
+    // swiftlint:disable:next function_body_length
     static func emblemItems(_ emblem: AchievementEmblem, ink: RGBA) -> [VectorItem] {
         func fill(_ p: VectorPath) -> VectorItem { VectorItem(path: p, fill: .solid(ink)) }
         func line(_ p: VectorPath, _ w: Double = 4) -> VectorItem { VectorItem(path: p, stroke: Stroke(ink, width: w)) }
@@ -99,7 +101,7 @@ public enum BadgeArt {
             var ticks = VectorPath()
             for i in 0..<12 {
                 let a = Double(i) * Double.pi / 6
-                let r0 = i % 3 == 0 ? 16.0 : 18.0
+                let r0 = i.isMultiple(of: 3) ? 16.0 : 18.0
                 ticks.append(
                     VectorPath([
                         .move(pt(50 + r0 * sin(a), 50 - r0 * cos(a))),
@@ -189,7 +191,7 @@ public enum BadgeArt {
         .polygon(
             (0..<10).map { i in
                 let a = Double(i) * Double.pi / 5
-                let r = i % 2 == 0 ? outer : inner
+                let r = i.isMultiple(of: 2) ? outer : inner
                 return BoardPoint(x: c.x + r * sin(a), y: c.y - r * cos(a))
             })
     }
@@ -248,7 +250,7 @@ public enum BadgeArt {
                 let dy = 3 * u * u * (p1.y - p0.y) + 6 * u * t * (p2.y - p1.y) + 3 * t * t * (p3.y - p2.y)
                 let along = atan2(dy, dx) * 180 / Double.pi - 90
                 // Alternate leaves inside and outside the stem, tilted towards the tip.
-                let outward = i % 2 == 0 ? 1.0 : -1.0
+                let outward = i.isMultiple(of: 2) ? 1.0 : -1.0
                 let tilt = along + side * outward * 35
                 let off = 3.2 * outward * side
                 let nx = -dy, ny = dx

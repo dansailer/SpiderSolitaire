@@ -1,7 +1,8 @@
 name: Release
 
 # Builds, tests and publishes a GitHub Release for a version tag (v1.2.3). Runs only for tags
-# pushed by the owner (the v* tag ruleset limits who can create them) or a manual run.
+# pushed by the owner (the v* tag ruleset limits who can create them) or a manual run. The tagged
+# commit must be on main or a release/x.y branch.
 on:
   push:
     tags: ['v*']
@@ -45,6 +46,14 @@ jobs:
           ref: refs/tags/${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
           persist-credentials: false
+      # Releases are tagged on main (or on a release/x.y branch for a patch), after the pull
+      # request checks passed there.
+      - name: Check the tag is on main or a release branch
+        run: |
+          if ! git branch --remotes --contains HEAD | grep -Eq '^[[:space:]]*origin/(main|release/[0-9]+\.[0-9]+)$'; then
+            echo "::error::Tag '$TAG' is not on main or a release/x.y branch"
+            exit 1
+          fi
       - run: swift --version
       - run: swift test
       - name: Package

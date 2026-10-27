@@ -25,7 +25,7 @@ struct WinCelebrationView: View {
         let cardSize: CGSize = layout.cardSize.cgSize
         TimelineView(AnimationTimelineSchedule()) { context in
             let t: Double = context.date.timeIntervalSince(celebration.start)
-            Canvas { (graphics: inout GraphicsContext, size: CGSize) in
+            Canvas { (graphics: inout GraphicsContext, _: CGSize) in
                 for sprite in simulation.sprites(at: t) {
                     let centre: CGPoint = CGPoint(x: CGFloat(sprite.center.x), y: CGFloat(sprite.center.y))
                     switch sprite.kind {

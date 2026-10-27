@@ -42,7 +42,11 @@ public enum MenuCommand: String, CaseIterable, Sendable {
     case checkForUpdates
 
     public enum Menu: String, Sendable {
-        case app = "Spider Solitaire", game = "Game", difficulty = "Difficulty", window = "Window", help = "Help"
+        case app = "Spider Solitaire"
+        case game = "Game"
+        case difficulty = "Difficulty"
+        case window = "Window"
+        case help = "Help"
     }
 
     public var title: String {

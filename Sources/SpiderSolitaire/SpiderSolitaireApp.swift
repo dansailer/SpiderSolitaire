@@ -212,7 +212,7 @@ enum MenuProbe {
             let steps: [MenuCommand] = [.showHint, .dealNextRow, .undo, .redo, .showHint, .undo]
             let ticks: Int = Int(seconds * 4)
             for tick in 0..<ticks {
-                if tick % 2 == 0 { menuController.perform(steps[(tick / 2) % steps.count]) }
+                if tick.isMultiple(of: 2) { menuController.perform(steps[(tick / 2) % steps.count]) }
                 let snapshot: String = MainMenuBuilder.snapshot()
                 seen[snapshot, default: 0] += 1
                 print(String(format: "MENUPROBE %6.2fs %@", Double(tick) / 4, snapshot))

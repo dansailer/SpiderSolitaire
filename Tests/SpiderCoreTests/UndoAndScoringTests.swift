@@ -6,7 +6,7 @@ final class UndoAndScoringTests: XCTestCase {
     func testUndoRestoresPositionAndCostsAPoint() throws {
         var game = SpiderGame(difficulty: .fourSuits, seed: 8)
         let start = game.state
-        let hint = try XCTUnwrap(game.state.hints().first ?? nil, "seed 8 has an opening move")
+        let hint = try XCTUnwrap(game.state.hints().first, "seed 8 has an opening move")
         try game.perform(hint.action)
         XCTAssertEqual(game.state.score, 499)
         try game.undo()

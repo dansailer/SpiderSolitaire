@@ -1,0 +1,74 @@
+# SwiftLint configuration (version pinned in scripts/install-swiftlint.sh; run scripts/lint.sh).
+# Layout (indentation, wrapping, commas, braces) belongs to swift-format (.swift-format), so
+# SwiftLint's layout rules that disagree with it are off and SwiftLint checks the rest.
+included:
+  - Package.swift
+  - Sources
+  - Tests
+excluded:
+  - .build
+  - build
+
+disabled_rules:
+  - trailing_comma # swift-format adds trailing commas to multi-line collections
+  - opening_brace # swift-format puts `{` on its own line after a wrapped signature
+  - closure_parameter_position # swift-format wraps long typed closure parameter lists
+
+opt_in_rules:
+  - array_init
+  - closure_end_indentation
+  - contains_over_filter_count
+  - contains_over_first_not_nil
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - first_where
+  - flatmap_over_map_reduce
+  - last_where
+  - legacy_multiple
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - toggle_bool
+  - unneeded_parentheses_in_closure_argument
+  - yoda_condition
+
+# Board geometry, card art and tests use short math names (x, y, dx, p, c, t, i).
+identifier_name:
+  min_length: 1
+  max_length: 50
+type_name:
+  allowed_symbols: []
+  excluded: [ID]
+
+# swift-format wraps code at 120 columns; what is still longer is unbreakable string literals
+# (help text, vector path data, JSON fixtures), so this only catches the outliers.
+line_length:
+  warning: 200
+  error: 250
+  ignores_urls: true
+
+# Exhaustive `switch`es over commands and menu items are flat and readable.
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+  ignores_case_statements: true
+function_body_length:
+  warning: 80
+  error: 150
+type_body_length:
+  warning: 600
+  error: 800
+file_length:
+  warning: 800
+  error: 1200
+  ignore_comment_only_lines: true
+# Codable types nest their CodingKeys one level deeper.
+nesting:
+  type_level: 2
+large_tuple:
+  warning: 3
+  error: 4
+
+# "Grandmaster" is the four-suit achievement.
+inclusive_language:
+  override_allowed_terms: [grandmaster]
