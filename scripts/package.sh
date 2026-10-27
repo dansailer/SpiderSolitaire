@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# Builds "build/Spider Solitaire.app" (release), ad-hoc signs it and zips it to
-# build/SpiderSolitaire.zip. Run on macOS 14+ with Xcode 15+ or the Command Line Tools.
+# Builds "build/Spider Solitaire.app" (release), signs it and zips it to build/SpiderSolitaire.zip.
+# Run on macOS 14+ with Xcode 15+ or the Command Line Tools.
 #
-#   scripts/package.sh                  # native architecture
+#   scripts/package.sh                  # native architecture, ad-hoc signed
 #   UNIVERSAL=1 scripts/package.sh      # arm64 + x86_64 (needs full Xcode)
 #   VERSION=1.2.0 scripts/package.sh    # CFBundleShortVersionString (default 1.0.0)
+#   SIGN_IDENTITY="Developer ID Application: Daniel Sailer (595TEE9LSF)" scripts/package.sh
+#                                       # Developer ID: hardened runtime and secure timestamp, ready
+#                                       # for notarization (the Release workflow notarizes and staples)
+#   SIGN_KEYCHAIN=/path/x.keychain-db   # look the identity up in this keychain only (CI)
 #
 # Works with macOS's stock bash 3.2 (no bash 4 features).
 set -euo pipefail
@@ -112,9 +116,22 @@ printf 'APPL????' > "$APP/Contents/PkgInfo"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 plutil -lint "$DEST_BUNDLE/Contents/Info.plist" >/dev/null
 
-echo "==> Signing (ad hoc)"
-codesign --force --deep -s - "$APP"
-codesign --verify --deep --strict "$APP"
+# Inside out, without --deep: the resource bundle first, then the app (which seals its executable
+# and resources). The bundle holds no code, but signing it keeps the app's seal over a signed bundle.
+SIGN_IDENTITY="${SIGN_IDENTITY:--}"
+if [[ "$SIGN_IDENTITY" == "-" ]]; then
+    echo "==> Signing (ad hoc)"
+    SIGN_ARGS=(--force --sign -)
+else
+    echo "==> Signing with $SIGN_IDENTITY (hardened runtime, secure timestamp)"
+    SIGN_ARGS=(--force --options runtime --timestamp --sign "$SIGN_IDENTITY")
+    if [[ -n "${SIGN_KEYCHAIN:-}" ]]; then
+        SIGN_ARGS+=(--keychain "$SIGN_KEYCHAIN")
+    fi
+fi
+codesign "${SIGN_ARGS[@]}" "$DEST_BUNDLE"
+codesign "${SIGN_ARGS[@]}" "$APP"
+codesign --verify --deep --strict --verbose=2 "$APP"
 
 echo "==> Zipping"
 rm -f "$ZIP"

@@ -49,7 +49,7 @@
   "mainEntity": [
     {"@type": "Question", "name": "Is Spider Solitaire really free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. There are no ads, no purchases inside the app and no account. The source code is open under the MIT licence."}},
     {"@type": "Question", "name": "Which Macs does it run on?", "acceptedAnswer": {"@type": "Answer", "text": "Any Mac with macOS 14 Sonoma or later. The download is a universal app for Apple silicon and Intel Macs."}},
-    {"@type": "Question", "name": "Why does macOS warn me the first time I open it?", "acceptedAnswer": {"@type": "Answer", "text": "The app is signed ad hoc rather than with a paid Apple Developer ID, so Gatekeeper cannot check who made it. Right click the app, choose Open, then confirm. You only do this once."}},
+    {"@type": "Question", "name": "Why does macOS warn me the first time I open it?", "acceptedAnswer": {"@type": "Answer", "text": "Versions after 1.0.0 are signed with an Apple Developer ID and notarized by Apple, so they open with a double click. Version 1.0.0 was signed ad hoc, so Gatekeeper cannot check who made it: right click the app, choose Open, then confirm. You only do this once."}},
     {"@type": "Question", "name": "Does it collect any data?", "acceptedAnswer": {"@type": "Answer", "text": "No. The only network request is the optional update check, which reads the public list of releases on GitHub at most once a day. You can turn it off in Settings."}},
     {"@type": "Question", "name": "Does it work offline?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Everything runs on your Mac. Without a connection the update check simply waits for the next day."}},
     {"@type": "Question", "name": "How close is it to the Windows XP version?", "acceptedAnswer": {"@type": "Answer", "text": "The rules, the scoring, the dealing rule for empty columns, hints, statistics and the three difficulties all follow XP. Redo, winnable deals and achievements are new, and you can switch undo to the classic XP behaviour."}},
@@ -225,8 +225,8 @@
       </li>
     </ol>
     <div class="gatekeeper" id="first-launch">
-      <h3><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-shield-check"/></svg>Why macOS asks the first time</h3>
-      <p class="muted" style="margin-top: var(--s-100)">The app is signed ad hoc, not with a paid Apple Developer ID, so Gatekeeper cannot confirm who made it and blocks a plain double click. Any of these lets it open:</p>
+      <h3><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-shield-check"/></svg>If macOS asks the first time</h3>
+      <p class="muted" style="margin-top: var(--s-100)">Versions after 1.0.0 are signed with an Apple Developer ID and notarized by Apple, so macOS opens them with a double click. Version 1.0.0 was signed ad hoc, so Gatekeeper cannot confirm who made it and blocks a plain double click. If you have 1.0.0, any of these lets it open:</p>
       <ol class="text-base">
         <li><strong>Right click Open.</strong> In Applications, right click Spider Solitaire, choose Open, then Open in the dialog.</li>
         <li><strong>Open Anyway.</strong> After a blocked attempt, go to System Settings, Privacy &amp; Security, scroll down and click Open Anyway.</li>
@@ -272,7 +272,7 @@
     <div class="faq">
       <details><summary>Is Spider Solitaire really free?</summary><p>Yes. There are no ads, no purchases inside the app and no account. The source code is open under the MIT licence.</p></details>
       <details><summary>Which Macs does it run on?</summary><p>Any Mac with macOS 14 Sonoma or later. The download is a universal app for Apple silicon and Intel Macs.</p></details>
-      <details><summary>Why does macOS warn me the first time I open it?</summary><p>The app is signed ad hoc rather than with a paid Apple Developer ID, so Gatekeeper cannot check who made it. Right click the app, choose Open, then confirm. You only do this once. <a class="text-link" href="#first-launch">More ways to open it</a></p></details>
+      <details><summary>Why does macOS warn me the first time I open it?</summary><p>Versions after 1.0.0 are signed with an Apple Developer ID and notarized by Apple, so they open with a double click. Version 1.0.0 was signed ad hoc, so Gatekeeper cannot check who made it: right click the app, choose Open, then confirm. You only do this once. <a class="text-link" href="#first-launch">More ways to open it</a></p></details>
       <details><summary>Does it collect any data?</summary><p>No. The only network request is the optional update check, which reads the public list of releases on GitHub at most once a day. You can turn it off in Settings, General.</p></details>
       <details><summary>Does it work offline?</summary><p>Yes. Everything runs on your Mac. Without a connection the update check simply waits for the next day.</p></details>
       <details><summary>How close is it to the Windows XP version?</summary><p>The rules, the scoring, the dealing rule for empty columns, hints, statistics and the three difficulties all follow XP. Redo, winnable deals and achievements are new, and you can switch undo to the classic XP behaviour.</p></details>

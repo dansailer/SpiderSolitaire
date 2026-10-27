@@ -56,7 +56,12 @@ final class PackagingTests: XCTestCase {
         XCTAssertTrue(script.hasPrefix("#!/usr/bin/env bash"))
         XCTAssertTrue(script.contains("set -euo pipefail"))
         XCTAssertTrue(script.contains("swift build -c release"))
-        XCTAssertTrue(script.contains("codesign --force --deep -s -"))
+        // Ad hoc by default; a Developer ID gets the hardened runtime and a secure timestamp
+        // (both required for notarization).
+        XCTAssertTrue(script.contains("SIGN_IDENTITY=\"${SIGN_IDENTITY:--}\""))
+        XCTAssertTrue(script.contains("--force --sign -"))
+        XCTAssertTrue(script.contains("--options runtime --timestamp"))
+        XCTAssertTrue(script.contains("codesign --verify --deep --strict"))
         XCTAssertTrue(script.contains("build/SpiderSolitaire.zip") || script.contains("SpiderSolitaire.zip"))
         XCTAssertTrue(script.contains("Spider Solitaire.app") || script.contains("$APP_NAME.app"))
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: url.path), "package.sh must be chmod +x")

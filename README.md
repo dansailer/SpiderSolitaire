@@ -33,11 +33,19 @@ The script (macOS only):
    with `sips` and `iconutil`.
 3. Assembles `build/Spider Solitaire.app` from `Packaging/Info.plist` (bundle id
    `com.dansailer.SpiderSolitaire`, minimum macOS 14).
-4. Ad-hoc signs it (`codesign --force --deep -s -`) and zips it to `build/SpiderSolitaire.zip`.
+4. Signs it, inside out without `--deep` (ad hoc by default, or with `SIGN_IDENTITY`), and zips it to
+   `build/SpiderSolitaire.zip`.
 
 Options: `VERSION=1.2.0` sets the version (default 1.0.0), `BUILD_NUMBER` defaults to the git commit
-count, and `UNIVERSAL=1` builds arm64 + x86_64 (needs full Xcode). The app is ad-hoc signed, not
-notarized: on another Mac, right-click ▸ Open the first time.
+count, and `UNIVERSAL=1` builds arm64 + x86_64 (needs full Xcode).
+`SIGN_IDENTITY="Developer ID Application: Daniel Sailer (595TEE9LSF)"` signs with that keychain identity,
+hardened runtime and a secure timestamp (`SIGN_KEYCHAIN` limits the lookup to one keychain); without
+it the app is ad-hoc signed, and on another Mac it has to be opened with right-click ▸ Open (or
+System Settings ▸ Privacy & Security ▸ Open Anyway) the first time.
+
+Releases after 1.0.0 are Developer ID signed, notarized by Apple and stapled by the Release
+workflow, so they open with a double click. v1.0.0 was ad-hoc signed and still needs right-click ▸
+Open the first time.
 
 The script also copies SwiftPM's resource bundle (`SpiderSolitaire_SpiderSolitaire.bundle`, which holds the
 Classic card faces) into `Contents/Resources` in the standard bundle layout, so the app works outside the
@@ -116,8 +124,8 @@ Spider Solitaire ▸ Check for Updates… asks GitHub's public API for the lates
 a newer one, Download saves `SpiderSolitaire.zip` to your Downloads folder and shows it in Finder;
 you then replace the app yourself. With "Check for updates automatically" on (Settings ▸ General,
 the default) it checks at launch, at most once a day, and stays silent unless an update exists.
-The app does not replace itself: that would need Developer ID signing and notarization plus an
-updater such as Sparkle, which this project does not use yet.
+The app does not replace itself: that would need an updater such as Sparkle, which this project
+does not use yet.
 
 ## Releases, CI and the website
 Work happens on branches; `main` only changes through pull requests whose checks passed. The cycle
@@ -141,7 +149,7 @@ gets only the permissions it needs, and checkouts do not keep credentials.
 |---|---|
 | `ci.yml` | Linux `swift test` in a pinned container; macOS `swift test` plus `scripts/package.sh`; SwiftLint (pinned, checksum-verified release binary); `swift format lint --strict` in a pinned Swift 6.3 container |
 | `jactionlint.yml` | Lints the workflows and `dependabot.yml` with jactionlint, pedantic profile, failing on any finding |
-| `release.yml` | On a `v*` tag on `main` or a `release/x.y` branch: tests, `VERSION=<tag without v> UNIVERSAL=1 scripts/package.sh`, then a GitHub release with `SpiderSolitaire.zip`, its `.sha256` and generated notes (a tag with `-` becomes a prerelease) |
+| `release.yml` | On a `v*` tag on `main` or a `release/x.y` branch, in the `release` environment: tests, a universal build signed with the Developer ID (`scripts/signing-keychain.sh`, `scripts/package.sh`), notarized and stapled (`scripts/notarize.sh`), then a GitHub release with `SpiderSolitaire.zip`, its `.sha256` and generated notes (a tag with `-` becomes a prerelease) |
 | `pages.yml` | Deploys `docs/` to GitHub Pages on pushes to `main` that change it (Settings ▸ Pages ▸ Source must be "GitHub Actions") |
 
 Cut a release from an up to date `main` after the pull request is merged:
@@ -150,8 +158,24 @@ git switch main && git pull --ff-only
 git tag -a v1.1.0 -m "Spider Solitaire 1.1.0"
 git push origin v1.1.0
 ```
-If the run fails after the tag exists, fix it and rerun from Actions ▸ Release ▸ Run workflow with
-the tag (the workflow builds the tagged commit). Tags are never moved or reused.
+If the run fails after the tag exists, fix it and rerun it with the tag as the ref, which the
+`release` environment requires: `gh workflow run release.yml --ref v1.1.0 -f tag=v1.1.0` (the
+workflow builds the tagged commit). Tags are never moved or reused.
+
+Signing and notarization use secrets of the `release` environment (Settings ▸ Environments ▸
+release, deployable from `v*` tags only; no pull request job can read them):
+
+| Secret | Contents |
+|---|---|
+| `MACOS_CERT_P12_BASE64` | base64 of the exported "Developer ID Application: Daniel Sailer (595TEE9LSF)" certificate and private key (`.p12`) |
+| `MACOS_CERT_PASSWORD` | the `.p12` export password |
+| `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64` | option A for notarization: an App Store Connect API key (key ID, issuer ID, base64 of the `.p8`) |
+| `APPLE_ID`, `APPLE_APP_PASSWORD`, `APPLE_TEAM_ID` | option B: Apple ID, an app-specific password and the team ID (`595TEE9LSF`) |
+
+The API key is used when all three of its secrets are set, otherwise the Apple ID. With neither, the
+release is Developer ID signed but not notarized; without the certificate it is ad-hoc signed. Both
+fallbacks show a warning on the run. The certificate goes into a temporary keychain with a random
+password, and the keychain and key files are deleted at the end of the job, also on failure.
 
 Lint locally with `scripts/lint.sh` (`--fix` formats and applies SwiftLint's fixes first): it runs
 `swift format` from the toolchain with `.swift-format` and SwiftLint with `.swiftlint.yml`, which

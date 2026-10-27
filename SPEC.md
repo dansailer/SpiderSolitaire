@@ -347,11 +347,13 @@ SpiderSolitaire (Swift package)
 - **Packaging:**
   - `scripts/package.sh` runs `swift build -c release`, renders the icon with the `SpiderIcon`
     tool (CoreGraphics), builds the `.icns` with `sips`/`iconutil`, assembles
-    `build/Spider Solitaire.app/Contents/{MacOS,Resources,Info.plist,PkgInfo}`, ad-hoc codesigns it
-    (`codesign --force --deep -s -`) and zips it to `build/SpiderSolitaire.zip`.
+    `build/Spider Solitaire.app/Contents/{MacOS,Resources,Info.plist,PkgInfo}`, signs it inside out
+    (ad hoc, or `SIGN_IDENTITY` with hardened runtime and a secure timestamp) and zips it to
+    `build/SpiderSolitaire.zip`. The Release workflow signs with the Developer ID, notarizes and
+    staples (`scripts/notarize.sh`).
   - `Info.plist`: `com.dansailer.SpiderSolitaire`, "Spider Solitaire", category
     `public.app-category.card-games` (Apple's games subcategory), `LSMinimumSystemVersion` 14.0.
-  - An Xcode project can be generated later if the app goes to the App Store or needs notarization.
+  - An Xcode project can be generated later if the app goes to the App Store.
 
 ## 6. Solver (`SpiderCore/Solver.swift`)
 - Pure Swift, deterministic for a given budget. It sees the face-down cards, so "winnable" means a
