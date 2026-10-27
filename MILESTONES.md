@@ -169,7 +169,7 @@ Not done yet: `docs/QA.md`.
 
 ### M8: App icon and `.app` packaging ✅ (package.sh verified on a Mac)
 **Scope:**
-- an app icon (spider and cards, our own art) as an `.icns` in all sizes
+- an app icon (cards on felt with a spade, our own art; no spider motifs) as an `.icns` in all sizes
 - `Info.plist` (bundle id `com.dansailer.SpiderSolitaire`, version, category `public.app-category.card-games`)
 - `scripts/package.sh` → `build/Spider Solitaire.app`, ad-hoc signed
 - a zip artifact (`build/SpiderSolitaire.zip`)

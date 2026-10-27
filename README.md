@@ -43,8 +43,21 @@ The script also copies SwiftPM's resource bundle (`SpiderSolitaire_SpiderSolitai
 Classic card faces) into `Contents/Resources` in the standard bundle layout, so the app works outside the
 build folder.
 
+## Artwork previews on any platform
+```bash
+swift run SpiderIcon icon.svg                # app icon (on a Mac, icon.png renders with CoreGraphics)
+swift run SpiderIcon --card-back back.svg    # card back at 120 x 162 pt
+python3 scripts/cards/preview_faces.py faces.png
+```
+The icon and card back are described once as data in `Sources/SpiderBoard/VectorArt.swift`. SwiftUI,
+CoreGraphics and SVG all draw from that description. The back has a gold rosette and the icon has a
+spade card; there are no spider motifs anywhere.
+
 ## Classic card art
-The Classic faces come from Dmitry Fomin's "English pattern" deck on Wikimedia Commons (CC0). The ace of
+The Classic faces come from Dmitry Fomin's "English pattern" deck on Wikimedia Commons (CC0). That deck
+draws every suit pip into a tall 2:3 box, so the build script rescales each pip about its centre to the
+usual proportions (hearts about 1:1). The PNGs keep the source's 2:3 aspect (240 x 360), and CardView fits
+them onto the 71:96 card with one uniform scale. The ace of
 spades also uses the ornate centre spade from Byron Knoll's public-domain deck. To regenerate them, you need
 Pillow, `rsvg-convert`, `pngquant` and `optipng`; run `python3 scripts/cards/build_classic_cards.py`. It checks
 each file page's licence and writes `Resources/Cards/CREDITS.md`.
@@ -90,9 +103,9 @@ Sources/SpiderCore/        rules engine (Card, Deck, GameState, SpiderGame, Hint
 Sources/SpiderBoard/       pure-Swift board geometry and pointer handling (BoardLayout, PointerController)
 Sources/SpiderPersistence/ JSON files in Application Support (SpiderStore)
 Sources/SpiderSolitaire/   SwiftUI app (App and menus, GameModel, BoardView, CardView, WinCelebrationView)
-Sources/SpiderIcon/        code-drawn app icon renderer (CoreGraphics → 1024 px PNG)
+Sources/SpiderIcon/        renders VectorArt (app icon, card back) to PNG (CoreGraphics) or SVG (any platform)
 Sources/SpiderSolitaire/Resources/Cards/  Classic card faces (52 PNGs, CC0/public domain, see CREDITS.md)
-scripts/cards/             build_classic_cards.py (download, licence check, render) and preview.py
+scripts/cards/             build_classic_cards.py (download, licence check, pip fix, render), preview.py, preview_faces.py
 Packaging/Info.plist       app bundle Info.plist template
 scripts/package.sh         builds, signs and zips build/Spider Solitaire.app
 Tests/SpiderCoreTests/     XCTest suite for the rules

@@ -1,0 +1,79 @@
+{
+  "comment": "Written by scripts/cards/build_classic_cards.py; checked by ClassicCardArtTests.",
+  "sourceWidth": 360,
+  "sourceHeight": 540,
+  "imageWidth": 240,
+  "imageHeight": 360,
+  "pipScale": {
+    "hearts": {
+      "x": 1.15,
+      "y": 0.8
+    },
+    "spades": {
+      "x": 1.1,
+      "y": 0.85
+    },
+    "clubs": {
+      "x": 1.12,
+      "y": 0.82
+    },
+    "diamonds": {
+      "x": 1.0,
+      "y": 0.86
+    }
+  },
+  "reshapedPips": {
+    "clubs_10": 12,
+    "clubs_2": 4,
+    "clubs_3": 5,
+    "clubs_4": 6,
+    "clubs_5": 7,
+    "clubs_6": 8,
+    "clubs_7": 9,
+    "clubs_8": 10,
+    "clubs_9": 11,
+    "clubs_ace": 3,
+    "clubs_jack": 4,
+    "clubs_king": 4,
+    "clubs_queen": 4,
+    "diamonds_10": 12,
+    "diamonds_2": 4,
+    "diamonds_3": 5,
+    "diamonds_4": 6,
+    "diamonds_5": 7,
+    "diamonds_6": 8,
+    "diamonds_7": 9,
+    "diamonds_8": 10,
+    "diamonds_9": 11,
+    "diamonds_ace": 3,
+    "diamonds_jack": 4,
+    "diamonds_king": 4,
+    "diamonds_queen": 4,
+    "hearts_10": 12,
+    "hearts_2": 4,
+    "hearts_3": 5,
+    "hearts_4": 6,
+    "hearts_5": 8,
+    "hearts_6": 8,
+    "hearts_7": 9,
+    "hearts_8": 10,
+    "hearts_9": 11,
+    "hearts_ace": 3,
+    "hearts_jack": 4,
+    "hearts_king": 4,
+    "hearts_queen": 4,
+    "spades_10": 12,
+    "spades_2": 4,
+    "spades_3": 5,
+    "spades_4": 6,
+    "spades_5": 7,
+    "spades_6": 8,
+    "spades_7": 9,
+    "spades_8": 10,
+    "spades_9": 11,
+    "spades_ace": 3,
+    "spades_jack": 4,
+    "spades_king": 4,
+    "spades_queen": 4
+  }
+}

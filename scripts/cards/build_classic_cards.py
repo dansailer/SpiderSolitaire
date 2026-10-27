@@ -20,7 +20,14 @@ API = "https://commons.wikimedia.org/w/api.php"
 UA = {"User-Agent": "SpiderSolitaire-asset-build/1.0 (https://github.com/dansailer; card art licence check)"}
 RANKS = ["ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "jack", "queen", "king"]
 SUITS = ["spades", "hearts", "diamonds", "clubs"]
-OUT_W, OUT_H = 240, 324
+OUT_W, OUT_H = 240, 360  # the source's own 2:3 aspect (360 x 540 SVG); CardView fits it into 71:96
+SOURCE_W, SOURCE_H = 360, 540
+# Fomin draws every suit pip into a 2:3 box (60 x 90 centre pips, 30 x 45 index pips), so hearts,
+# spades and clubs come out ~1.5x taller than usual. Each pip is rescaled about its centre to the
+# usual playing-card proportions (width / height): heart ~0.96, spade ~0.86, club ~0.91, diamond ~0.78.
+PIP_SCALE = {"hearts": (1.15, 0.80), "spades": (1.10, 0.85), "clubs": (1.12, 0.82), "diamonds": (1.0, 0.86)}
+PIP_BOXES = [(60.0, 90.0), (30.0, 45.0)]
+SUIT_FILL = {"hearts": "#ff5555", "diamonds": "#ff5555", "spades": "#000000", "clubs": "#000000"}
 ORNATE_ACE = "File:Ace of spades.svg"  # Byron Knoll, PD-author
 ALLOWED = [r"\{\{\s*self\s*\|\s*cc-zero\s*\}\}", r"\{\{\s*cc-zero\s*\}\}", r"\{\{\s*PD-author\s*\|[^}]*\}\}"]
 FORBIDDEN = r"(?i)gpl|by-sa|cc-by|attribution|nc-|non-?commercial|fair use"
@@ -101,11 +108,44 @@ def strip_outline(svg):
     return svg[:m.start()] + element + svg[m.end():]
 
 
+def reshape_pips(svg, suit):
+    """Wraps every suit pip (a transform-free <path> filled with the suit colour whose bounding box
+    is one of Fomin's 2:3 pip boxes) in a group that rescales it about its centre. Returns the new
+    SVG and how many pips were changed."""
+    from svgelements import Path  # pip install svgelements
+    sx, sy = PIP_SCALE[suit]
+    fill = SUIT_FILL[suit].encode()
+    count = 0
+    def wrap(m):
+        nonlocal count
+        el = m.group(0)
+        if b"transform=" in el or (b"fill:" + fill) not in el.lower():
+            return el
+        d = re.search(rb'\sd="([^"]*)"', el)
+        x0, y0, x1, y1 = Path(d.group(1).decode()).bbox()
+        w, h = x1 - x0, y1 - y0
+        if not any(abs(w - bw) < 0.6 and abs(h - bh) < 0.6 for bw, bh in PIP_BOXES):
+            return el
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        count += 1
+        m_ = f'matrix({sx},0,0,{sy},{cx - sx * cx:.4f},{cy - sy * cy:.4f})'.encode()
+        return b'<g transform="' + m_ + b'">' + el + b"</g>"
+    out = re.sub(rb"<path\b[^>]*?/>", wrap, svg, flags=re.S)
+    return out, count
+
+
+def prepared_svg(path, suit):
+    svg, pips = reshape_pips(strip_outline(open(path, "rb").read()), suit)
+    if pips < 3:
+        sys.exit(f"{path}: found only {pips} suit pips to reshape")
+    return svg, pips
+
+
 def fit(art):
-    scale = OUT_H / art.height
-    art = art.resize((round(art.width * scale), OUT_H), Image.LANCZOS)
-    canvas = Image.new("RGBA", (OUT_W, OUT_H), (0, 0, 0, 0))
-    canvas.alpha_composite(art, ((OUT_W - art.width) // 2, 0))
+    """Uniform downscale to the output size (the art is already 2:3, so nothing is distorted)."""
+    if abs(art.width / art.height - OUT_W / OUT_H) > 0.002:
+        sys.exit(f"art is {art.width} x {art.height}, not 2:3")
+    return art.resize((OUT_W, OUT_H), Image.LANCZOS)
     return canvas
 
 
@@ -168,7 +208,7 @@ def ornate_spade(svg_path):
 
 def ornate_ace(fomin_svg, knoll_svg):
     big = 1620
-    art = render(strip_outline(open(fomin_svg, "rb").read()), big)
+    art = render(prepared_svg(fomin_svg, "spades")[0], big)
     w, h = art.size
     # Clear Fomin's plain centre pip (corner indices stay untouched).
     clear = Image.new("RGBA", (int(w * 0.5), int(h * 0.4)), (0, 0, 0, 0))
@@ -202,13 +242,15 @@ def main():
         f["path"] = download(f, args.cache)
 
     rows = []
+    pip_counts = {"spades_ace": prepared_svg(info[titles[("ace", "spades")]]["path"], "spades")[1]}
     for (rank, suit), title in titles.items():
         f = info[title]
         name = asset_name(rank, suit) + ".png"
         if (rank, suit) == ("ace", "spades"):
             art = ornate_ace(f["path"], info[ORNATE_ACE]["path"])
         else:
-            art = render(strip_outline(open(f["path"], "rb").read()), OUT_H * 5)
+            art = render(prepared_svg(f["path"], suit)[0], OUT_H * 5)
+        pip_counts[asset_name(rank, suit)] = prepared_svg(f["path"], suit)[1]
         out = os.path.join(OUT_DIR, name)
         fit(art).save(out)
         optimise(out)
@@ -216,13 +258,25 @@ def main():
         rows.append((name, sources))
         print(name, os.path.getsize(out))
 
+    manifest = {
+        "comment": "Written by scripts/cards/build_classic_cards.py; checked by ClassicCardArtTests.",
+        "sourceWidth": SOURCE_W, "sourceHeight": SOURCE_H, "imageWidth": OUT_W, "imageHeight": OUT_H,
+        "pipScale": {k: {"x": v[0], "y": v[1]} for k, v in PIP_SCALE.items()},
+        "reshapedPips": dict(sorted(pip_counts.items())),
+    }
+    with open(os.path.join(OUT_DIR, "manifest.json"), "w") as out:
+        json.dump(manifest, out, indent=2)
+        out.write("\n")
+
     with open(os.path.join(OUT_DIR, "CREDITS.md"), "w") as out:
         out.write("# Classic card faces: sources and licences\n\n")
         out.write("Every image in this folder is generated by `scripts/cards/build_classic_cards.py` from the\n"
                   "Wikimedia Commons files below. The script reads each file page's licence section and\n"
                   "refuses to build if it is not CC0 or public domain. Changes made: the SVG card outline is\n"
-                  "made transparent (the app draws its own card and border), the art is rendered with\n"
-                  f"librsvg and fitted to {OUT_W} x {OUT_H} px, and colours are quantised with pngquant.\n\n"
+                  "made transparent (the app draws its own card and border); every suit pip, which the\n"
+                  "source draws into a tall 2:3 box, is rescaled about its centre to the usual proportions\n"
+                  "(see `PIP_SCALE` in the script and `manifest.json`); the art is rendered with librsvg at\n"
+                  f"its own 2:3 aspect, {OUT_W} x {OUT_H} px, and colours are quantised with pngquant.\n\n"
                   "* **Dmitry Fomin, \"English pattern\" playing cards** (2017), CC0 1.0 Universal Public\n"
                   "  Domain Dedication (`{{self|cc-zero}}`): <https://creativecommons.org/publicdomain/zero/1.0/>.\n"
                   "  Category: <https://commons.wikimedia.org/wiki/Category:SVG_English_pattern_playing_cards>\n"

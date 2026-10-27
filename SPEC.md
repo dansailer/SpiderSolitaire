@@ -169,10 +169,14 @@ The look is "XP-like", not a copy of the XP assets.
 ### 3.6a Card faces
 - Options → Card faces: **Classic** (default) or **Simple**. It is saved in options.json; older files
   without the key decode as Classic.
-- Classic: 240 × 324 px PNGs (2x the largest card) from Dmitry Fomin's CC0 English-pattern deck. The ace
+- Classic: 240 × 360 px PNGs, the source's own 2:3 aspect, drawn with `.aspectRatio(contentMode: .fit)` (uniform
+  scale, white side margins). The source deck's pips are drawn 2:3 (too tall); the build rescales them to normal
+  proportions from Dmitry Fomin's CC0 English-pattern deck. The ace
   of spades has Byron Knoll's public-domain ornate spade. The images live in the app target's resources
   (`.copy("Resources/Cards")`), and sources and licences are listed in `Resources/Cards/CREDITS.md`.
-- CardView draws the image on the white card, clipped to the rounded rect, with the usual border. If
+- CardView draws the image on the white card, clipped to the rounded rect, with the usual border.
+- Card back: blue gradient, white lattice, gold frame and a gold rosette in a lozenge (no spider). The icon
+  shows a blue back and a white card with a large spade. Both come from `VectorArt.swift`. If
   an image can't be found, it falls back to the code-drawn face. Card backs are unchanged.
 
 ### 3.7 Sound (M7, optional)

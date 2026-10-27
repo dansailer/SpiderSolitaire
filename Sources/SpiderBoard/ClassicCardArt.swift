@@ -9,9 +9,13 @@ public enum ClassicCardArt {
     /// `.copy("Resources/Cards")` keeps the folder name inside the bundle.
     public static let subdirectory: String = "Cards"
     public static let fileExtension: String = "png"
-    /// Pixel size of every image: 2x the largest on-screen card (120 × 162 pt).
+    /// Pixel size of every image. The art keeps the source deck's own 2:3 proportions (360 × 540
+    /// SVGs); CardView fits it into the 71:96 card with one uniform scale (white margins left and
+    /// right), so nothing is stretched. 360 px tall covers 2x the largest card (162 pt).
     public static let pixelWidth: Int = 240
-    public static let pixelHeight: Int = 324
+    public static let pixelHeight: Int = 360
+    /// Width / height of the source art.
+    public static let artAspect: Double = 360.0 / 540.0
 
     /// "spades_king", "hearts_10", "clubs_ace"... Must match `asset_name` in the build script.
     public static func assetName(rank: Rank, suit: Suit) -> String {

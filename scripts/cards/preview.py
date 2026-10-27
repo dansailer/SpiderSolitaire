@@ -15,7 +15,11 @@ for i, n in enumerate(names):
     mask = Image.new("L", (W, H), 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, W - 1, H - 1), R, fill=255)
     face = Image.new("RGBA", (W, H), (255, 255, 255, 255))
-    face.alpha_composite(Image.open(os.path.join(CARDS, n + ".png")).convert("RGBA"))
+    art = Image.open(os.path.join(CARDS, n + ".png")).convert("RGBA")
+    # Like .aspectRatio(contentMode: .fit): one uniform scale, centred.
+    scale = min(W / art.width, H / art.height)
+    art = art.resize((round(art.width * scale), round(art.height * scale)), Image.LANCZOS)
+    face.alpha_composite(art, ((W - art.width) // 2, (H - art.height) // 2))
     card.paste(face, (0, 0), mask)
     ImageDraw.Draw(card).rounded_rectangle((0, 0, W - 1, H - 1), R, outline=(31, 31, 31, 255), width=2)
     sheet.alpha_composite(card, (x, y))

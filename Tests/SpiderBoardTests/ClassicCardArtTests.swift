@@ -30,11 +30,12 @@ final class ClassicCardArtTests: XCTestCase {
         XCTAssertEqual(names.last, "clubs_king")
     }
 
-    /// Every mapped name has a 240 × 324 PNG in the app's resources, and nothing else is there.
+    /// Every mapped name has a 240 × 360 PNG in the app's resources, and nothing else is there.
     func testEveryCardHasAnImageOfTheRightSize() throws {
         let files = try FileManager.default.contentsOfDirectory(atPath: cardsDirectory.path)
         let pngs = Set(files.filter { $0.hasSuffix(".png") })
         XCTAssertEqual(pngs, Set(ClassicCardArt.allAssetNames.map { $0 + ".png" }))
+        XCTAssertTrue(files.contains("manifest.json"))
         for name in ClassicCardArt.allAssetNames {
             let data = try Data(contentsOf: cardsDirectory.appendingPathComponent(name + ".png"))
             XCTAssertGreaterThan(data.count, 24, name)
@@ -46,9 +47,49 @@ final class ClassicCardArtTests: XCTestCase {
             XCTAssertEqual(height, ClassicCardArt.pixelHeight, name)
             XCTAssertLessThan(data.count, 60_000, "\(name) should stay small")
         }
-        // Same proportions as the on-screen card (71 × 96) within 0.2 %.
-        let aspect = Double(ClassicCardArt.pixelHeight) / Double(ClassicCardArt.pixelWidth)
-        XCTAssertEqual(aspect, BoardLayout.cardAspect, accuracy: BoardLayout.cardAspect * 0.002)
+        // The images keep the source's aspect: one uniform scale, no stretching.
+        let aspect = Double(ClassicCardArt.pixelWidth) / Double(ClassicCardArt.pixelHeight)
+        XCTAssertEqual(aspect, ClassicCardArt.artAspect, accuracy: ClassicCardArt.artAspect * 0.01)
+    }
+
+    private func manifest() throws -> [String: Any] {
+        let data = try Data(contentsOf: cardsDirectory.appendingPathComponent("manifest.json"))
+        return try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    /// PNG pixel aspect == source SVG aspect (within 1 %), read from the build manifest.
+    func testImagesKeepTheSourceSVGAspect() throws {
+        let m = try manifest()
+        let sourceW = try XCTUnwrap(m["sourceWidth"] as? Double ?? (m["sourceWidth"] as? Int).map(Double.init))
+        let sourceH = try XCTUnwrap(m["sourceHeight"] as? Double ?? (m["sourceHeight"] as? Int).map(Double.init))
+        let sourceAspect = sourceW / sourceH
+        XCTAssertEqual(sourceAspect, ClassicCardArt.artAspect, accuracy: 1e-9)
+        for name in ClassicCardArt.allAssetNames {
+            let bytes = [UInt8](try Data(contentsOf: cardsDirectory.appendingPathComponent(name + ".png")).prefix(24))
+            let width = Double(bytes[16..<20].reduce(0) { ($0 << 8) | Int($1) })
+            let height = Double(bytes[20..<24].reduce(0) { ($0 << 8) | Int($1) })
+            XCTAssertEqual(width / height, sourceAspect, accuracy: sourceAspect * 0.01, name)
+        }
+    }
+
+    /// The source deck draws every pip into a 2:3 box (too tall); the build reshapes them to usual
+    /// playing-card proportions, and every card had its pips reshaped.
+    func testPipsAreReshapedToNormalProportions() throws {
+        let m = try manifest()
+        let scales = try XCTUnwrap(m["pipScale"] as? [String: [String: Double]])
+        let usual: [String: ClosedRange<Double>] = [
+            "hearts": 0.9...1.05, "spades": 0.8...0.95, "clubs": 0.85...1.0, "diamonds": 0.72...0.85,
+        ]
+        for (suit, range) in usual {
+            let s = try XCTUnwrap(scales[suit], suit)
+            let aspect = (60 * (s["x"] ?? 0)) / (90 * (s["y"] ?? 0))
+            XCTAssertTrue(range.contains(aspect), "\(suit) pip aspect \(aspect)")
+        }
+        let counts = try XCTUnwrap(m["reshapedPips"] as? [String: Int])
+        for name in ClassicCardArt.allAssetNames {
+            XCTAssertGreaterThanOrEqual(counts[name] ?? 0, 3, name) // at least the two index pips + one more
+        }
+        XCTAssertGreaterThanOrEqual(counts["hearts_10"] ?? 0, 12) // 10 pips + 2 index pips
     }
 
     /// CREDITS.md lists a source and a CC0 / public-domain licence for every image.

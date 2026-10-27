@@ -81,25 +81,7 @@ final class CelebrationTests: XCTestCase {
     }
 }
 
-final class GlyphAndSoundTests: XCTestCase {
-    func testSpiderGlyphIsSymmetricAndInside() {
-        let rect = BoardRect(x: 10, y: 20, width: 100, height: 100)
-        let legs = SpiderGlyph.legs(in: rect)
-        XCTAssertEqual(legs.count, 8)
-        for (r, l) in zip(legs.prefix(4), legs.suffix(4)) {
-            for (a, b) in zip(r, l) {
-                XCTAssertEqual(a.x - rect.midX, rect.midX - b.x, accuracy: 1e-9)
-                XCTAssertEqual(a.y, b.y, accuracy: 1e-9)
-            }
-        }
-        for point in legs.flatMap({ $0 }) {
-            XCTAssertTrue(point.x >= rect.minX && point.x <= rect.maxX && point.y >= rect.minY && point.y <= rect.maxY)
-        }
-        let body = SpiderGlyph.body(in: rect)
-        XCTAssertLessThan(body.head.maxY, body.abdomen.maxY)
-        XCTAssertEqual(body.abdomen.midX, rect.midX, accuracy: 1e-9)
-    }
-
+final class SoundTests: XCTestCase {
     func testSoundCuesUseBuiltInMacSoundsOnly() {
         for cue in SoundCue.allCases {
             XCTAssertTrue(SoundCue.macOSSystemSounds.contains(cue.systemSoundName), "\(cue)")

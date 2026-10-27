@@ -63,8 +63,6 @@ enum CardStyle {
     static let border: Color = Color(red: 0.12, green: 0.12, blue: 0.12)
     static let gold: Color = Color(red: 0.96, green: 0.78, blue: 0.20)
     static let courtBlue: Color = Color(red: 0.16, green: 0.30, blue: 0.72)
-    static let backBlueLight: Color = Color(red: 0.20, green: 0.38, blue: 0.86)
-    static let backBlueDark: Color = Color(red: 0.04, green: 0.15, blue: 0.52)
     static let highlight: Color = Color(red: 1.0, green: 0.85, blue: 0.1)
 
     static func cornerRadius(_ size: CGSize) -> CGFloat { max(3, size.width * 0.07) }
@@ -72,7 +70,7 @@ enum CardStyle {
     static func color(_ suit: Suit) -> Color { suit.isRed ? red : black }
 }
 
-/// Classic face: the bitmap (transparent outside the art) on the white card, clipped to the
+/// Classic face: the bitmap (transparent outside the art), fitted without distortion onto the white card, clipped to the
 /// card's rounded rect, with the same 1 pt border as the simple face.
 struct ClassicCardFaceView: View {
     let image: NSImage
@@ -83,10 +81,12 @@ struct ClassicCardFaceView: View {
         ZStack {
             RoundedRectangle(cornerRadius: radius)
                 .fill(Color.white)
+            // The art keeps its own 2:3 proportions (one uniform scale), centred on the 71:96 card.
             Image(nsImage: image)
                 .resizable()
                 .interpolation(Image.Interpolation.high)
                 .antialiased(true)
+                .aspectRatio(contentMode: ContentMode.fit)
                 .frame(width: size.width, height: size.height)
             RoundedRectangle(cornerRadius: radius)
                 .strokeBorder(CardStyle.border, lineWidth: 1)
@@ -285,96 +285,79 @@ struct CapShape: Shape {
     }
 }
 
-/// Blue back: white rim, gradient field, fine lattice, gold inner frame and a spider emblem.
+/// Blue back: white rim, gradient field, fine lattice, gold frame and a rosette. The artwork is
+/// `CardBackArt` (SpiderBoard), the same description the icon tool and Linux previews draw.
 struct CardBackView: View {
     let size: CGSize
 
     var body: some View {
-        let radius: CGFloat = CardStyle.cornerRadius(size)
-        let rim: CGFloat = max(2, size.width * 0.06)
-        let inner: CGFloat = max(2, radius - rim / 2)
-        ZStack {
-            RoundedRectangle(cornerRadius: radius)
-                .fill(Color.white)
-            ZStack {
-                RoundedRectangle(cornerRadius: inner)
-                    .fill(LinearGradient(
-                        gradient: Gradient(colors: [CardStyle.backBlueLight, CardStyle.backBlueDark]),
-                        startPoint: UnitPoint.topLeading, endPoint: UnitPoint.bottomTrailing))
-                LatticeShape(spacing: max(4, size.width * 0.1))
-                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
-                RoundedRectangle(cornerRadius: max(1, inner - 1))
-                    .strokeBorder(CardStyle.gold.opacity(0.8), lineWidth: 1)
-                    .padding(max(2, size.width * 0.05))
-                SpiderEmblem()
-                    .frame(width: size.width * 0.5, height: size.width * 0.5)
-                    .opacity(0.85)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: inner))
-            .padding(rim)
-            RoundedRectangle(cornerRadius: radius)
-                .strokeBorder(CardStyle.border, lineWidth: 1)
-        }
-        .frame(width: size.width, height: size.height)
+        VectorSceneView(scene: CardBackArt.scene(size: BoardSize(width: Double(size.width), height: Double(size.height))))
+            .frame(width: size.width, height: size.height)
     }
 }
 
-/// SpiderGlyph drawn in SwiftUI (white legs, white body).
-struct SpiderEmblem: View {
-    var colour: Color = Color.white
+/// Draws a `VectorScene` with one Canvas. Scene units are points, so no scaling happens here.
+struct VectorSceneView: View {
+    let scene: VectorScene
 
     var body: some View {
-        GeometryReader { (geo: GeometryProxy) in
-            let rect: BoardRect = BoardRect(x: 0, y: 0, width: Double(geo.size.width), height: Double(geo.size.height))
-            let parts: (abdomen: BoardRect, head: BoardRect) = SpiderGlyph.body(in: rect)
-            ZStack {
-                SpiderLegsShape(legs: SpiderGlyph.legs(in: rect))
-                    .stroke(colour, style: StrokeStyle(lineWidth: CGFloat(SpiderGlyph.legWidth(in: rect)),
-                                                       lineCap: CGLineCap.round, lineJoin: CGLineJoin.round))
-                Ellipse()
-                    .fill(colour)
-                    .frame(width: CGFloat(parts.abdomen.width), height: CGFloat(parts.abdomen.height))
-                    .position(parts.abdomen.cgCenter)
-                Ellipse()
-                    .fill(colour)
-                    .frame(width: CGFloat(parts.head.width), height: CGFloat(parts.head.height))
-                    .position(parts.head.cgCenter)
+        let scene: VectorScene = self.scene
+        Canvas { (context: inout GraphicsContext, size: CGSize) in
+            VectorSceneView.draw(scene, in: &context)
+        }
+    }
+
+    static func draw(_ scene: VectorScene, in context: inout GraphicsContext) {
+        for item in scene.items {
+            var layer: GraphicsContext = context
+            if let clip: VectorPath = item.clip {
+                layer.clip(to: path(clip))
+            }
+            if let s: SpiderBoard.Shadow = item.shadow {
+                layer.addFilter(GraphicsContext.Filter.shadow(color: color(s.color), radius: CGFloat(s.blur / 2),
+                                                              x: CGFloat(s.dx), y: CGFloat(s.dy)))
+            }
+            let shape: Path = path(item.path)
+            if let fill: SpiderBoard.Paint = item.fill {
+                layer.fill(shape, with: shading(fill))
+            }
+            if let stroke: SpiderBoard.Stroke = item.stroke {
+                layer.stroke(shape, with: GraphicsContext.Shading.color(color(stroke.color)),
+                             style: StrokeStyle(lineWidth: CGFloat(stroke.width), lineCap: CGLineCap.round, lineJoin: CGLineJoin.round))
             }
         }
     }
-}
 
-struct SpiderLegsShape: Shape {
-    let legs: [[BoardPoint]]
+    static func color(_ c: RGBA) -> Color {
+        Color(.sRGB, red: c.r, green: c.g, blue: c.b, opacity: c.a)
+    }
 
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        for leg in legs {
-            guard let first = leg.first else { continue }
-            p.move(to: CGPoint(x: CGFloat(first.x), y: CGFloat(first.y)))
-            for point in leg.dropFirst() {
-                p.addLine(to: CGPoint(x: CGFloat(point.x), y: CGFloat(point.y)))
+    static func point(_ p: BoardPoint) -> CGPoint { CGPoint(x: CGFloat(p.x), y: CGFloat(p.y)) }
+
+    static func path(_ vector: VectorPath) -> Path {
+        var p: Path = Path()
+        for command in vector.commands {
+            switch command {
+            case .move(let to): p.move(to: point(to))
+            case .line(let to): p.addLine(to: point(to))
+            case .curve(let c1, let c2, let to): p.addCurve(to: point(to), control1: point(c1), control2: point(c2))
+            case .close: p.closeSubpath()
             }
         }
         return p
     }
-}
 
-/// Diagonal criss-cross lines filling the rect.
-struct LatticeShape: Shape {
-    let spacing: CGFloat
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        var offset: CGFloat = -rect.height
-        while offset < rect.width + rect.height {
-            path.move(to: CGPoint(x: rect.minX + offset, y: rect.minY))
-            path.addLine(to: CGPoint(x: rect.minX + offset + rect.height, y: rect.maxY))
-            path.move(to: CGPoint(x: rect.minX + offset + rect.height, y: rect.minY))
-            path.addLine(to: CGPoint(x: rect.minX + offset, y: rect.maxY))
-            offset += spacing
+    static func shading(_ paint: SpiderBoard.Paint) -> GraphicsContext.Shading {
+        switch paint {
+        case .solid(let c):
+            return GraphicsContext.Shading.color(color(c))
+        case .linear(let start, let end, let from, let to):
+            return GraphicsContext.Shading.linearGradient(Gradient(colors: [color(from), color(to)]),
+                                                          startPoint: point(start), endPoint: point(end))
+        case .radial(let center, let radius, let from, let to):
+            return GraphicsContext.Shading.radialGradient(Gradient(colors: [color(from), color(to)]),
+                                                          center: point(center), startRadius: 0, endRadius: CGFloat(radius))
         }
-        return path
     }
 }
 #endif
