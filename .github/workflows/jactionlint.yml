@@ -1,0 +1,28 @@
+name: jactionlint
+
+# Lints the workflows and dependabot.yml (https://jactionlint.jdx.dev), as in jactionlint's own
+# recommended workflow, but only for the owner's pushes to main and manual runs.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  jactionlint:
+    name: Lint workflows
+    if: ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read # check out the repository
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/jactionlint@a65ab044e916760429068fe5794b8306abdfcbb9 # v2.3.0
