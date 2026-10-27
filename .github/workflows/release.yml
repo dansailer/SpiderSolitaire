@@ -3,6 +3,14 @@ name: Release
 # Builds, tests and publishes a GitHub Release for a version tag (v1.2.3). Runs only for tags
 # pushed by the owner (the v* tag ruleset limits who can create them) or a manual run. The tagged
 # commit must be on main or a release/x.y branch.
+#
+# Signing: the job uses the "release" environment (deployable from v* tags only). With the secrets
+# MACOS_CERT_P12_BASE64 and MACOS_CERT_PASSWORD the app is Developer ID signed (hardened runtime);
+# it is then notarized and stapled with an App Store Connect API key (ASC_KEY_ID, ASC_ISSUER_ID,
+# ASC_KEY_P8_BASE64) or, failing that, an Apple ID (APPLE_ID, APPLE_APP_PASSWORD, APPLE_TEAM_ID).
+# Without notary credentials it is signed but not notarized; without the certificate it is ad-hoc
+# signed. Both fallbacks print a warning. A manual run must use the tag as its ref
+# (gh workflow run release.yml --ref v1.2.3 -f tag=v1.2.3) so the environment accepts it.
 on:
   push:
     tags: ['v*']
@@ -32,8 +40,10 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: write # create the release and upload its assets
+    environment: release
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
+      SIGN_IDENTITY: 'Developer ID Application: Daniel Sailer (595TEE9LSF)'
     steps:
       - name: Check the tag
         run: |
@@ -56,9 +66,71 @@ jobs:
           fi
       - run: swift --version
       - run: swift test
-      - name: Package
+      - name: Check the signing secrets
+        id: signing
+        env:
+          MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          VERSION="${TAG#v}" UNIVERSAL=1 ./scripts/package.sh
+          sign=false
+          notary=none
+          if [[ -n "$MACOS_CERT_P12_BASE64" && -n "$MACOS_CERT_PASSWORD" ]]; then
+            sign=true
+            if [[ -n "$ASC_KEY_ID" && -n "$ASC_ISSUER_ID" && -n "$ASC_KEY_P8_BASE64" ]]; then
+              notary=api-key
+            elif [[ -n "$APPLE_ID" && -n "$APPLE_APP_PASSWORD" && -n "$APPLE_TEAM_ID" ]]; then
+              notary=apple-id
+            fi
+          fi
+          echo "sign=$sign" >> "$GITHUB_OUTPUT"
+          echo "notary=$notary" >> "$GITHUB_OUTPUT"
+          if [[ "$sign" != true ]]; then
+            echo "::warning::No Developer ID certificate in the release environment: the app is ad-hoc signed and not notarized."
+          elif [[ "$notary" == none ]]; then
+            echo "::warning::No notarization credentials in the release environment: the app is Developer ID signed but not notarized."
+          else
+            echo "Developer ID signing, notarization with the $notary credentials."
+          fi
+      - name: Create the signing keychain
+        if: ${{ steps.signing.outputs.sign == 'true' }}
+        env:
+          CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: KEYCHAIN="$RUNNER_TEMP/release-signing.keychain-db" scripts/signing-keychain.sh create
+      - name: Package (Developer ID)
+        if: ${{ steps.signing.outputs.sign == 'true' }}
+        run: |
+          VERSION="${TAG#v}" UNIVERSAL=1 SIGN_KEYCHAIN="$RUNNER_TEMP/release-signing.keychain-db" \
+            ./scripts/package.sh
+      - name: Notarize and staple (App Store Connect API key)
+        if: ${{ steps.signing.outputs.notary == 'api-key' }}
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          umask 077
+          export ASC_KEY_FILE="$RUNNER_TEMP/asc-api-key.p8"
+          printf '%s' "$ASC_KEY_P8_BASE64" | base64 --decode > "$ASC_KEY_FILE"
+          scripts/notarize.sh
+      - name: Notarize and staple (Apple ID)
+        if: ${{ steps.signing.outputs.notary == 'apple-id' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: scripts/notarize.sh
+      - name: Package (ad hoc)
+        if: ${{ steps.signing.outputs.sign != 'true' }}
+        run: VERSION="${TAG#v}" UNIVERSAL=1 SIGN_IDENTITY=- ./scripts/package.sh
+      - name: Checksum
+        run: |
           cd build
           shasum -a 256 SpiderSolitaire.zip > SpiderSolitaire.zip.sha256
           cat SpiderSolitaire.zip.sha256
@@ -76,3 +148,8 @@ jobs:
             ${prerelease[@]+"${prerelease[@]}"} \
             build/SpiderSolitaire.zip \
             build/SpiderSolitaire.zip.sha256
+      - name: Delete the signing keychain and key files
+        if: ${{ always() }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/release-signing.keychain-db" scripts/signing-keychain.sh delete
+          rm -f "$RUNNER_TEMP/asc-api-key.p8"
