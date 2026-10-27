@@ -15,13 +15,15 @@ public struct Options: Codable, Sendable, Hashable {
     public var animationsEnabled: Bool = true
     public var saveOnExit: ExitSavePolicy = .always
     public var openOnStart: StartOpenPolicy = .always
+    /// Short macOS system sounds for deal, drop, hint, win... Off by default.
+    public var soundsEnabled: Bool = false
 
     public init() {}
 
     // Tolerant decoding: a missing or unknown field falls back to its default, so adding options
     // later never throws away a user's settings file.
     private enum CodingKeys: String, CodingKey {
-        case difficulty, undoPolicy, animationsEnabled, saveOnExit, openOnStart
+        case difficulty, undoPolicy, animationsEnabled, saveOnExit, openOnStart, soundsEnabled
     }
 
     public init(from decoder: Decoder) throws {
@@ -32,5 +34,6 @@ public struct Options: Codable, Sendable, Hashable {
         animationsEnabled = (try? c.decode(Bool.self, forKey: .animationsEnabled)) ?? d.animationsEnabled
         saveOnExit = (try? c.decode(ExitSavePolicy.self, forKey: .saveOnExit)) ?? d.saveOnExit
         openOnStart = (try? c.decode(StartOpenPolicy.self, forKey: .openOnStart)) ?? d.openOnStart
+        soundsEnabled = (try? c.decode(Bool.self, forKey: .soundsEnabled)) ?? d.soundsEnabled
     }
 }

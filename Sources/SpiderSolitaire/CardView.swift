@@ -7,12 +7,18 @@ import SwiftUI
 struct CardView: View {
     let card: Card
     let size: CGSize
-    /// Hint flash: XP shows the card with inverted colours.
+    /// Hint flash: XP shows the card with inverted colours; we add a bright outline too.
     var isHighlighted: Bool = false
 
     var body: some View {
         if isHighlighted {
-            content.colorInvert()
+            content
+                .colorInvert()
+                .overlay(
+                    RoundedRectangle(cornerRadius: CardStyle.cornerRadius(size))
+                        .strokeBorder(CardStyle.highlight, lineWidth: max(2, size.width * 0.035))
+                )
+                .shadow(color: CardStyle.highlight.opacity(0.8), radius: 5, x: 0, y: 0)
         } else {
             content
         }
@@ -30,83 +36,77 @@ struct CardView: View {
     }
 }
 
-private extension Suit {
-    var color: Color { isRed ? Color(red: 0.80, green: 0.0, blue: 0.0) : Color.black }
+/// Shared colours and metrics, close to the Windows XP card set.
+enum CardStyle {
+    static let red: Color = Color(red: 0.85, green: 0.0, blue: 0.0)
+    static let black: Color = Color(red: 0.05, green: 0.05, blue: 0.05)
+    static let border: Color = Color(red: 0.12, green: 0.12, blue: 0.12)
+    static let gold: Color = Color(red: 0.96, green: 0.78, blue: 0.20)
+    static let courtBlue: Color = Color(red: 0.16, green: 0.30, blue: 0.72)
+    static let backBlueLight: Color = Color(red: 0.20, green: 0.38, blue: 0.86)
+    static let backBlueDark: Color = Color(red: 0.04, green: 0.15, blue: 0.52)
+    static let highlight: Color = Color(red: 1.0, green: 0.85, blue: 0.1)
+
+    static func cornerRadius(_ size: CGSize) -> CGFloat { max(3, size.width * 0.07) }
+
+    static func color(_ suit: Suit) -> Color { suit.isRed ? red : black }
 }
 
 struct CardFaceView: View {
     let card: Card
     let size: CGSize
 
-    private var corner: CGFloat { max(3, size.width * 0.07) }
-
     var body: some View {
+        let radius: CGFloat = CardStyle.cornerRadius(size)
         ZStack(alignment: Alignment.topLeading) {
-            RoundedRectangle(cornerRadius: corner)
+            RoundedRectangle(cornerRadius: radius)
                 .fill(Color.white)
-            RoundedRectangle(cornerRadius: corner)
-                .stroke(Color.black.opacity(0.75), lineWidth: 1)
+            RoundedRectangle(cornerRadius: radius)
+                .strokeBorder(CardStyle.border, lineWidth: 1)
 
             centre
 
             cornerIndex
-                .position(x: size.width * 0.13, y: size.height * 0.15)
+                .position(x: size.width * 0.12, y: size.height * 0.14)
             cornerIndex
                 .rotationEffect(Angle.degrees(180))
-                .position(x: size.width * 0.87, y: size.height * 0.85)
+                .position(x: size.width * 0.88, y: size.height * 0.86)
         }
         .frame(width: size.width, height: size.height)
     }
 
     private var cornerIndex: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: -size.width * 0.02) {
             Text(card.rank.label)
-                .font(Font.system(size: size.width * 0.19, weight: Font.Weight.bold, design: Font.Design.serif))
+                .font(Font.system(size: size.width * (card.rank == Rank.ten ? 0.17 : 0.2),
+                                  weight: Font.Weight.bold, design: Font.Design.default))
+                .kerning(card.rank == Rank.ten ? -1 : 0)
             Text(card.suit.symbol)
-                .font(Font.system(size: size.width * 0.16))
+                .font(Font.system(size: size.width * 0.17))
         }
-        .foregroundColor(card.suit.color)
+        .foregroundColor(CardStyle.color(card.suit))
         .fixedSize()
     }
 
     @ViewBuilder
     private var centre: some View {
         if CardFace.isCourt(card.rank) {
-            courtCentre
+            CourtPanel(card: card, size: size)
+                .position(x: size.width / 2, y: size.height / 2)
         } else if card.rank == Rank.ace {
             Text(card.suit.symbol)
-                .font(Font.system(size: size.width * 0.5))
-                .foregroundColor(card.suit.color)
+                .font(Font.system(size: size.width * (card.suit == Suit.spades ? 0.62 : 0.5)))
+                .foregroundColor(CardStyle.color(card.suit))
                 .position(x: size.width / 2, y: size.height / 2)
         } else {
             ForEach(Array(CardFace.pips(for: card.rank).enumerated()), id: \.offset) { (item: (offset: Int, element: Pip)) in
                 Text(card.suit.symbol)
-                    .font(Font.system(size: size.width * 0.21))
-                    .foregroundColor(card.suit.color)
+                    .font(Font.system(size: size.width * 0.22))
+                    .foregroundColor(CardStyle.color(card.suit))
                     .rotationEffect(Angle.degrees(item.element.inverted ? 180 : 0))
                     .position(pipPoint(item.element))
             }
         }
-    }
-
-    private var courtCentre: some View {
-        let inset: CGRect = CGRect(x: size.width * 0.24, y: size.height * 0.16,
-                                   width: size.width * 0.52, height: size.height * 0.68)
-        return ZStack {
-            Rectangle()
-                .fill(card.suit.color.opacity(0.08))
-            Rectangle()
-                .stroke(card.suit.color.opacity(0.7), lineWidth: 1)
-            VStack(spacing: size.height * 0.02) {
-                Text(card.rank.label)
-                    .font(Font.system(size: size.width * 0.3, weight: Font.Weight.bold, design: Font.Design.serif))
-                Text(card.suit.symbol)
-                    .font(Font.system(size: size.width * 0.22))
-            }
-            .foregroundColor(card.suit.color)
-        }
-        .frame(width: inset.width, height: inset.height)
-        .position(x: inset.midX, y: inset.midY)
     }
 
     private func pipPoint(_ pip: Pip) -> CGPoint {
@@ -117,32 +117,202 @@ struct CardFaceView: View {
     }
 }
 
-/// XP-ish blue back: white rim, blue field, light lattice pattern.
+/// Double-headed court panel, XP-flavoured: gold/blue frame, a headpiece (crown, tiara or cap)
+/// over a serif monogram, mirrored in the bottom half like a real court card.
+struct CourtPanel: View {
+    let card: Card
+    let size: CGSize
+
+    var body: some View {
+        let panel: CGSize = CGSize(width: size.width * 0.56, height: size.height * 0.70)
+        let half: CGSize = CGSize(width: panel.width, height: panel.height / 2)
+        ZStack {
+            Rectangle()
+                .fill(LinearGradient(
+                    gradient: Gradient(colors: [Color.white, CardStyle.gold.opacity(0.25)]),
+                    startPoint: UnitPoint.top, endPoint: UnitPoint.bottom))
+            VStack(spacing: 0) {
+                CourtHalf(card: card, size: half)
+                CourtHalf(card: card, size: half)
+                    .rotationEffect(Angle.degrees(180))
+            }
+            Rectangle()
+                .fill(CardStyle.color(card.suit).opacity(0.5))
+                .frame(width: panel.width * 0.9, height: 1)
+            Rectangle()
+                .strokeBorder(CardStyle.courtBlue, lineWidth: max(1, size.width * 0.02))
+            Rectangle()
+                .strokeBorder(CardStyle.gold, lineWidth: max(1, size.width * 0.012))
+                .padding(max(1.5, size.width * 0.03))
+        }
+        .frame(width: panel.width, height: panel.height)
+    }
+}
+
+struct CourtHalf: View {
+    let card: Card
+    let size: CGSize
+
+    var body: some View {
+        let colour: Color = CardStyle.color(card.suit)
+        VStack(spacing: size.height * 0.02) {
+            headpiece
+                .frame(width: size.width * 0.55, height: size.height * 0.26)
+            HStack(alignment: VerticalAlignment.firstTextBaseline, spacing: size.width * 0.03) {
+                Text(card.rank.label)
+                    .font(Font.system(size: size.height * 0.42, weight: Font.Weight.bold, design: Font.Design.serif))
+                Text(card.suit.symbol)
+                    .font(Font.system(size: size.height * 0.24))
+            }
+            .foregroundColor(colour)
+        }
+        .frame(width: size.width, height: size.height)
+    }
+
+    @ViewBuilder
+    private var headpiece: some View {
+        switch card.rank {
+        case .king:
+            ZStack {
+                CrownShape().fill(CardStyle.gold)
+                CrownShape().stroke(CardStyle.color(card.suit), lineWidth: 1)
+            }
+        case .queen:
+            ZStack {
+                TiaraShape().fill(CardStyle.gold)
+                TiaraShape().stroke(CardStyle.color(card.suit), lineWidth: 1)
+            }
+        default:
+            ZStack {
+                CapShape().fill(CardStyle.courtBlue)
+                CapShape().stroke(CardStyle.gold, lineWidth: 1)
+            }
+        }
+    }
+}
+
+/// Five-point crown on a band.
+struct CrownShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let w: CGFloat = rect.width, h: CGFloat = rect.height
+        let x: CGFloat = rect.minX, y: CGFloat = rect.minY
+        p.move(to: CGPoint(x: x, y: y + h))
+        p.addLine(to: CGPoint(x: x, y: y + h * 0.25))
+        p.addLine(to: CGPoint(x: x + w * 0.25, y: y + h * 0.6))
+        p.addLine(to: CGPoint(x: x + w * 0.5, y: y))
+        p.addLine(to: CGPoint(x: x + w * 0.75, y: y + h * 0.6))
+        p.addLine(to: CGPoint(x: x + w, y: y + h * 0.25))
+        p.addLine(to: CGPoint(x: x + w, y: y + h))
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// Rounded tiara with three jewels.
+struct TiaraShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let w: CGFloat = rect.width, h: CGFloat = rect.height
+        p.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.maxY), control: CGPoint(x: rect.midX, y: rect.minY - h * 0.4))
+        p.closeSubpath()
+        let r: CGFloat = min(w, h) * 0.14
+        for fx in [0.25, 0.5, 0.75] as [CGFloat] {
+            let cy: CGFloat = fx == 0.5 ? rect.minY + r : rect.minY + h * 0.35
+            p.addEllipse(in: CGRect(x: rect.minX + w * fx - r, y: cy - r, width: 2 * r, height: 2 * r))
+        }
+        return p
+    }
+}
+
+/// A jack's cap with a feather tip.
+struct CapShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let w: CGFloat = rect.width, h: CGFloat = rect.height
+        p.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.maxY), control: CGPoint(x: rect.midX, y: rect.minY))
+        p.closeSubpath()
+        p.move(to: CGPoint(x: rect.midX + w * 0.1, y: rect.minY + h * 0.45))
+        p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY), control: CGPoint(x: rect.maxX - w * 0.05, y: rect.minY + h * 0.4))
+        p.addQuadCurve(to: CGPoint(x: rect.midX + w * 0.1, y: rect.minY + h * 0.45), control: CGPoint(x: rect.midX + w * 0.2, y: rect.minY))
+        return p
+    }
+}
+
+/// Blue back: white rim, gradient field, fine lattice, gold inner frame and a spider emblem.
 struct CardBackView: View {
     let size: CGSize
 
-    private var corner: CGFloat { max(3, size.width * 0.07) }
-
     var body: some View {
+        let radius: CGFloat = CardStyle.cornerRadius(size)
         let rim: CGFloat = max(2, size.width * 0.06)
+        let inner: CGFloat = max(2, radius - rim / 2)
         ZStack {
-            RoundedRectangle(cornerRadius: corner)
+            RoundedRectangle(cornerRadius: radius)
                 .fill(Color.white)
-            RoundedRectangle(cornerRadius: max(2, corner - rim / 2))
-                .fill(LinearGradient(
-                    gradient: Gradient(colors: [Color(red: 0.16, green: 0.33, blue: 0.80),
-                                                Color(red: 0.05, green: 0.16, blue: 0.55)]),
-                    startPoint: UnitPoint.topLeading, endPoint: UnitPoint.bottomTrailing))
-                .overlay(
-                    LatticeShape(spacing: max(4, size.width * 0.11))
-                        .stroke(Color.white.opacity(0.28), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: max(2, corner - rim / 2)))
-                .padding(rim)
-            RoundedRectangle(cornerRadius: corner)
-                .stroke(Color.black.opacity(0.75), lineWidth: 1)
+            ZStack {
+                RoundedRectangle(cornerRadius: inner)
+                    .fill(LinearGradient(
+                        gradient: Gradient(colors: [CardStyle.backBlueLight, CardStyle.backBlueDark]),
+                        startPoint: UnitPoint.topLeading, endPoint: UnitPoint.bottomTrailing))
+                LatticeShape(spacing: max(4, size.width * 0.1))
+                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                RoundedRectangle(cornerRadius: max(1, inner - 1))
+                    .strokeBorder(CardStyle.gold.opacity(0.8), lineWidth: 1)
+                    .padding(max(2, size.width * 0.05))
+                SpiderEmblem()
+                    .frame(width: size.width * 0.5, height: size.width * 0.5)
+                    .opacity(0.85)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: inner))
+            .padding(rim)
+            RoundedRectangle(cornerRadius: radius)
+                .strokeBorder(CardStyle.border, lineWidth: 1)
         }
         .frame(width: size.width, height: size.height)
+    }
+}
+
+/// SpiderGlyph drawn in SwiftUI (white legs, white body).
+struct SpiderEmblem: View {
+    var colour: Color = Color.white
+
+    var body: some View {
+        GeometryReader { (geo: GeometryProxy) in
+            let rect: BoardRect = BoardRect(x: 0, y: 0, width: Double(geo.size.width), height: Double(geo.size.height))
+            let parts: (abdomen: BoardRect, head: BoardRect) = SpiderGlyph.body(in: rect)
+            ZStack {
+                SpiderLegsShape(legs: SpiderGlyph.legs(in: rect))
+                    .stroke(colour, style: StrokeStyle(lineWidth: CGFloat(SpiderGlyph.legWidth(in: rect)),
+                                                       lineCap: CGLineCap.round, lineJoin: CGLineJoin.round))
+                Ellipse()
+                    .fill(colour)
+                    .frame(width: CGFloat(parts.abdomen.width), height: CGFloat(parts.abdomen.height))
+                    .position(parts.abdomen.cgCenter)
+                Ellipse()
+                    .fill(colour)
+                    .frame(width: CGFloat(parts.head.width), height: CGFloat(parts.head.height))
+                    .position(parts.head.cgCenter)
+            }
+        }
+    }
+}
+
+struct SpiderLegsShape: Shape {
+    let legs: [[BoardPoint]]
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        for leg in legs {
+            guard let first = leg.first else { continue }
+            p.move(to: CGPoint(x: CGFloat(first.x), y: CGFloat(first.y)))
+            for point in leg.dropFirst() {
+                p.addLine(to: CGPoint(x: CGFloat(point.x), y: CGFloat(point.y)))
+            }
+        }
+        return p
     }
 }
 

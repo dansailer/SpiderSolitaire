@@ -115,6 +115,7 @@ struct OptionsSheet: View {
             Text("Options").font(Font.headline)
 
             Toggle("Show animations", isOn: $draft.animationsEnabled)
+            Toggle("Play sounds", isOn: $draft.soundsEnabled)
 
             Text("Undo")
             Picker("", selection: $draft.undoPolicy) {

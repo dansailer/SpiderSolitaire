@@ -43,6 +43,12 @@ struct BoardView: View {
                         .position(placement.frame.cgCenter)
                         .zIndex(placement.zIndex)
                 }
+
+                if let celebration = model.celebration {
+                    WinCelebrationView(celebration: celebration, layout: layout, onSkip: { model.skipCelebration() })
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .zIndex(10_000)
+                }
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .contentShape(Rectangle())

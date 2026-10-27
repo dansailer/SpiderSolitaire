@@ -164,3 +164,16 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(Options.self, from: JSONEncoder().encode(custom)), custom)
     }
 }
+
+final class OptionsSoundTests: XCTestCase {
+    func testSoundsOffByDefaultAndOldFilesStillDecode() throws {
+        XCTAssertFalse(Options().soundsEnabled)
+        let old = #"{"difficulty": 2, "animationsEnabled": true}"#
+        let o = try JSONDecoder().decode(Options.self, from: Data(old.utf8))
+        XCTAssertFalse(o.soundsEnabled)
+        XCTAssertEqual(o.difficulty, .twoSuits)
+        var on = Options()
+        on.soundsEnabled = true
+        XCTAssertTrue(try JSONDecoder().decode(Options.self, from: JSONEncoder().encode(on)).soundsEnabled)
+    }
+}

@@ -58,6 +58,14 @@ final class GameModel: ObservableObject {
     @Published var showDifficultySheet: Bool = false
     @Published var showStatisticsSheet: Bool = false
     @Published var showOptionsSheet: Bool = false
+    /// The running win animation (nil when none). The view samples it every frame.
+    @Published private(set) var celebration: Celebration? = nil
+
+    struct Celebration: Sendable {
+        let suits: [Suit]
+        let seed: UInt64
+        let start: Date
+    }
 
     private let store: SpiderStore
     private var hintCycler: HintCycler = HintCycler()
@@ -65,6 +73,10 @@ final class GameModel: ObservableObject {
     private var animationGeneration: Int = 0
     /// Bumped to cancel a running hint flash.
     private var highlightGeneration: Int = 0
+    /// Identifies the current celebration so a stale end step does nothing.
+    private var celebrationID: Int = 0
+    /// The win has been celebrated / announced for this game.
+    private var winAnnounced: Bool = false
 
     /// One timed step of an animation, hint flash or deferred request.
     private enum Step: Sendable {
@@ -77,6 +89,7 @@ final class GameModel: ObservableObject {
         /// Alert buttons that lead to another alert run after the first one has gone away.
         case request(AbandonReason)
         case present(BoardAlert)
+        case endCelebration(Int)
     }
 
     init(store: SpiderStore = SpiderStore.standard()) {
@@ -222,9 +235,11 @@ final class GameModel: ObservableObject {
         let sequence: [HintHighlight] = HintHighlight.sequence(for: step)
         guard !sequence.isEmpty else {
             clearHighlight()
+            play(SoundCue.noMoves)
             alert = BoardAlert.noMoves
             return
         }
+        play(SoundCue.hint)
         highlightGeneration += 1
         highlight = sequence[0]
         for i in 1..<(sequence.count + 1) {
@@ -236,6 +251,7 @@ final class GameModel: ObservableObject {
     // MARK: Pointer (one DragGesture with minimumDistance 0 drives everything)
 
     func pointerChanged(start: CGPoint, translation: CGSize, layout: BoardLayout) {
+        guard celebration == nil else { return }
         if !animations.isIdle { settleAnimations(announce: true) }
         if highlight != nil { clearHighlight() }
         var next: PointerController = pointer
@@ -244,6 +260,10 @@ final class GameModel: ObservableObject {
     }
 
     func pointerEnded(start: CGPoint, translation: CGSize, layout: BoardLayout) {
+        if celebration != nil {
+            skipCelebration()
+            return
+        }
         var next: PointerController = pointer
         let result: PointerController.Result = next.pointerEnded(
             start: BoardPoint(start), translation: BoardSize(translation),
@@ -296,6 +316,9 @@ final class GameModel: ObservableObject {
     }
 
     private func resetTransientState() {
+        celebration = nil
+        celebrationID += 1
+        winAnnounced = false
         settleAnimations(announce: false)
         clearHighlight()
         pointer.reset()
@@ -318,7 +341,10 @@ final class GameModel: ObservableObject {
         clearHighlight()
         if action == Action.deal, !game.state.canDeal {
             pointer.reset()
-            if !game.state.stock.isEmpty, !game.state.isWon { alert = BoardAlert.info(GameModel.cannotDealMessage) }
+            if !game.state.stock.isEmpty, !game.state.isWon {
+                play(SoundCue.cannotDeal)
+                alert = BoardAlert.info(GameModel.cannotDealMessage)
+            }
             return
         }
 
@@ -353,6 +379,8 @@ final class GameModel: ObservableObject {
         }
 
         guard let outcome else { return }
+        play(action == Action.deal ? SoundCue.deal : SoundCue.drop)
+        if !outcome.completedRuns.isEmpty { play(SoundCue.completedSuit) }
         if outcome.didWin { persistStatistics() }
         guard animated else {
             announceEndState()
@@ -392,16 +420,49 @@ final class GameModel: ObservableObject {
             requestAbandon(reason)
         case .present(let next):
             alert = next
+        case .endCelebration(let id):
+            if id == celebrationID, celebration != nil { finishCelebration() }
         }
     }
 
-    /// Win dialog or "no more moves" once the board has come to rest.
+    /// Win celebration (then dialog) or "no more moves" once the board has come to rest.
     private func announceEndState() {
         if game.state.isWon {
-            alert = BoardAlert.won(score: game.state.score)
+            guard !winAnnounced else { return }
+            winAnnounced = true
+            play(SoundCue.win)
+            if session.options.animationsEnabled {
+                celebrationID += 1
+                celebration = Celebration(suits: game.state.completed, seed: game.state.seed, start: Date())
+                schedule(Step.endCelebration(celebrationID), after: WinCelebration.nominalDuration, cancellable: false)
+            } else {
+                alert = BoardAlert.won(score: game.state.score)
+            }
         } else if game.state.isStuck {
+            play(SoundCue.noMoves)
             alert = BoardAlert.noMoves
         }
+    }
+
+    // MARK: Win celebration
+
+    var isCelebrating: Bool { celebration != nil }
+
+    /// Click or key press during the win animation: stop it and show the dialog.
+    func skipCelebration() {
+        guard celebration != nil else { return }
+        finishCelebration()
+    }
+
+    private func finishCelebration() {
+        celebration = nil
+        celebrationID += 1
+        alert = BoardAlert.won(score: game.state.score)
+    }
+
+    private func play(_ cue: SoundCue) {
+        guard session.options.soundsEnabled else { return }
+        SoundPlayer.play(cue)
     }
 
     /// Jump every running animation to its end state (used when the player acts mid-animation).

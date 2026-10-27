@@ -13,7 +13,8 @@ let package = Package(
     targets: [
         .target(name: "SpiderCore"),
         // Pure-Swift board geometry and pointer handling (no SwiftUI), testable on Linux.
-        .target(name: "SpiderBoard", dependencies: ["SpiderCore"]),
+        .target(name: "SpiderBoard", dependencies: ["SpiderCore"],
+                linkerSettings: [.linkedLibrary("m", .when(platforms: [.linux]))]),
         // JSON files in Application Support (Foundation only, testable on Linux).
         .target(name: "SpiderPersistence", dependencies: ["SpiderCore"]),
         .executableTarget(name: "SpiderSolitaire", dependencies: ["SpiderCore", "SpiderBoard", "SpiderPersistence"]),

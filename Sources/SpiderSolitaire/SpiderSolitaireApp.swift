@@ -77,7 +77,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: NSEvent.EventTypeMask.keyDown) {
             [weak self] (event: NSEvent) -> NSEvent? in
-            guard event.keyCode == AppDelegate.f2KeyCode, let model = self?.model else { return event }
+            guard let model = self?.model else { return event }
+            // Any key skips the win animation (and is swallowed).
+            if model.isCelebrating {
+                model.skipCelebration()
+                return nil
+            }
+            guard event.keyCode == AppDelegate.f2KeyCode else { return event }
             model.requestNewGame(nil)
             return nil
         }
