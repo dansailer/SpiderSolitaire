@@ -181,6 +181,18 @@ final class GameModel: ObservableObject {
         if options.winnableDealsOnly { prefillWinnableSeeds(options.difficulty) }
     }
 
+    /// `--snapshot` (website screenshots): a bundled winnable deal, played `moves` steps along the
+    /// solver's winning line, without animation.
+    func prepareSnapshot(difficulty: Difficulty, moves: Int) {
+        let seed: UInt64 = WinnableDeals.bundled[difficulty]?.first ?? 1
+        session.startNewGame(difficulty: difficulty, seed: seed)
+        let line: [Action] = Solver.winningLine(difficulty: difficulty, seed: seed) ?? []
+        for action in line.prefix(moves) {
+            _ = try? session.perform(action)
+        }
+        alert = nil
+    }
+
     func resetStatistics(_ difficulty: Difficulty) {
         session.resetStatistics(difficulty)
         persistStatistics()

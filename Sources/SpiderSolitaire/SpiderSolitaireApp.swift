@@ -2,6 +2,7 @@
 import AppKit
 import SpiderBoard
 import SpiderCore
+import SpiderPersistence
 import SwiftUI
 
 /// AppKit app lifecycle with SwiftUI views inside the windows. There is no SwiftUI `App` or
@@ -38,7 +39,8 @@ final class WindowController: NSObject, NSWindowDelegate {
         self.updates = updates
     }
 
-    func showBoard() {
+    @discardableResult
+    func showBoard() -> NSWindow {
         let window: NSWindow = board ?? makeWindow(
             title: "Spider Solitaire", autosave: "SpiderSolitaireBoard",
             size: NSSize(width: 800, height: 600), resizable: true,
@@ -46,27 +48,33 @@ final class WindowController: NSObject, NSWindowDelegate {
         window.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenPrimary)
         board = window
         window.makeKeyAndOrderFront(nil)
+        return window
     }
 
-    func showAchievements() {
+    @discardableResult
+    func showAchievements() -> NSWindow {
         let window: NSWindow = achievements ?? makeWindow(
             title: "Achievements", autosave: "SpiderSolitaireAchievements",
             size: NSSize(width: 720, height: 560), resizable: true,
             content: AchievementsView(model: model))
         achievements = window
         window.makeKeyAndOrderFront(nil)
+        return window
     }
 
-    func showHelp() {
+    @discardableResult
+    func showHelp() -> NSWindow {
         let window: NSWindow = help ?? makeWindow(
             title: MenuCommand.help.title, autosave: "SpiderSolitaireHelp",
             size: NSSize(width: 560, height: 640), resizable: true,
             content: HelpView())
         help = window
         window.makeKeyAndOrderFront(nil)
+        return window
     }
 
-    func showSettings() {
+    @discardableResult
+    func showSettings() -> NSWindow {
         let window: NSWindow = settings ?? {
             let tabs: SettingsTabViewController = SettingsTabViewController(model: model, updates: updates)
             let w: NSWindow = NSWindow(contentViewController: tabs)
@@ -84,6 +92,7 @@ final class WindowController: NSObject, NSWindowDelegate {
         }()
         settings = window
         window.makeKeyAndOrderFront(nil)
+        return window
     }
 
     private func makeWindow<Content: View>(title: String, autosave: String, size: NSSize?, resizable: Bool,
@@ -111,6 +120,63 @@ final class WindowController: NSObject, NSWindowDelegate {
         guard sender === board else { return true }
         NSApplication.shared.terminate(nil)
         return false
+    }
+}
+
+/// `--snapshot <dir>` (website screenshots, SPEC.md §9): a throwaway store, a two-suit game part
+/// way through, then each window's content rendered to PNG in `dir`, and quit. Uses only
+/// `cacheDisplay`, so it needs no screen recording permission.
+@MainActor
+enum SnapshotMode {
+    static var outputDirectory: URL? {
+        let args: [String] = CommandLine.arguments
+        guard let i: Int = args.firstIndex(of: "--snapshot"), i + 1 < args.count else { return nil }
+        return URL(fileURLWithPath: args[i + 1], isDirectory: true)
+    }
+
+    static func makeModel() -> GameModel {
+        let directory: URL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SpiderSolitaireSnapshot-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
+        let store: SpiderStore = SpiderStore(directory: directory)
+        var options: Options = Options()
+        options.difficulty = Difficulty.twoSuits
+        options.openOnStart = StartOpenPolicy.never
+        options.checkForUpdatesAutomatically = false
+        try? store.saveOptions(options)
+        return GameModel(store: store)
+    }
+
+    static func run(model: GameModel, windows: WindowController, into directory: URL) {
+        Task { @MainActor in
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            model.prepareSnapshot(difficulty: Difficulty.twoSuits, moves: 38)
+            let board: NSWindow = windows.showBoard()
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            save(board, "board", directory)
+            let help: NSWindow = windows.showHelp()
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            save(help, "help", directory)
+            let achievements: NSWindow = windows.showAchievements()
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            save(achievements, "achievements", directory)
+            let settings: NSWindow = windows.showSettings()
+            for (index, tab) in SettingsTab.allCases.enumerated() {
+                (settings.contentViewController as? SettingsTabViewController)?.selectedTabViewItemIndex = index
+                try? await Task.sleep(nanoseconds: 900_000_000)
+                save(settings, "settings-" + tab.rawValue, directory)
+            }
+            exit(0)
+        }
+    }
+
+    private static func save(_ window: NSWindow?, _ name: String, _ directory: URL) {
+        guard let view: NSView = window?.contentView,
+              let rep: NSBitmapImageRep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        guard let data: Data = rep.representation(using: NSBitmapImageRep.FileType.png, properties: [:]) else { return }
+        let url: URL = directory.appendingPathComponent(name + ".png")
+        try? data.write(to: url)
+        print("SNAPSHOT " + url.path)
     }
 }
 
@@ -163,7 +229,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var keyMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let model: GameModel = GameModel()
+        let snapshotDirectory: URL? = SnapshotMode.outputDirectory
+        let model: GameModel = snapshotDirectory != nil ? SnapshotMode.makeModel() : GameModel()
         let updates: UpdateController = UpdateController()
         let windows: WindowController = WindowController(model: model, updates: updates)
         let menuController: MenuController = MenuController(model: model, windows: windows, updates: updates)
@@ -174,7 +241,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainMenuBuilder.install(target: menuController)
         windows.showBoard()
         NSApplication.shared.activate()
-        if !MenuProbe.startIfRequested(menuController: menuController) {
+        if let snapshotDirectory {
+            SnapshotMode.run(model: model, windows: windows, into: snapshotDirectory)
+        } else if !MenuProbe.startIfRequested(menuController: menuController) {
             updates.checkAutomaticallyIfDue(enabled: model.options.checkForUpdatesAutomatically)
         }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: NSEvent.EventTypeMask.keyDown) {

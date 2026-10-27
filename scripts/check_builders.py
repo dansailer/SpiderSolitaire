@@ -26,7 +26,8 @@ def check(path):
         for ch in line:
             if ch == '{':
                 # Function, initializer and type bodies are imperative or declarations, not builders.
-                opener = not (pending_decl or re.search(r'\b(func|init|class|struct|enum|extension|protocol|switch)\b', stripped))
+                opener = not (pending_decl or re.search(r'\b(func|init|class|struct|enum|extension|protocol|switch)\b|\bTask\s*\{|\bin$', stripped)
+                               and not re.search(r'\b(ForEach|List|Table|Section|Group)\b', stripped))
                 pending_decl = False
                 stack.append([n, 0, opener, 0])
             elif ch == '}':
