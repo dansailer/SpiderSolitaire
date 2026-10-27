@@ -117,6 +117,14 @@ struct OptionsSheet: View {
             Toggle("Show animations", isOn: $draft.animationsEnabled)
             Toggle("Play sounds", isOn: $draft.soundsEnabled)
 
+            Text("Card faces")
+            Picker("", selection: $draft.cardFaces) {
+                Text("Classic (traditional English pattern)").tag(CardFaceStyle.classic)
+                Text("Simple").tag(CardFaceStyle.simple)
+            }
+            .pickerStyle(RadioGroupPickerStyle())
+            .labelsHidden()
+
             Text("Undo")
             Picker("", selection: $draft.undoPolicy) {
                 Text("Unlimited (back to the start of the game)").tag(UndoPolicy.unlimited)

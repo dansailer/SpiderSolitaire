@@ -1,14 +1,30 @@
 #if canImport(SwiftUI)
+import AppKit
 import SpiderBoard
 import SpiderCore
 import SwiftUI
 
-/// A code-drawn card (no bitmap assets). Size-independent: everything scales with `size.width`.
+/// Options → Card faces, handed down from BoardView so every CardView (including the win
+/// celebration's Canvas symbols) draws the same set.
+private struct CardFaceStyleKey: EnvironmentKey {
+    static let defaultValue: CardFaceStyle = CardFaceStyle.classic
+}
+
+extension EnvironmentValues {
+    var cardFaceStyle: CardFaceStyle {
+        get { self[CardFaceStyleKey.self] }
+        set { self[CardFaceStyleKey.self] = newValue }
+    }
+}
+
+/// One card. Face-up cards use the Classic art when it is selected and its image exists,
+/// otherwise the code-drawn face. Size-independent: everything scales with `size.width`.
 struct CardView: View {
     let card: Card
     let size: CGSize
     /// Hint flash: XP shows the card with inverted colours; we add a bright outline too.
     var isHighlighted: Bool = false
+    @Environment(\.cardFaceStyle) private var faceStyle: CardFaceStyle
 
     var body: some View {
         if isHighlighted {
@@ -27,7 +43,11 @@ struct CardView: View {
     private var content: some View {
         Group {
             if card.isFaceUp {
-                CardFaceView(card: card, size: size)
+                if faceStyle == CardFaceStyle.classic, let image: NSImage = ClassicCardImages.shared.image(for: card) {
+                    ClassicCardFaceView(image: image, size: size)
+                } else {
+                    CardFaceView(card: card, size: size)
+                }
             } else {
                 CardBackView(size: size)
             }
@@ -50,6 +70,30 @@ enum CardStyle {
     static func cornerRadius(_ size: CGSize) -> CGFloat { max(3, size.width * 0.07) }
 
     static func color(_ suit: Suit) -> Color { suit.isRed ? red : black }
+}
+
+/// Classic face: the bitmap (transparent outside the art) on the white card, clipped to the
+/// card's rounded rect, with the same 1 pt border as the simple face.
+struct ClassicCardFaceView: View {
+    let image: NSImage
+    let size: CGSize
+
+    var body: some View {
+        let radius: CGFloat = CardStyle.cornerRadius(size)
+        ZStack {
+            RoundedRectangle(cornerRadius: radius)
+                .fill(Color.white)
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(Image.Interpolation.high)
+                .antialiased(true)
+                .frame(width: size.width, height: size.height)
+            RoundedRectangle(cornerRadius: radius)
+                .strokeBorder(CardStyle.border, lineWidth: 1)
+        }
+        .frame(width: size.width, height: size.height)
+        .clipShape(RoundedRectangle(cornerRadius: radius))
+    }
 }
 
 struct CardFaceView: View {

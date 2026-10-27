@@ -18,7 +18,9 @@ let package = Package(
                 linkerSettings: [.linkedLibrary("m", .when(platforms: [.linux]))]),
         // JSON files in Application Support (Foundation only, testable on Linux).
         .target(name: "SpiderPersistence", dependencies: ["SpiderCore"]),
-        .executableTarget(name: "SpiderSolitaire", dependencies: ["SpiderCore", "SpiderBoard", "SpiderPersistence"]),
+        // Resources/Cards: the Classic card faces (CC0 art, see Resources/Cards/CREDITS.md).
+        .executableTarget(name: "SpiderSolitaire", dependencies: ["SpiderCore", "SpiderBoard", "SpiderPersistence"],
+                          resources: [.copy("Resources/Cards")]),
         // Renders the 1024 px app icon PNG (CoreGraphics); used by scripts/package.sh.
         .executableTarget(name: "SpiderIcon", dependencies: ["SpiderBoard"]),
         .testTarget(name: "SpiderCoreTests", dependencies: ["SpiderCore"]),

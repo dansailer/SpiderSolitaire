@@ -3,7 +3,7 @@
 Each milestone is small enough to review on its own and ends in a state you can check. Milestones
 M2 to M8 need a Mac with Xcode 15 or later. M1 can also be checked on Linux.
 
-Status: **M1 is done.** M2 and M3 build and pass their tests on a Mac; the on-screen play test is still pending. M4 and M5 build and pass their tests on a Mac. M6 builds and passes its tests on a Mac. M7 and M8 are implemented and unit-tested on Linux, and are waiting for a Mac check.
+Status: **M1 is done.** M2 and M3 build and pass their tests on a Mac; the on-screen play test is still pending. M4 and M5 build and pass their tests on a Mac. M6 builds and passes its tests on a Mac. M7 and M8 build, pass their tests and package on a Mac. Since then, Classic card faces (CC0 English-pattern art, an Options switch) have been added and are waiting for a Mac check.
 
 ---
 
@@ -153,7 +153,7 @@ Not done yet: `docs/QA.md`.
   position) and after an abandoned game. They survive a relaunch.
 - Restart This Game re-deals the same seed.
 
-### M7: XP visual polish and win animation 🟡 (implemented, waiting for a Mac check)
+### M7: XP visual polish and win animation ✅ (built on a Mac; Classic faces added after)
 **Scope:**
 - refined card faces (corner indices, pips, court letters), the blue card back and the felt
   vignette
@@ -167,7 +167,7 @@ Not done yet: `docs/QA.md`.
   be skipped, and leads to the dialog.
 - Sounds respect the Options toggle (off by default; built-in macOS system sounds only).
 
-### M8: App icon and `.app` packaging 🟡 (implemented, waiting for a Mac check)
+### M8: App icon and `.app` packaging ✅ (package.sh verified on a Mac)
 **Scope:**
 - an app icon (spider and cards, our own art) as an `.icns` in all sizes
 - `Info.plist` (bundle id `com.dansailer.SpiderSolitaire`, version, category `public.app-category.card-games`)

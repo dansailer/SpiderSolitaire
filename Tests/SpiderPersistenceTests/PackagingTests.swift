@@ -45,6 +45,7 @@ final class PackagingTests: XCTestCase {
         let manifest: String = try String(contentsOf: repoRoot.appendingPathComponent("Package.swift"), encoding: .utf8)
         XCTAssertTrue(manifest.contains("name: \"SpiderSolitaire\""))
         XCTAssertTrue(manifest.contains("name: \"SpiderIcon\""))
+        XCTAssertTrue(manifest.contains(".copy(\"Resources/Cards\")"), "Classic card faces must stay a resource of the app")
     }
 
     func testPackageScriptIsStrictBashAndExecutable() throws {
@@ -57,6 +58,9 @@ final class PackagingTests: XCTestCase {
         XCTAssertTrue(script.contains("build/SpiderSolitaire.zip") || script.contains("SpiderSolitaire.zip"))
         XCTAssertTrue(script.contains("Spider Solitaire.app") || script.contains("$APP_NAME.app"))
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: url.path), "package.sh must be chmod +x")
+        // The Classic card faces' resource bundle must be copied into Contents/Resources.
+        XCTAssertTrue(script.contains("SpiderSolitaire_SpiderSolitaire.bundle"))
+        XCTAssertTrue(script.contains("DEST_BUNDLE=\"$APP/Contents/Resources/$RES_BUNDLE\""))
         let lastLine: String = script.split(separator: "\n").last.map(String.init) ?? ""
         XCTAssertEqual(lastLine, "echo \"$APP\"", "the .app path must be the last thing printed")
     }

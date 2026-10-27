@@ -39,6 +39,16 @@ Options: `VERSION=1.2.0` sets the version (default 1.0.0), `BUILD_NUMBER` defaul
 count, and `UNIVERSAL=1` builds arm64 + x86_64 (needs full Xcode). The app is ad-hoc signed, not
 notarized: on another Mac, right-click ▸ Open the first time.
 
+The script also copies SwiftPM's resource bundle (`SpiderSolitaire_SpiderSolitaire.bundle`, which holds the
+Classic card faces) into `Contents/Resources` in the standard bundle layout, so the app works outside the
+build folder.
+
+## Classic card art
+The Classic faces come from Dmitry Fomin's "English pattern" deck on Wikimedia Commons (CC0). The ace of
+spades also uses the ornate centre spade from Byron Knoll's public-domain deck. To regenerate them, you need
+Pillow, `rsvg-convert`, `pngquant` and `optipng`; run `python3 scripts/cards/build_classic_cards.py`. It checks
+each file page's licence and writes `Resources/Cards/CREDITS.md`.
+
 CI: `.github/workflows/ci.yml` runs the tests on Linux and macOS 14 and uploads the zip.
 
 ## Open in Xcode
@@ -57,7 +67,9 @@ Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
 - **Double-click** a card to send its run to the best legal column.
 - **Click the stock** (bottom right) or press **D** to deal a row.
 - **M**, or a click on the score box, flashes the next available move. Press again to cycle through them.
-- **Options** (Game ▸ Options…) has a "Play sounds" switch (off by default; macOS system sounds).
+- **Options** (Game ▸ Options…) has a "Play sounds" switch (off by default; macOS system sounds) and
+  **Card faces: Classic / Simple**. Classic (the default) uses traditional English-pattern art; Simple is
+  the code-drawn set.
 - After a win, click or press any key to skip the celebration.
 - **⌘Z** undoes a move. Game ▸ Classic XP Undo makes undo stop at deals and completed suits, like
   XP. **⌘N** starts a new game. File ▸ New Game With Difficulty chooses 1, 2 or 4
@@ -79,6 +91,8 @@ Sources/SpiderBoard/       pure-Swift board geometry and pointer handling (Board
 Sources/SpiderPersistence/ JSON files in Application Support (SpiderStore)
 Sources/SpiderSolitaire/   SwiftUI app (App and menus, GameModel, BoardView, CardView, WinCelebrationView)
 Sources/SpiderIcon/        code-drawn app icon renderer (CoreGraphics → 1024 px PNG)
+Sources/SpiderSolitaire/Resources/Cards/  Classic card faces (52 PNGs, CC0/public domain, see CREDITS.md)
+scripts/cards/             build_classic_cards.py (download, licence check, render) and preview.py
 Packaging/Info.plist       app bundle Info.plist template
 scripts/package.sh         builds, signs and zips build/Spider Solitaire.app
 Tests/SpiderCoreTests/     XCTest suite for the rules

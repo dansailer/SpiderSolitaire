@@ -51,6 +51,7 @@ struct BoardView: View {
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .environment(\.cardFaceStyle, model.options.cardFaces)
             .contentShape(Rectangle())
             // `.local` is the ZStack's own space, the same one `.position` uses for every card.
             .gesture(

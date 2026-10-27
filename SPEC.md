@@ -166,6 +166,15 @@ The look is "XP-like", not a copy of the XP assets.
   firework sparks, about 10 s) can be skipped with a click or any key. With animations off, the dialog
   appears straight away.
 
+### 3.6a Card faces
+- Options → Card faces: **Classic** (default) or **Simple**. It is saved in options.json; older files
+  without the key decode as Classic.
+- Classic: 240 × 324 px PNGs (2x the largest card) from Dmitry Fomin's CC0 English-pattern deck. The ace
+  of spades has Byron Knoll's public-domain ornate spade. The images live in the app target's resources
+  (`.copy("Resources/Cards")`), and sources and licences are listed in `Resources/Cards/CREDITS.md`.
+- CardView draws the image on the white card, clipped to the rounded rect, with the usual border. If
+  an image can't be found, it falls back to the code-drawn face. Card backs are unchanged.
+
 ### 3.7 Sound (M7, optional)
 - The game plays short cues for deal, drop, cannot-deal, hint, no-hint and win.
 - The cues are built-in macOS system sounds played with `NSSound(named:)` (Pop, Tink, Basso, Ping, Funk,

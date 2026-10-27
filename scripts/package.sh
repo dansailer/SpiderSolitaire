@@ -59,10 +59,58 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/$EXECUTABLE" "$APP/Contents/MacOS/$EXECUTABLE"
 chmod 755 "$APP/Contents/MacOS/$EXECUTABLE"
 cp "$BUILD_DIR/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+
+# SwiftPM resource bundle with the Classic card faces. `swift build` makes a flat bundle; a signed
+# app needs the standard Contents/{Info.plist,Resources} layout, so it is rebuilt that way. The app
+# looks for it in Contents/Resources (see ClassicCardArt.bundleCandidates).
+RES_BUNDLE="SpiderSolitaire_SpiderSolitaire.bundle"
+SRC_BUNDLE="$BIN_DIR/$RES_BUNDLE"
+DEST_BUNDLE="$APP/Contents/Resources/$RES_BUNDLE"
+if [[ ! -d "$SRC_BUNDLE" ]]; then
+    echo "error: resource bundle not found at $SRC_BUNDLE" >&2
+    exit 1
+fi
+mkdir -p "$DEST_BUNDLE/Contents/Resources"
+if [[ -d "$SRC_BUNDLE/Contents/Resources" ]]; then
+    cp -R "$SRC_BUNDLE/Contents/Resources/." "$DEST_BUNDLE/Contents/Resources/"
+else
+    for item in "$SRC_BUNDLE"/*; do
+        [[ "$(basename "$item")" == "Info.plist" ]] && continue
+        cp -R "$item" "$DEST_BUNDLE/Contents/Resources/"
+    done
+fi
+cat > "$DEST_BUNDLE/Contents/Info.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.dansailer.SpiderSolitaire.resources</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>SpiderSolitaire_SpiderSolitaire</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$VERSION</string>
+	<key>CFBundleVersion</key>
+	<string>$BUILD_NUMBER</string>
+</dict>
+</plist>
+PLIST
+CARD_COUNT="$(find "$DEST_BUNDLE/Contents/Resources/Cards" -name '*.png' | wc -l | tr -d ' ')"
+if [[ "$CARD_COUNT" != "52" ]]; then
+    echo "error: expected 52 card images in $DEST_BUNDLE, found $CARD_COUNT" >&2
+    exit 1
+fi
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD_NUMBER/" \
     "$ROOT/Packaging/Info.plist" > "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
+plutil -lint "$DEST_BUNDLE/Contents/Info.plist" >/dev/null
 
 echo "==> Signing (ad hoc)"
 codesign --force --deep -s - "$APP"

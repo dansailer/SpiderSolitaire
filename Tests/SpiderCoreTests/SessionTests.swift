@@ -177,3 +177,33 @@ final class OptionsSoundTests: XCTestCase {
         XCTAssertTrue(try JSONDecoder().decode(Options.self, from: JSONEncoder().encode(on)).soundsEnabled)
     }
 }
+
+final class OptionsCardFaceTests: XCTestCase {
+    func testClassicIsTheDefaultAndOldFilesDecodeAsClassic() throws {
+        XCTAssertEqual(Options().cardFaces, CardFaceStyle.classic)
+        // An M7-era options.json has no cardFaces key.
+        let old = #"{"difficulty": 4, "soundsEnabled": true, "saveOnExit": "prompt"}"#
+        let o = try JSONDecoder().decode(Options.self, from: Data(old.utf8))
+        XCTAssertEqual(o.cardFaces, CardFaceStyle.classic)
+        XCTAssertTrue(o.soundsEnabled)
+        XCTAssertEqual(o.difficulty, .fourSuits)
+        XCTAssertEqual(o.saveOnExit, .prompt)
+    }
+
+    func testUnknownCardFaceValueFallsBackToClassic() throws {
+        let json = #"{"cardFaces": "psychedelic", "animationsEnabled": false}"#
+        let o = try JSONDecoder().decode(Options.self, from: Data(json.utf8))
+        XCTAssertEqual(o.cardFaces, CardFaceStyle.classic)
+        XCTAssertFalse(o.animationsEnabled)
+    }
+
+    func testSimpleRoundTripsAsAStableString() throws {
+        var simple = Options()
+        simple.cardFaces = .simple
+        let data = try JSONEncoder().encode(simple)
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        XCTAssertEqual(object?["cardFaces"] as? String, "simple")
+        XCTAssertEqual(try JSONDecoder().decode(Options.self, from: data), simple)
+        XCTAssertEqual(CardFaceStyle.allCases.map { $0.rawValue }, ["classic", "simple"])
+    }
+}
