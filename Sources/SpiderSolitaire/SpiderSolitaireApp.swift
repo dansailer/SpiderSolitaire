@@ -25,6 +25,7 @@ struct SpiderSolitaireApp: App {
         .defaultSize(width: 800, height: 600)
         .commands {
             GameCommands(model: model)
+            EmptiedStandardMenus()
         }
 
         Window("Achievements", id: AchievementsView.windowID) {
@@ -49,19 +50,6 @@ struct GameCommands: Commands {
         CommandGroup(replacing: CommandGroupPlacement.appInfo) {
             Button("About Spider Solitaire") { AboutPanel.show() }
         }
-        // File menu: nothing (single window; saving lives in the Game menu).
-        CommandGroup(replacing: CommandGroupPlacement.newItem) {}
-        CommandGroup(replacing: CommandGroupPlacement.saveItem) {}
-        CommandGroup(replacing: CommandGroupPlacement.importExport) {}
-        CommandGroup(replacing: CommandGroupPlacement.printItem) {}
-        // Edit menu: nothing (Undo and Redo are in the Game menu).
-        CommandGroup(replacing: CommandGroupPlacement.undoRedo) {}
-        CommandGroup(replacing: CommandGroupPlacement.pasteboard) {}
-        CommandGroup(replacing: CommandGroupPlacement.textEditing) {}
-        CommandGroup(replacing: CommandGroupPlacement.textFormatting) {}
-        // View menu: nothing.
-        CommandGroup(replacing: CommandGroupPlacement.toolbar) {}
-        CommandGroup(replacing: CommandGroupPlacement.sidebar) {}
         // Help: placeholder until there is help to show.
         CommandGroup(replacing: CommandGroupPlacement.help) {
             Button(MenuCommand.help.title) {}
@@ -95,6 +83,26 @@ struct GameCommands: Commands {
             Divider()
             CommandButton(MenuCommand.closeWindow) { NSApplication.shared.keyWindow?.performClose(nil) }
         }
+    }
+}
+
+/// Empties SwiftUI's File, Edit and View menus (kept in a separate `Commands` because a
+/// commands builder takes at most 10 items); `MainMenuCleaner` then removes the empty menus.
+struct EmptiedStandardMenus: Commands {
+    var body: some Commands {
+        // File menu: nothing (single window; saving lives in the Game menu).
+        CommandGroup(replacing: CommandGroupPlacement.newItem) {}
+        CommandGroup(replacing: CommandGroupPlacement.saveItem) {}
+        CommandGroup(replacing: CommandGroupPlacement.importExport) {}
+        CommandGroup(replacing: CommandGroupPlacement.printItem) {}
+        // Edit menu: nothing (Undo and Redo are in the Game menu).
+        CommandGroup(replacing: CommandGroupPlacement.undoRedo) {}
+        CommandGroup(replacing: CommandGroupPlacement.pasteboard) {}
+        CommandGroup(replacing: CommandGroupPlacement.textEditing) {}
+        CommandGroup(replacing: CommandGroupPlacement.textFormatting) {}
+        // View menu: nothing.
+        CommandGroup(replacing: CommandGroupPlacement.toolbar) {}
+        CommandGroup(replacing: CommandGroupPlacement.sidebar) {}
     }
 }
 
