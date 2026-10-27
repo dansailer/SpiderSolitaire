@@ -3,7 +3,7 @@
 Each milestone is small enough to review on its own and ends in a state you can check. Milestones
 M2 to M8 need a Mac with Xcode 15 or later. M1 can also be checked on Linux.
 
-Status: **M1 is done.** M2 and M3 build and pass their tests on a Mac; the on-screen play test is still pending. M4 and M5 build and pass their tests on a Mac. M6 is implemented and unit-tested on Linux, and is waiting for a Mac check. M7 and M8 are not started.
+Status: **M1 is done.** M2 and M3 build and pass their tests on a Mac; the on-screen play test is still pending. M4 and M5 build and pass their tests on a Mac. M6 builds and passes its tests on a Mac. M7 and M8 are implemented and unit-tested on Linux, and are waiting for a Mac check.
 
 ---
 
@@ -153,7 +153,7 @@ Not done yet: `docs/QA.md`.
   position) and after an abandoned game. They survive a relaunch.
 - Restart This Game re-deals the same seed.
 
-### M7: XP visual polish and win animation
+### M7: XP visual polish and win animation 🟡 (implemented, waiting for a Mac check)
 **Scope:**
 - refined card faces (corner indices, pips, court letters), the blue card back and the felt
   vignette
@@ -165,17 +165,17 @@ Not done yet: `docs/QA.md`.
 - A side-by-side screenshot against an XP reference image is reviewed and judged close enough.
 - The win animation runs at 60 fps on an M1 Mac (Instruments shows no dropped frames over 5 s), can
   be skipped, and leads to the dialog.
-- Sounds respect the Settings toggle.
+- Sounds respect the Options toggle (off by default; built-in macOS system sounds only).
 
-### M8: App icon and `.app` packaging
+### M8: App icon and `.app` packaging 🟡 (implemented, waiting for a Mac check)
 **Scope:**
 - an app icon (spider and cards, our own art) as an `.icns` in all sizes
 - `Info.plist` (bundle id `com.dansailer.SpiderSolitaire`, version, category `public.app-category.card-games`)
-- `scripts/package.sh` → `dist/SpiderSolitaire.app`, ad-hoc signed
-- a zip artifact
+- `scripts/package.sh` → `build/Spider Solitaire.app`, ad-hoc signed
+- a zip artifact (`build/SpiderSolitaire.zip`)
 
 **Acceptance:**
-- Double-clicking `dist/SpiderSolitaire.app` launches the game with its icon in the Dock and Finder.
-- `codesign --verify --deep dist/SpiderSolitaire.app` passes.
+- Double-clicking `build/Spider Solitaire.app` launches the game with its icon in the Dock and Finder.
+- `codesign --verify --deep "build/Spider Solitaire.app"` passes.
 - The README documents the packaging step.
 - Optional: CI (GitHub Actions on a macOS runner) builds, tests and uploads the zip.

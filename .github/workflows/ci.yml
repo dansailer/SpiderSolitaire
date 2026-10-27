@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: Linux (core + board tests)
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build
+      - run: swift test
+
+  macos:
+    name: macOS 14 (tests + app bundle)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: swift --version
+      - run: swift test
+      - run: scripts/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SpiderSolitaire
+          path: build/SpiderSolitaire.zip

@@ -20,8 +20,26 @@ swift run SpiderSolitaire    # launches the game window
 swift test                   # runs the SpiderCore XCTest suite
 ```
 
-If `swift run` opens a window that won't take keyboard focus, click it once. Packaging the game as a
-proper `.app` bundle comes in M8.
+If `swift run` opens a window that won't take keyboard focus, click it once.
+
+## Package as a `.app`
+```bash
+./scripts/package.sh                 # or: bash scripts/package.sh
+open "build/Spider Solitaire.app"
+```
+The script (macOS only):
+1. Runs `swift build -c release`.
+2. Renders the icon in code (`swift run SpiderIcon`, CoreGraphics) and turns it into `AppIcon.icns`
+   with `sips` and `iconutil`.
+3. Assembles `build/Spider Solitaire.app` from `Packaging/Info.plist` (bundle id
+   `com.dansailer.SpiderSolitaire`, minimum macOS 14).
+4. Ad-hoc signs it (`codesign --force --deep -s -`) and zips it to `build/SpiderSolitaire.zip`.
+
+Options: `VERSION=1.2.0` sets the version (default 1.0.0), `BUILD_NUMBER` defaults to the git commit
+count, and `UNIVERSAL=1` builds arm64 + x86_64 (needs full Xcode). The app is ad-hoc signed, not
+notarized: on another Mac, right-click ▸ Open the first time.
+
+CI: `.github/workflows/ci.yml` runs the tests on Linux and macOS 14 and uploads the zip.
 
 ## Open in Xcode
 ```bash
@@ -39,6 +57,8 @@ Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
 - **Double-click** a card to send its run to the best legal column.
 - **Click the stock** (bottom right) or press **D** to deal a row.
 - **M**, or a click on the score box, flashes the next available move. Press again to cycle through them.
+- **Options** (Game ▸ Options…) has a "Play sounds" switch (off by default; macOS system sounds).
+- After a win, click or press any key to skip the celebration.
 - **⌘Z** undoes a move. Game ▸ Classic XP Undo makes undo stop at deals and completed suits, like
   XP. **⌘N** starts a new game. File ▸ New Game With Difficulty chooses 1, 2 or 4
   suits.
@@ -57,7 +77,10 @@ Package.swift
 Sources/SpiderCore/        rules engine (Card, Deck, GameState, SpiderGame, Hints, Statistics)
 Sources/SpiderBoard/       pure-Swift board geometry and pointer handling (BoardLayout, PointerController)
 Sources/SpiderPersistence/ JSON files in Application Support (SpiderStore)
-Sources/SpiderSolitaire/   SwiftUI app (App and menus, GameModel, BoardView, CardView)
+Sources/SpiderSolitaire/   SwiftUI app (App and menus, GameModel, BoardView, CardView, WinCelebrationView)
+Sources/SpiderIcon/        code-drawn app icon renderer (CoreGraphics → 1024 px PNG)
+Packaging/Info.plist       app bundle Info.plist template
+scripts/package.sh         builds, signs and zips build/Spider Solitaire.app
 Tests/SpiderCoreTests/     XCTest suite for the rules
 Tests/SpiderBoardTests/    XCTest suite for layout, hit-testing, drag/drop and double-click
 Tests/SpiderPersistenceTests/ XCTest suite for saving, loading and quit/resume

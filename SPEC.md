@@ -162,11 +162,14 @@ The look is "XP-like", not a copy of the XP assets.
   and `TimelineView`.
 - Then the dialog "Congratulations, you won! Do you want to start another game?" appears with
   Yes/No buttons and shows the final score.
-- The win animation can be skipped with a click or Esc.
+- The win animation (completed suits' K/Q/J/10 bouncing out of the foundation with trails, plus
+  firework sparks, about 10 s) can be skipped with a click or any key. With animations off, the dialog
+  appears straight away.
 
 ### 3.7 Sound (M7, optional)
 - The game plays short cues for deal, drop, cannot-deal, hint, no-hint and win.
-- The cues are our own sounds or CC0 sounds, and Options → "Play sounds" turns them off.
+- The cues are built-in macOS system sounds played with `NSSound(named:)` (Pop, Tink, Basso, Ping, Funk,
+  Glass, Hero); no Microsoft or bundled audio. Options → "Play sounds" is off by default.
 
 ## 4. Persistence and statistics
 - **Statistics** (`Statistics`, `DifficultyStatistics` in the core), kept per difficulty:
@@ -231,7 +234,10 @@ SpiderSolitaire (Swift package)
   - swift-tools-version 5.9, macOS 14 deployment target, Swift 5 language mode.
   - Builds with Xcode 15 or later. Tested on the Swift 6.0.3 Linux toolchain.
 - **Packaging (M8):**
-  - `scripts/package.sh` runs `swift build -c release`, then assembles
-    `SpiderSolitaire.app/Contents/{MacOS,Resources,Info.plist}` with an `.icns` icon and ad-hoc
-    codesigns it (`codesign -s -`).
+  - `scripts/package.sh` runs `swift build -c release`, renders the icon with the `SpiderIcon`
+    tool (CoreGraphics), builds the `.icns` with `sips`/`iconutil`, assembles
+    `build/Spider Solitaire.app/Contents/{MacOS,Resources,Info.plist,PkgInfo}`, ad-hoc codesigns it
+    (`codesign --force --deep -s -`) and zips it to `build/SpiderSolitaire.zip`.
+  - `Info.plist`: `com.dansailer.SpiderSolitaire`, "Spider Solitaire", category
+    `public.app-category.card-games` (Apple's games subcategory), `LSMinimumSystemVersion` 14.0.
   - An Xcode project can be generated later if the app goes to the App Store or needs notarization.
