@@ -40,4 +40,33 @@ public struct Statistics: Codable, Sendable, Hashable {
         get { byDifficulty[difficulty] ?? DifficultyStatistics() }
         set { byDifficulty[difficulty] = newValue }
     }
+
+    /// The Statistics dialog's Reset button: clears one difficulty.
+    public mutating func reset(_ difficulty: Difficulty) {
+        byDifficulty[difficulty] = nil
+    }
+
+    // JSON as {"1": {...}, "2": {...}, "4": {...}} (keyed by suit count) instead of Swift's
+    // default array encoding for enum-keyed dictionaries.
+    private struct Key: CodingKey {
+        var stringValue: String
+        var intValue: Int? { nil }
+        init(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { return nil }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: Key.self)
+        for key in container.allKeys {
+            guard let raw = Int(key.stringValue), let difficulty = Difficulty(rawValue: raw) else { continue }
+            byDifficulty[difficulty] = try container.decode(DifficultyStatistics.self, forKey: key)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Key.self)
+        for (difficulty, stats) in byDifficulty {
+            try container.encode(stats, forKey: Key(stringValue: String(difficulty.rawValue)))
+        }
+    }
 }
