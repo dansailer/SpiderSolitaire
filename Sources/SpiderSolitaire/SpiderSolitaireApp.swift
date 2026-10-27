@@ -4,177 +4,159 @@ import SpiderBoard
 import SpiderCore
 import SwiftUI
 
+/// AppKit app lifecycle with SwiftUI views inside the windows. There is no SwiftUI `App` or
+/// `Commands`: SwiftUI rebuilt the menu bar whenever the observed game changed and re-added its
+/// View and Format menus each time (they flickered in and out). The app builds the bar itself,
+/// once (`MainMenuBuilder`).
 @main
-struct SpiderSolitaireApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate: AppDelegate
-    @StateObject private var model: GameModel = GameModel()
-
-    static let boardWindowID: String = "board"
-
-    init() {
-        MainMenuCleaner.prepare()
-    }
-
-    var body: some Scene {
-        // One game window (a `Window`, not a `WindowGroup`): no New Window, no tabs.
-        Window("Spider Solitaire", id: SpiderSolitaireApp.boardWindowID) {
-            BoardView(model: model)
-                .frame(minWidth: 640, minHeight: 480)
-                .onAppear { appDelegate.model = model }
-        }
-        .defaultSize(width: 800, height: 600)
-        .commands {
-            GameCommands(model: model)
-            EmptiedStandardMenus()
-        }
-
-        Window("Achievements", id: AchievementsView.windowID) {
-            AchievementsView(model: model)
-        }
-        .defaultSize(width: 720, height: 560)
-
-        Window(MenuCommand.help.title, id: HelpView.windowID) {
-            HelpView()
-        }
-        .defaultSize(width: 560, height: 640)
-        .windowResizability(WindowResizability.contentMinSize)
-
-        // Spider Solitaire ▸ Settings… (⌘,)
-        Settings {
-            SettingsView(model: model)
-        }
+enum SpiderSolitaireMain {
+    @MainActor
+    static func main() {
+        // Before NSApplication exists: AppKit reads these defaults when it starts up.
+        MainMenuBuilder.prepare()
+        let app: NSApplication = NSApplication.shared
+        let delegate: AppDelegate = AppDelegate()
+        app.delegate = delegate
+        app.setActivationPolicy(NSApplication.ActivationPolicy.regular)
+        withExtendedLifetime(delegate) { app.run() }
     }
 }
 
-/// The menu bar (SPEC.md §3.5). Titles and shortcuts come from `MenuCommand` in SpiderBoard,
-/// where tests check them for clashes. Edit, View and File are emptied here and removed by
-/// `MainMenuCleaner`; AppKit then puts Enter Full Screen in the Window menu.
-struct GameCommands: Commands {
-    @ObservedObject var model: GameModel
+/// The four windows. Each is created on first use and kept (closing hides it), so its size and
+/// position survive; the board's frame is also saved between launches.
+@MainActor
+final class WindowController: NSObject, NSWindowDelegate {
+    private let model: GameModel
+    private var board: NSWindow?
+    private var achievements: NSWindow?
+    private var help: NSWindow?
+    private var settings: NSWindow?
 
-    var body: some Commands {
-        CommandGroup(replacing: CommandGroupPlacement.appInfo) {
-            Button("About Spider Solitaire") { AboutPanel.show() }
-        }
-        // Help ▸ Spider Solitaire Help (⌘?); macOS adds the search field.
-        CommandGroup(replacing: CommandGroupPlacement.help) {
-            HelpMenuButton()
-        }
+    init(model: GameModel) {
+        self.model = model
+    }
 
-        // Groups keep each builder block at 10 items or fewer.
-        CommandMenu(MenuCommand.Menu.game.rawValue) {
-            Group {
-                CommandButton(MenuCommand.newGame) { model.requestNewGame(nil) }
-                CommandButton(MenuCommand.restartGame) { model.requestRestart() }
-                Divider()
-                CommandButton(MenuCommand.undo) { model.undo() }
-                    .disabled(!model.canUndo)
-                CommandButton(MenuCommand.redo) { model.redo() }
-                    .disabled(!model.canRedo)
-                Divider()
+    func showBoard() {
+        let window: NSWindow = board ?? makeWindow(
+            title: "Spider Solitaire", autosave: "SpiderSolitaireBoard",
+            size: NSSize(width: 800, height: 600), resizable: true,
+            content: BoardView(model: model).frame(minWidth: 640, minHeight: 480))
+        window.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenPrimary)
+        board = window
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    func showAchievements() {
+        let window: NSWindow = achievements ?? makeWindow(
+            title: "Achievements", autosave: "SpiderSolitaireAchievements",
+            size: NSSize(width: 720, height: 560), resizable: true,
+            content: AchievementsView(model: model))
+        achievements = window
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    func showHelp() {
+        let window: NSWindow = help ?? makeWindow(
+            title: MenuCommand.help.title, autosave: "SpiderSolitaireHelp",
+            size: NSSize(width: 560, height: 640), resizable: true,
+            content: HelpView())
+        help = window
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    func showSettings() {
+        let window: NSWindow = settings ?? makeWindow(
+            title: "Settings", autosave: "SpiderSolitaireSettings",
+            size: nil, resizable: false,
+            content: SettingsView(model: model))
+        window.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenNone)
+        settings = window
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    private func makeWindow<Content: View>(title: String, autosave: String, size: NSSize?, resizable: Bool,
+                                           content: Content) -> NSWindow {
+        let controller: NSHostingController<Content> = NSHostingController<Content>(rootView: content)
+        controller.sizingOptions = resizable ? [NSHostingSizingOptions.minSize] : [NSHostingSizingOptions.preferredContentSize]
+        var style: NSWindow.StyleMask = [NSWindow.StyleMask.titled, NSWindow.StyleMask.closable,
+                                         NSWindow.StyleMask.miniaturizable]
+        if resizable { style.insert(NSWindow.StyleMask.resizable) }
+        let window: NSWindow = NSWindow(contentRect: NSRect(origin: NSPoint.zero, size: size ?? NSSize(width: 480, height: 400)),
+                                        styleMask: style, backing: NSWindow.BackingStoreType.buffered, defer: false)
+        window.contentViewController = controller
+        window.title = title
+        window.tabbingMode = NSWindow.TabbingMode.disallowed
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        if let size { window.setContentSize(size) }
+        window.center()
+        window.setFrameAutosaveName(autosave)
+        return window
+    }
+
+    /// Closing the game window quits the app (the usual quit-time save rules apply).
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        guard sender === board else { return true }
+        NSApplication.shared.terminate(nil)
+        return false
+    }
+}
+
+/// `--menu-probe <seconds>` (debug check, SPEC.md §3.5): plays moves for that long and prints
+/// the menu bar four times a second, then the set of distinct menu bars seen, and quits with
+/// status 0 only if the bar never changed, matches `MenuBarLayout`, and shows Full Screen once.
+@MainActor
+enum MenuProbe {
+    static func startIfRequested(menuController: MenuController) {
+        let args: [String] = CommandLine.arguments
+        guard let i: Int = args.firstIndex(of: "--menu-probe") else { return }
+        let seconds: Double = (i + 1 < args.count ? Double(args[i + 1]) : nil) ?? 10
+        Task { @MainActor in
+            var seen: [String: Int] = [:]
+            let steps: [MenuCommand] = [.showHint, .dealNextRow, .undo, .redo, .showHint, .undo]
+            let ticks: Int = Int(seconds * 4)
+            for tick in 0..<ticks {
+                if tick % 2 == 0 { menuController.perform(steps[(tick / 2) % steps.count]) }
+                let snapshot: String = MainMenuBuilder.snapshot()
+                seen[snapshot, default: 0] += 1
+                print(String(format: "MENUPROBE %6.2fs %@", Double(tick) / 4, snapshot))
+                try? await Task.sleep(nanoseconds: 250_000_000)
             }
-            Group {
-                CommandButton(MenuCommand.dealNextRow) { model.deal() }
-                CommandButton(MenuCommand.showHint) { model.showHint() }
-                Divider()
-                Menu(MenuCommand.Menu.difficulty.rawValue) {
-                    DifficultyItem(model: model, command: MenuCommand.oneSuit, difficulty: Difficulty.oneSuit)
-                    DifficultyItem(model: model, command: MenuCommand.twoSuits, difficulty: Difficulty.twoSuits)
-                    DifficultyItem(model: model, command: MenuCommand.fourSuits, difficulty: Difficulty.fourSuits)
-                }
-                Divider()
-            }
-            Group {
-                CommandButton(MenuCommand.statistics) { model.showStatisticsSheet = true }
-                AchievementsMenuButton()
-                Divider()
-                CommandButton(MenuCommand.saveGame) { model.saveGame() }
-                CommandButton(MenuCommand.openSavedGame) { model.requestOpenSavedGame() }
-                    .disabled(!model.hasSavedGame)
-                Divider()
-                CommandButton(MenuCommand.closeWindow) { NSApplication.shared.keyWindow?.performClose(nil) }
-            }
+            let app: NSApplication = NSApplication.shared
+            let tops: [String] = app.mainMenu?.items.map { (item: NSMenuItem) -> String in item.title } ?? []
+            let expected: [String] = MenuBarLayout.menuBar.map { (top: MenuBarLayout.TopMenu) -> String in top.title }
+            let fullScreen: Int = app.windowsMenu?.items.filter { (item: NSMenuItem) -> Bool in
+                !item.isHidden && item.action == #selector(NSWindow.toggleFullScreen(_:))
+            }.count ?? 0
+            print("MENUPROBE distinct menu bars: \(seen.count)")
+            for (bar, count) in seen { print("MENUPROBE \(count)x \(bar)") }
+            print("MENUPROBE top menus as designed: \(tops == expected); visible Full Screen items: \(fullScreen)")
+            fflush(stdout)
+            exit(seen.count == 1 && tops == expected && fullScreen == 1 ? 0 : 1)
         }
     }
 }
 
-/// Empties SwiftUI's File, Edit and View menus (kept in a separate `Commands` because a
-/// commands builder takes at most 10 items); `MainMenuCleaner` then removes the empty menus.
-struct EmptiedStandardMenus: Commands {
-    var body: some Commands {
-        // File menu: nothing (single window; saving lives in the Game menu).
-        CommandGroup(replacing: CommandGroupPlacement.newItem) {}
-        CommandGroup(replacing: CommandGroupPlacement.saveItem) {}
-        CommandGroup(replacing: CommandGroupPlacement.importExport) {}
-        CommandGroup(replacing: CommandGroupPlacement.printItem) {}
-        // Edit menu: nothing (Undo and Redo are in the Game menu).
-        CommandGroup(replacing: CommandGroupPlacement.undoRedo) {}
-        CommandGroup(replacing: CommandGroupPlacement.pasteboard) {}
-        CommandGroup(replacing: CommandGroupPlacement.textEditing) {}
-        CommandGroup(replacing: CommandGroupPlacement.textFormatting) {}
-        // View menu: nothing.
-        CommandGroup(replacing: CommandGroupPlacement.toolbar) {}
-        CommandGroup(replacing: CommandGroupPlacement.sidebar) {}
-    }
-}
-
-/// A menu button whose title and shortcut come from the `MenuCommand` table.
-struct CommandButton: View {
-    let command: MenuCommand
-    let action: () -> Void
-
-    init(_ command: MenuCommand, action: @escaping () -> Void) {
-        self.command = command
-        self.action = action
-    }
-
-    var body: some View {
-        Button(command.title, action: action)
-            .keyboardShortcut(command.keyboardShortcut)
-    }
-}
-
-/// Game ▸ Difficulty ▸ One/Two/Four Suits: checked for the current game; choosing one starts a
-/// new game at that difficulty (asking first if a game is in progress).
-struct DifficultyItem: View {
-    @ObservedObject var model: GameModel
-    let command: MenuCommand
-    let difficulty: Difficulty
-
-    var body: some View {
-        Toggle(command.title, isOn: Binding<Bool>(
-            get: { model.game.state.difficulty == difficulty },
-            set: { (_: Bool) in model.requestNewGame(difficulty) }
-        ))
-        .keyboardShortcut(command.keyboardShortcut)
-    }
-}
-
-extension MenuCommand {
-    var keyboardShortcut: KeyboardShortcut? {
-        guard let s: MenuShortcut = shortcut else { return nil }
-        var modifiers: EventModifiers = []
-        if s.command { modifiers.insert(EventModifiers.command) }
-        if s.shift { modifiers.insert(EventModifiers.shift) }
-        if s.option { modifiers.insert(EventModifiers.option) }
-        if s.control { modifiers.insert(EventModifiers.control) }
-        return KeyboardShortcut(KeyEquivalent(s.key), modifiers: modifiers)
-    }
-}
-
-/// Quit handling (save / don't save / prompt, per Options), close-window-quits, menu clean-up,
-/// and "any key skips the win animation".
+/// Owns the model, the windows and the menu bar. Quit handling (save / don't save / prompt, per
+/// Options), close-window-quits, and "any key skips the win animation".
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    weak var model: GameModel?
+    private(set) var model: GameModel?
+    private var windows: WindowController?
+    private var menuController: MenuController?
     private var keyMonitor: Any?
 
-    func applicationWillFinishLaunching(_ notification: Notification) {
-        NSWindow.allowsAutomaticWindowTabbing = false
-    }
-
     func applicationDidFinishLaunching(_ notification: Notification) {
-        MainMenuCleaner.shared.start()
+        let model: GameModel = GameModel()
+        let windows: WindowController = WindowController(model: model)
+        let menuController: MenuController = MenuController(model: model, windows: windows)
+        self.model = model
+        self.windows = windows
+        self.menuController = menuController
+        MainMenuBuilder.install(target: menuController)
+        windows.showBoard()
+        NSApplication.shared.activate()
+        MenuProbe.startIfRequested(menuController: menuController)
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: NSEvent.EventTypeMask.keyDown) {
             [weak self] (event: NSEvent) -> NSEvent? in
             guard let model = self?.model, model.isCelebrating else { return event }
@@ -185,6 +167,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
+    }
+
+    /// Clicking the Dock icon with no window open brings the game back.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { windows?.showBoard() }
+        return true
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

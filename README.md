@@ -116,7 +116,7 @@ swift build -c release --product SpiderTools
 ```
 
 `python3 scripts/check_builders.py` flags any SwiftUI builder block with more than 10 direct
-children (the `Commands` and `Scene` builders stop at 10, and Linux can't compile the app target).
+children (result builders past 10 items fail to compile, and Linux can't compile the app target).
 
 ## Linux (rules engine only)
 `SpiderCore` and `SpiderBoard` use only the Swift standard library, so they build and test anywhere Swift runs:
@@ -132,7 +132,7 @@ Package.swift
 Sources/SpiderCore/        rules engine (Card, Deck, GameState, SpiderGame, Hints, Statistics)
 Sources/SpiderBoard/       pure-Swift board geometry and pointer handling (BoardLayout, PointerController)
 Sources/SpiderPersistence/ JSON files in Application Support (SpiderStore)
-Sources/SpiderSolitaire/   SwiftUI app (App and menus, GameModel, BoardView, CardView, WinCelebrationView)
+Sources/SpiderSolitaire/   SwiftUI views in an AppKit app (app delegate, windows and menu bar, GameModel, BoardView, CardView, WinCelebrationView)
 Sources/SpiderIcon/        renders VectorArt (app icon, card back, badges) to PNG (CoreGraphics) or SVG (any platform)
 Sources/SpiderTools/       dev-only solver tool: bench, find, seeds, bundled (not part of the app)
 Sources/SpiderSolitaire/Resources/Cards/  Classic card faces (52 PNGs, CC0/public domain, see CREDITS.md)

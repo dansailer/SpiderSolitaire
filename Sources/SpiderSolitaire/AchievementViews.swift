@@ -79,19 +79,8 @@ struct DealingOverlay: View {
     }
 }
 
-/// Game ▸ Achievements… (⌘⇧A). Commands cannot read `openWindow` reliably, so a small view does.
-struct AchievementsMenuButton: View {
-    @Environment(\.openWindow) private var openWindow: OpenWindowAction
-
-    var body: some View {
-        Button(MenuCommand.achievements.title) { openWindow(id: AchievementsView.windowID) }
-            .keyboardShortcut(MenuCommand.achievements.keyboardShortcut)
-    }
-}
-
 /// The Achievements window: every badge, gold with its date once unlocked, grey with its hint before.
 struct AchievementsView: View {
-    static let windowID: String = "achievements"
 
     @ObservedObject var model: GameModel
 

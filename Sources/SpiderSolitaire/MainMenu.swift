@@ -1,118 +1,174 @@
 #if canImport(SwiftUI)
 import AppKit
 import SpiderBoard
+import SpiderCore
 
-/// Final touches SwiftUI's `Commands` can't express (SPEC.md §3.5): the menu bar is exactly the
-/// app menu, Game, Window and Help. SwiftUI still inserts File, Edit and View menus (emptied by
-/// `EmptiedStandardMenus`), so this removes them. What to remove is decided by `MenuBarPlan`
-/// (SpiderBoard, unit-tested) from the menus' structure and key equivalents, never their titles.
-///
-/// Enter Full Screen is left to AppKit: once there is no View menu, AppKit puts its own
-/// `toggleFullScreen:` item (⌃⌘F, titled Enter / Exit Full Screen) in the Window menu.
-///
-/// When it runs: at launch, and after SwiftUI rebuilds the menu bar (an item added to the main
-/// menu itself), debounced, and never while a menu is open. It changes nothing when the bar is
-/// already clean. (An earlier version also reacted to every item added to any menu, including
-/// the Window menu filling in its window list as it opened, and then added or removed Full Screen
-/// items while the menu was on screen: that was the "long menu, then a short one" flicker.)
+/// Builds the menu bar from `MenuBarLayout` (SPEC.md §3.5), once, at launch. The app owns
+/// `NSApp.mainMenu` outright: there are no SwiftUI `Commands`, so nothing ever inserts File,
+/// Edit, View or Format menus, and nothing rebuilds the bar when the game changes. Enabled and
+/// checked states come from `validateMenuItem(_:)`, which AppKit calls only when a menu opens or
+/// a shortcut is pressed.
 @MainActor
-final class MainMenuCleaner {
-    static let shared: MainMenuCleaner = MainMenuCleaner()
-
-    /// Before any window or menu exists: no window tabs, and no Start Dictation / Emoji & Symbols
-    /// items (AppKit adds them to whatever menu it thinks is Edit).
+enum MainMenuBuilder {
+    /// Before the menu exists: no window tabs, no automatic Full Screen item (the Window menu has
+    /// its own), and no Start Dictation / Emoji & Symbols items.
     static func prepare() {
         NSWindow.allowsAutomaticWindowTabbing = false
-        UserDefaults.standard.set(true, forKey: "NSDisabledDictationMenuItem")
-        UserDefaults.standard.set(true, forKey: "NSDisabledCharacterPaletteMenuItem")
+        UserDefaults.standard.register(defaults: [
+            // AppKit's own Full Screen item would be a second one in the Window menu.
+            "NSFullScreenMenuItemEverywhere": false,
+            "NSDisabledDictationMenuItem": true,
+            "NSDisabledCharacterPaletteMenuItem": true,
+        ])
     }
 
-    private var observers: [NSObjectProtocol] = []
-    /// Menus currently open (tracking); cleanup waits until this is zero.
-    private var trackingDepth: Int = 0
-    private var pending: Bool = false
-    private var scheduled: Bool = false
-
-    func start() {
-        requestClean()
-        let center: NotificationCenter = NotificationCenter.default
-        let main: OperationQueue = OperationQueue.main
-        observers.append(center.addObserver(forName: NSMenu.didAddItemNotification, object: nil, queue: main) {
-            [weak self] (note: Notification) in
-            // Only top-level changes: SwiftUI rebuilding the bar. Items added inside a menu (the
-            // Window menu's window list, AppKit's own items) are none of our business.
-            let menu: NSMenu? = note.object as? NSMenu
-            MainActor.assumeIsolated {
-                guard let menu, menu === NSApplication.shared.mainMenu else { return }
-                self?.requestClean()
-            }
-        })
-        observers.append(center.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: main) {
-            [weak self] (_: Notification) in
-            MainActor.assumeIsolated { if let self { self.trackingDepth += 1 } }
-        })
-        observers.append(center.addObserver(forName: NSMenu.didEndTrackingNotification, object: nil, queue: main) {
-            [weak self] (_: Notification) in
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                self.trackingDepth = max(0, self.trackingDepth - 1)
-                if self.trackingDepth == 0, self.pending { self.requestClean() }
-            }
-        })
-    }
-
-    /// Debounced: many additions in one SwiftUI pass lead to one cleanup a moment later.
-    private func requestClean() {
-        pending = true
-        guard !scheduled else { return }
-        scheduled = true
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            guard let self else { return }
-            self.scheduled = false
-            guard self.trackingDepth == 0 else { return } // runs when tracking ends
-            self.pending = false
-            self.clean()
-        }
-    }
-
-    private static func shortcuts(of menu: NSMenu?) -> [MenuShortcut] {
-        guard let menu else { return [] }
-        return menu.items.flatMap { (item: NSMenuItem) -> [MenuShortcut] in
-            var out: [MenuShortcut] = shortcuts(of: item.submenu)
-            if let key: Character = item.keyEquivalent.first {
-                let flags: NSEvent.ModifierFlags = item.keyEquivalentModifierMask
-                out.append(MenuShortcut(key, command: flags.contains(NSEvent.ModifierFlags.command),
-                                        shift: flags.contains(NSEvent.ModifierFlags.shift),
-                                        option: flags.contains(NSEvent.ModifierFlags.option),
-                                        control: flags.contains(NSEvent.ModifierFlags.control)))
-            }
-            return out
-        }
-    }
-
-    func clean() {
+    static func install(target: MenuController) {
         let app: NSApplication = NSApplication.shared
-        guard trackingDepth == 0, let mainMenu: NSMenu = app.mainMenu else { return }
-        let topItems: [NSMenuItem] = Array(mainMenu.items.dropFirst()) // index 0 is the app menu
-        let tops: [MenuBarPlan.TopMenu] = topItems.map { (item: NSMenuItem) -> MenuBarPlan.TopMenu in
-            MenuBarPlan.TopMenu(isWindowsMenu: item.submenu != nil && item.submenu === app.windowsMenu,
-                                isHelpMenu: item.submenu != nil && item.submenu === app.helpMenu,
-                                shortcuts: MainMenuCleaner.shortcuts(of: item.submenu))
-        }
-        if let i: Int = MenuBarPlan.helpMenuToAdopt(tops), let menu: NSMenu = topItems[i].submenu {
-            app.helpMenu = menu
-        }
-        for i in MenuBarPlan.menusToRemove(tops) {
-            mainMenu.removeItem(topItems[i])
-        }
-        if let windowsMenu: NSMenu = app.windowsMenu {
-            let actions: [String?] = windowsMenu.items.map { (item: NSMenuItem) -> String? in
-                item.action.map { (selector: Selector) -> String in NSStringFromSelector(selector) }
+        let bar: NSMenu = NSMenu(title: "Main Menu")
+        for top in MenuBarLayout.menuBar {
+            let menu: NSMenu = NSMenu(title: top.title)
+            for entry in top.entries {
+                menu.addItem(item(for: entry, target: target, app: app))
             }
-            for i in MenuBarPlan.windowItemsToRemove(actions: actions) {
-                windowsMenu.removeItem(at: i)
+            let holder: NSMenuItem = NSMenuItem(title: top.title, action: nil, keyEquivalent: "")
+            holder.submenu = menu
+            bar.addItem(holder)
+            switch top.role {
+            case .app, .game: break
+            case .window: app.windowsMenu = menu
+            case .help: app.helpMenu = menu
             }
+        }
+        app.mainMenu = bar
+    }
+
+    private static func item(for entry: MenuBarLayout.Entry, target: MenuController, app: NSApplication) -> NSMenuItem {
+        switch entry {
+        case .separator:
+            return NSMenuItem.separator()
+        case .services:
+            let item: NSMenuItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
+            let services: NSMenu = NSMenu(title: "Services")
+            item.submenu = services
+            app.servicesMenu = services
+            return item
+        case .submenu(let menu, let children):
+            let item: NSMenuItem = NSMenuItem(title: menu.rawValue, action: nil, keyEquivalent: "")
+            let sub: NSMenu = NSMenu(title: menu.rawValue)
+            for child in children { sub.addItem(self.item(for: child, target: target, app: app)) }
+            item.submenu = sub
+            return item
+        case .standard(let standard):
+            // No target: AppKit sends it to the key window or the application.
+            return make(standard.title, selector: Selector(standard.selector), shortcut: standard.shortcut, target: nil)
+        case .app(let appItem):
+            let item: NSMenuItem = make(appItem.title, selector: #selector(MenuController.performAppItem(_:)),
+                                        shortcut: appItem.shortcut, target: target)
+            item.representedObject = appItem.rawValue
+            return item
+        case .command(let command):
+            if let selector: String = command.standardSelector {
+                return make(command.title, selector: Selector(selector), shortcut: command.shortcut, target: nil)
+            }
+            let item: NSMenuItem = make(command.title, selector: #selector(MenuController.performCommand(_:)),
+                                        shortcut: command.shortcut, target: target)
+            item.representedObject = command.rawValue
+            return item
+        }
+    }
+
+    private static func make(_ title: String, selector: Selector, shortcut: MenuShortcut?, target: AnyObject?) -> NSMenuItem {
+        let item: NSMenuItem = NSMenuItem(title: title, action: selector, keyEquivalent: "")
+        item.target = target
+        if let shortcut {
+            item.keyEquivalent = String(shortcut.key)
+            var mask: NSEvent.ModifierFlags = []
+            if shortcut.command { mask.insert(NSEvent.ModifierFlags.command) }
+            if shortcut.shift { mask.insert(NSEvent.ModifierFlags.shift) }
+            if shortcut.option { mask.insert(NSEvent.ModifierFlags.option) }
+            if shortcut.control { mask.insert(NSEvent.ModifierFlags.control) }
+            item.keyEquivalentModifierMask = mask
+        }
+        return item
+    }
+
+    /// The top-level titles and the Window menu's titles (for the `--menu-probe` check).
+    /// On macOS 15 and later AppKit adds its own visible Enter Full Screen item (shortcut 🌐F) next
+    /// to ours and hides ours, which keeps ⌃⌘F working: the menu still shows the item once.
+    static func snapshot() -> String {
+        let app: NSApplication = NSApplication.shared
+        let tops: [String] = app.mainMenu?.items.map { (item: NSMenuItem) -> String in item.title } ?? []
+        let window: [String] = app.windowsMenu?.items.map { (item: NSMenuItem) -> String in
+            // Hidden items (AppKit hides ours when it adds its own 🌐F one) are marked.
+            item.isSeparatorItem ? "-" : item.title + (item.isHidden ? "[hidden]" : "")
+        } ?? []
+        return tops.joined(separator: "|") + " :: Window=" + window.joined(separator: "|")
+    }
+}
+
+/// The target of every app menu item: performs the command and answers validation from the
+/// model's current state.
+@MainActor
+final class MenuController: NSObject, NSMenuItemValidation {
+    private let model: GameModel
+    private let windows: WindowController
+
+    init(model: GameModel, windows: WindowController) {
+        self.model = model
+        self.windows = windows
+    }
+
+    @objc func performAppItem(_ sender: NSMenuItem) {
+        guard let raw: String = sender.representedObject as? String,
+              let item: MenuBarLayout.AppItem = MenuBarLayout.AppItem(rawValue: raw) else { return }
+        switch item {
+        case .about: AboutPanel.show()
+        case .settings: windows.showSettings()
+        }
+    }
+
+    @objc func performCommand(_ sender: NSMenuItem) {
+        guard let raw: String = sender.representedObject as? String,
+              let command: MenuCommand = MenuCommand(rawValue: raw) else { return }
+        perform(command)
+    }
+
+    func perform(_ command: MenuCommand) {
+        switch command {
+        case .newGame: model.requestNewGame(nil)
+        case .restartGame: model.requestRestart()
+        case .undo: model.undo()
+        case .redo: model.redo()
+        case .dealNextRow: model.deal()
+        case .showHint: model.showHint()
+        case .oneSuit: model.requestNewGame(Difficulty.oneSuit)
+        case .twoSuits: model.requestNewGame(Difficulty.twoSuits)
+        case .fourSuits: model.requestNewGame(Difficulty.fourSuits)
+        case .statistics:
+            windows.showBoard()
+            model.showStatisticsSheet = true
+        case .achievements: windows.showAchievements()
+        case .saveGame: model.saveGame()
+        case .openSavedGame: model.requestOpenSavedGame()
+        case .closeWindow: NSApplication.shared.keyWindow?.performClose(nil)
+        case .enterFullScreen: windows.showBoard() // normally AppKit's toggleFullScreen: (standardSelector)
+        case .help: windows.showHelp()
+        }
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        guard let raw: String = menuItem.representedObject as? String,
+              let command: MenuCommand = MenuCommand(rawValue: raw) else { return true }
+        switch command {
+        case .undo: return model.canUndo
+        case .redo: return model.canRedo
+        case .openSavedGame: return model.hasSavedGame
+        case .closeWindow: return NSApplication.shared.keyWindow != nil
+        case .oneSuit, .twoSuits, .fourSuits:
+            let difficulty: Difficulty = command == .oneSuit ? .oneSuit : (command == .twoSuits ? .twoSuits : .fourSuits)
+            menuItem.state = model.game.state.difficulty == difficulty ? NSControl.StateValue.on : NSControl.StateValue.off
+            return true
+        default: return true
         }
     }
 }

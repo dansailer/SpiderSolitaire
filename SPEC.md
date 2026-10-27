@@ -139,7 +139,7 @@ The look is "XP-like", not a copy of the XP assets.
   Settings → "Show animations" turns all of these off.
 
 ### 3.5 Menus and shortcuts
-The menu bar follows the macOS HIG: one game window (a `Window` scene, so no New Window), no window
+The menu bar follows the macOS HIG: one game window (no New Window), no window
 tabs, no File, Edit or View menu. Titles are Title Case; an ellipsis marks only items that open a
 window needing more input. Titles and shortcuts for the app's own items live in one table,
 `MenuCommand` (SpiderBoard), which tests check for duplicates, for clashes with
@@ -187,25 +187,29 @@ Why these keys:
 - **Close Window** sits in the Game menu because there is no File menu. Closing the game window quits
   the app (the usual quit-time save rules apply).
 - **⌘? Spider Solitaire Help** is the standard Help shortcut (⇧⌘/ on most layouts). It opens a
-  single help window (`Window` scene "help", about 560 × 640 pt, resizable) with a sidebar of five
+  single help window (about 560 × 640 pt, resizable) with a sidebar of five
   sections: Rules, Scoring, Tips, Achievements and Keyboard Shortcuts. The text lives as data in
   `HelpContent` (SpiderBoard). The scoring numbers come from `ScoringRules`, the achievements table
   from `Achievement.all`, and the shortcuts table from `MenuCommand` plus the standard app and window
   shortcuts, so tests catch any drift.
-- SwiftUI still inserts File, Edit and View menus even with all their groups replaced, so
-  `MainMenuCleaner` removes every menu other than the app menu, Game, Window and Help. It identifies
-  them by structure, not title: position 0, `NSApp.windowsMenu`, `NSApp.helpMenu` (or the menu
-  holding ⌘?, which it then registers as `NSApp.helpMenu` so the search field appears), and the menu
-  holding ⌘N. From the Window menu it removes only the tab items. It never adds or moves Enter Full
-  Screen: AppKit places that item itself. The plan is a pure function (`MenuBarPlan`, tested) and
-  running it twice changes nothing.
-- The cleaner runs at launch and when SwiftUI adds an item to the main menu bar itself (a rebuild),
-  debounced by 150 ms. It never runs while a menu is open (`NSMenu.didBeginTracking` /
-  `didEndTracking`); a clean that comes due then waits until the menu closes. An earlier version
-  reacted to items added to *any* menu, so opening the Window menu (which fills in its window list
-  as it opens) made it edit the menu on screen, and the menu visibly shrank. Start Dictation and
-  Emoji & Symbols are switched off with the `NSDisabledDictationMenuItem` and
-  `NSDisabledCharacterPaletteMenuItem` defaults.
+- **The app owns the menu bar.** It uses the AppKit app lifecycle (`NSApplication` with an app
+  delegate) and hosts its SwiftUI views in `NSWindow`s, so there are no SwiftUI `Commands` at all.
+  With SwiftUI `Commands`, SwiftUI rebuilt the menu bar whenever the observed game changed and
+  re-added its standard View and Format menus each time, so they flickered in and out even when a
+  clean-up removed them afterwards. Now `MainMenuBuilder` builds the bar once at launch from
+  `MenuBarLayout` (SpiderBoard, tested: exactly app, Game, Window and Help; every `MenuCommand` once;
+  Enter Full Screen once, in the Window menu, as AppKit's `toggleFullScreen:`, which AppKit retitles
+  to Exit Full Screen). Nothing edits the bar afterwards. Undo, Redo, Open Saved Game and the
+  Difficulty check marks come from `validateMenuItem(_:)`, which AppKit runs only when a menu opens
+  or a shortcut is pressed. `NSApp.windowsMenu` and `NSApp.helpMenu` are set, so macOS adds the
+  window list and the Help search field. `NSFullScreenMenuItemEverywhere`, window tabbing,
+  `NSDisabledDictationMenuItem` and `NSDisabledCharacterPaletteMenuItem` are switched off so AppKit
+  adds no items of its own.
+- On macOS 15 and later, AppKit adds its own visible Enter Full Screen item (shortcut 🌐F) beside
+  the app's and hides the app's one, which keeps ⌃⌘F working. The menu shows the item once.
+- `SpiderSolitaire --menu-probe 10` plays moves for 10 seconds while printing the menu bar four
+  times a second. It exits with status 0 only if the bar never changed, its menus are exactly
+  those of `MenuBarLayout`, and one Full Screen item is visible.
 
 - Choosing a new difficulty, or a new game while a game is in progress, first asks "Are you sure you
   want to quit this game?" If the player confirms, the abandoned game counts as a loss, as in XP.
@@ -305,7 +309,7 @@ SpiderSolitaire (Swift package)
 │   ├── Achievements     (list, GameTracker, AchievementBook, evaluator)
 │   └── Statistics
 ├── SpiderSolitaire     macOS app (SwiftUI; AppKit only where SwiftUI falls short)
-│   ├── SpiderSolitaireApp   App, Commands (menus and shortcuts), Settings scene
+│   ├── SpiderSolitaireApp   entry point, app delegate, windows, menu probe
 │   ├── GameModel            @MainActor ObservableObject wrapping SpiderGame and animation state
 │   ├── BoardView, ColumnView, CardView, StockView, FoundationView, ScoreBoxView
 │   ├── DragState            drag gesture and hit-testing (geometry via PreferenceKeys)

@@ -2,20 +2,9 @@
 import SpiderBoard
 import SwiftUI
 
-/// Help ▸ Spider Solitaire Help (⌘?). Commands cannot read `openWindow` reliably, so a small view does.
-struct HelpMenuButton: View {
-    @Environment(\.openWindow) private var openWindow: OpenWindowAction
-
-    var body: some View {
-        Button(MenuCommand.help.title) { openWindow(id: HelpView.windowID) }
-            .keyboardShortcut(MenuCommand.help.keyboardShortcut)
-    }
-}
-
 /// The help window: a sidebar of sections (Rules, Scoring, Tips, Achievements, Keyboard Shortcuts)
 /// and the selected section's text. All content comes from `HelpContent` in SpiderBoard.
 struct HelpView: View {
-    static let windowID: String = "help"
 
     @State private var selection: HelpSection.ID? = HelpSection.ID.rules
 
