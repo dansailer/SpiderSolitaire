@@ -37,8 +37,8 @@ sizes["help"] = webp(os.path.join(snap, "help.png"), "help.webp", 800, crop=(356
 sizes["achievements"] = webp(os.path.join(snap, "achievements.png"), "achievements.webp", 1440)
 sizes["general"] = webp(os.path.join(snap, "settings-general.png"), "settings-general.webp", 1040)
 
-# Social card 1200 x 630: the board on the felt colour.
-og = Image.new("RGB", (1200, 630), (19, 18, 9))
+# Social card 1200 x 630: the board on the page background (--bg, #F3F6FA).
+og = Image.new("RGB", (1200, 630), (243, 246, 250))
 b = Image.open(os.path.join(snap, "board.png")).convert("RGB").resize((1040, 780), Image.LANCZOS)
 og.paste(b.crop((0, 0, 1040, 550)), (80, 40))
 og.save(os.path.join(ASSETS, "og-image.png"), optimize=True)
