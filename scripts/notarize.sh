@@ -41,8 +41,19 @@ if [[ "$status" != "Accepted" ]]; then
     exit 1
 fi
 
+# The ticket is fetched from Apple's CDN (CloudKit), which can lag behind the Accepted status or drop
+# the connection (stapler error 65 or 68), so stapling is retried before giving up.
 echo "==> Stapling"
-xcrun stapler staple "$APP"
+attempt=1
+until xcrun stapler staple "$APP"; do
+    if [[ $attempt -ge 6 ]]; then
+        echo "error: stapling failed $attempt times" >&2
+        exit 1
+    fi
+    echo "Stapling failed (attempt $attempt), retrying in $((attempt * 15)) s"
+    sleep $((attempt * 15))
+    attempt=$((attempt + 1))
+done
 xcrun stapler validate "$APP"
 
 echo "==> Verifying"
