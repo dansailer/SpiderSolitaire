@@ -162,20 +162,8 @@ If the run fails after the tag exists, fix it and rerun it with the tag as the r
 `release` environment requires: `gh workflow run release.yml --ref v1.1.0 -f tag=v1.1.0` (the
 workflow builds the tagged commit). Tags are never moved or reused.
 
-Signing and notarization use secrets of the `release` environment (Settings ▸ Environments ▸
-release, deployable from `v*` tags only; no pull request job can read them):
-
-| Secret | Contents |
-|---|---|
-| `MACOS_CERT_P12_BASE64` | base64 of the exported "Developer ID Application: Daniel Sailer (595TEE9LSF)" certificate and private key (`.p12`) |
-| `MACOS_CERT_PASSWORD` | the `.p12` export password |
-| `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64` | option A for notarization: an App Store Connect API key (key ID, issuer ID, base64 of the `.p8`) |
-| `APPLE_ID`, `APPLE_APP_PASSWORD`, `APPLE_TEAM_ID` | option B: Apple ID, an app-specific password and the team ID (`595TEE9LSF`) |
-
-The API key is used when all three of its secrets are set, otherwise the Apple ID. With neither, the
-release is Developer ID signed but not notarized; without the certificate it is ad-hoc signed. Both
-fallbacks show a warning on the run. The certificate goes into a temporary keychain with a random
-password, and the keychain and key files are deleted at the end of the job, also on failure.
+Release builds are signed with a Developer ID certificate and notarized by Apple, using secrets that
+only the `release` environment (deployable from `v*` tags only) can read; no pull request job sees them.
 
 Lint locally with `scripts/lint.sh` (`--fix` formats and applies SwiftLint's fixes first): it runs
 `swift format` from the toolchain with `.swift-format` and SwiftLint with `.swiftlint.yml`, which
