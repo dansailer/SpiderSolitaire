@@ -1,79 +1,126 @@
 #if canImport(SwiftUI)
+import SpiderBoard
 import SpiderCore
 import SwiftUI
 
-/// M1 placeholder: draws the tableau as text cards and lets you deal / undo / start over.
-/// Real rendering, drag and drop and XP styling arrive in M2-M7 (see MILESTONES.md).
-@MainActor
-final class GameModel: ObservableObject {
-    @Published private(set) var game = SpiderGame(difficulty: .oneSuit, seed: UInt64.random(in: 0...UInt64.max))
-
-    func newGame(_ difficulty: Difficulty) {
-        game = SpiderGame(difficulty: difficulty, seed: UInt64.random(in: 0...UInt64.max))
-    }
-
-    func deal() { _ = try? game.perform(.deal) }
-    func undo() { try? game.undo() }
-}
-
+/// The felt. Every frame comes from BoardLayout; every gesture goes to GameModel.
 struct BoardView: View {
-    @StateObject private var model = GameModel()
+    @ObservedObject var model: GameModel
 
-    private static let felt = Color(red: 0, green: 0.5, blue: 0)
+    static let felt: Color = Color(red: 0.0, green: 0.498, blue: 0.055) // #007F0E
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 8) {
-                ForEach(0..<GameState.columnCount, id: \.self) { col in
-                    VStack(spacing: -40) {
-                        ForEach(model.game.state.columns[col]) { card in
-                            CardPlaceholder(card: card)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .top)
+        GeometryReader { (geo: GeometryProxy) in
+            let layout: BoardLayout = BoardLayout(boardSize: BoardSize(geo.size))
+            let state: GameState = model.game.state
+
+            ZStack(alignment: Alignment.topLeading) {
+                FeltBackground()
+
+                ForEach(0..<GameState.columnCount, id: \.self) { (column: Int) in
+                    EmptySlotView(size: layout.cardSize.cgSize)
+                        .position(layout.slotFrame(column: column).cgCenter)
+                }
+
+                EmptySlotView(size: layout.foundationAreaFrame.cgSize, dashed: true)
+                    .position(layout.foundationAreaFrame.cgCenter)
+
+                ForEach(Array(layout.foundationFrames(count: state.completed.count).enumerated()), id: \.offset) {
+                    (item: (offset: Int, element: BoardRect)) in
+                    CardView(card: Card(id: -1 - item.offset, suit: state.completed[item.offset], rank: Rank.king, isFaceUp: true),
+                             size: item.element.cgSize)
+                        .position(item.element.cgCenter)
+                }
+
+                ScoreBoxView(score: state.score, moves: state.moves, frame: layout.scoreBoxFrame)
+
+                ForEach(layout.placements(for: state, drag: model.pointer.drag)) { (placement: CardPlacement) in
+                    CardView(card: placement.card, size: placement.frame.cgSize)
+                        .shadow(color: Color.black.opacity(placement.isLifted ? 0.45 : 0.0),
+                                radius: placement.isLifted ? 4 : 0, x: 2, y: 3)
+                        .position(placement.frame.cgCenter)
+                        .zIndex(placement.zIndex)
                 }
             }
-            Spacer()
-            HStack {
-                Text("Completed: \(model.game.state.completed.count)/8")
-                Spacer()
-                Text("Score: \(model.game.state.score)   Moves: \(model.game.state.moves)")
-                Spacer()
-                Button("Deal (\(model.game.state.dealsRemaining))") { model.deal() }
-                    .disabled(!model.game.state.canDeal)
-                Button("Undo") { model.undo() }
-                    .keyboardShortcut("z", modifiers: .command)
-                    .disabled(!model.game.canUndo)
-                Menu("New Game") {
-                    ForEach(Difficulty.allCases, id: \.self) { d in
-                        Button(d.displayName) { model.newGame(d) }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .contentShape(Rectangle())
+            // `.local` is the ZStack's own space, the same one `.position` uses for every card.
+            .gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: CoordinateSpace.local)
+                    .onChanged { (value: DragGesture.Value) in
+                        model.pointerChanged(start: value.startLocation, translation: value.translation, layout: layout)
                     }
-                }
-                .frame(width: 120)
-            }
-            .foregroundStyle(.white)
+                    .onEnded { (value: DragGesture.Value) in
+                        model.pointerEnded(start: value.startLocation, translation: value.translation, layout: layout)
+                    }
+            )
         }
-        .padding()
-        .background(Self.felt)
+        .alert("Spider Solitaire", isPresented: alertBinding) {
+            Button("OK", role: ButtonRole.cancel) { model.alertMessage = nil }
+        } message: {
+            Text(model.alertMessage ?? "")
+        }
+        .alert("Congratulations, you won!", isPresented: $model.showWinAlert) {
+            Button("New Game") { model.newGame(model.game.state.difficulty) }
+            Button("Not Now", role: ButtonRole.cancel) {}
+        } message: {
+            Text("Score: \(model.game.state.score)")
+        }
+    }
+
+    private var alertBinding: Binding<Bool> {
+        Binding<Bool>(
+            get: { model.alertMessage != nil },
+            set: { (shown: Bool) in if !shown { model.alertMessage = nil } }
+        )
     }
 }
 
-private struct CardPlaceholder: View {
-    let card: Card
+struct FeltBackground: View {
+    var body: some View {
+        ZStack {
+            BoardView.felt
+            RadialGradient(
+                gradient: Gradient(colors: [Color.white.opacity(0.06), Color.black.opacity(0.18)]),
+                center: UnitPoint.center, startRadius: 0, endRadius: 900)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+struct EmptySlotView: View {
+    let size: CGSize
+    var dashed: Bool = false
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 4)
-            .fill(card.isFaceUp ? Color.white : Color(red: 0.1, green: 0.2, blue: 0.6))
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.black, lineWidth: 1))
-            .overlay(alignment: .topLeading) {
-                if card.isFaceUp {
-                    Text(card.rank.label + card.suit.symbol)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(card.suit.isRed ? Color.red : Color.black)
-                        .padding(3)
-                }
-            }
-            .frame(width: 71, height: 96)
+        RoundedRectangle(cornerRadius: max(3, size.width * 0.06))
+            .stroke(Color.black.opacity(0.28),
+                    style: StrokeStyle(lineWidth: 1.5, dash: dashed ? [4, 3] : []))
+            .frame(width: size.width, height: size.height)
+    }
+}
+
+/// XP's dark-green "Score / Moves" box at the bottom centre.
+struct ScoreBoxView: View {
+    let score: Int
+    let moves: Int
+    let frame: BoardRect
+
+    var body: some View {
+        let fontSize: CGFloat = CGFloat(max(10, min(18, frame.height * 0.24)))
+        VStack(spacing: CGFloat(frame.height * 0.08)) {
+            Text("Score: \(score)")
+            Text("Moves: \(moves)")
+        }
+        .font(Font.system(size: fontSize, weight: Font.Weight.semibold))
+        .foregroundColor(Color.white)
+        .frame(width: CGFloat(frame.width), height: CGFloat(frame.height))
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color(red: 0.0, green: 0.32, blue: 0.0))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.black.opacity(0.6), lineWidth: 1))
+        )
+        .position(frame.cgCenter)
     }
 }
 #endif

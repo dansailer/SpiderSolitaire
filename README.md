@@ -3,8 +3,9 @@
 A native macOS clone of Windows XP Spider Solitaire, written in Swift and SwiftUI.
 
 - The rules and UI are described in [SPEC.md](SPEC.md).
-- The plan is in [MILESTONES.md](MILESTONES.md). Milestone **M1** (the rules engine and its tests)
-  is done. The app window is still a placeholder board.
+- The plan is in [MILESTONES.md](MILESTONES.md). Milestone **M1** (the rules engine) is done. **M2** (the
+  board, with cards drawn in code) and **M3** (drag and drop, click the stock to deal, double-click to
+  auto-move) are implemented.
 
 ## Requirements
 - macOS 14 (Sonoma) or later
@@ -31,8 +32,16 @@ Then:
 
 Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
 
+## Controls
+- **Drag** any face-up card that starts a same-suit descending run (the run comes with it) onto a
+  card one rank higher, or onto an empty column. An illegal drop slides the cards back.
+- **Double-click** a card to send its run to the best legal column.
+- **Click the stock** (bottom right) or press **D** to deal a row.
+- **⌘Z** undoes a move. **⌘N** starts a new game. File ▸ New Game With Difficulty chooses 1, 2 or 4
+  suits.
+
 ## Linux (rules engine only)
-`SpiderCore` uses only the Swift standard library, so it builds and tests anywhere Swift runs:
+`SpiderCore` and `SpiderBoard` use only the Swift standard library, so they build and test anywhere Swift runs:
 ```bash
 swift build --target SpiderCore
 swift test
@@ -43,7 +52,9 @@ On Linux, the app target compiles to a small console stub, because SwiftUI is no
 ```
 Package.swift
 Sources/SpiderCore/        rules engine (Card, Deck, GameState, SpiderGame, Hints, Statistics)
-Sources/SpiderSolitaire/   SwiftUI app (placeholder board for now)
+Sources/SpiderBoard/       pure-Swift board geometry and pointer handling (BoardLayout, PointerController)
+Sources/SpiderSolitaire/   SwiftUI app (App and menus, GameModel, BoardView, CardView)
 Tests/SpiderCoreTests/     XCTest suite for the rules
+Tests/SpiderBoardTests/    XCTest suite for layout, hit-testing, drag/drop and double-click
 SPEC.md  MILESTONES.md
 ```

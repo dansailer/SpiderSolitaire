@@ -3,20 +3,20 @@ import SpiderCore
 @testable import SpiderBoard
 
 final class PointerControllerTests: XCTestCase {
-    let layout = BoardLayout(boardSize: Size(width: 800, height: 600))
+    let layout = BoardLayout(boardSize: BoardSize(width: 800, height: 600))
 
-    private func center(_ state: GameState, _ column: Int, _ index: Int) -> Point {
+    private func center(_ state: GameState, _ column: Int, _ index: Int) -> BoardPoint {
         let f = layout.cardFrames(column: column, cards: state.columns[column])[index]
-        return Point(x: f.midX, y: f.minY + 2) // the strip of a card that stays visible
+        return BoardPoint(x: f.midX, y: f.minY + 2) // the strip of a card that stays visible
     }
 
-    private func translation(from: Point, toColumn column: Int, in state: GameState) -> Size {
+    private func translation(from: BoardPoint, toColumn column: Int, in state: GameState) -> BoardSize {
         let target = layout.cardFrames(column: column, cards: state.columns[column]).last ?? layout.slotFrame(column: column)
-        return Size(width: target.midX - from.x, height: target.midY - from.y)
+        return BoardSize(width: target.midX - from.x, height: target.midY - from.y)
     }
 
-    private func drag(_ p: inout PointerController, start: Point, to t: Size, state: GameState) -> PointerController.Result {
-        p.pointerChanged(start: start, translation: Size(width: t.width / 2, height: t.height / 2), state: state, layout: layout)
+    private func drag(_ p: inout PointerController, start: BoardPoint, to t: BoardSize, state: GameState) -> PointerController.Result {
+        p.pointerChanged(start: start, translation: BoardSize(width: t.width / 2, height: t.height / 2), state: state, layout: layout)
         p.pointerChanged(start: start, translation: t, state: state, layout: layout)
         return p.pointerEnded(start: start, translation: t, time: 0, state: state, layout: layout)
     }
@@ -30,7 +30,7 @@ final class PointerControllerTests: XCTestCase {
         var p = PointerController()
         let start = center(state, 0, 2)
         let t = translation(from: start, toColumn: 1, in: state)
-        p.pointerChanged(start: start, translation: Size(width: 10, height: 0), state: state, layout: layout)
+        p.pointerChanged(start: start, translation: BoardSize(width: 10, height: 0), state: state, layout: layout)
         XCTAssertEqual(p.drag?.from, 0)
         XCTAssertEqual(p.drag?.index, 2)
         XCTAssertTrue(p.isDragging(column: 0, index: 3))
@@ -59,7 +59,7 @@ final class PointerControllerTests: XCTestCase {
         let result = drag(&p, start: start, to: translation(from: start, toColumn: 1, in: state), state: state)
         XCTAssertEqual(result, .none)
         let down = center(state, 0, 0)
-        XCTAssertEqual(drag(&p, start: down, to: Size(width: 100, height: 0), state: state), .none)
+        XCTAssertEqual(drag(&p, start: down, to: BoardSize(width: 100, height: 0), state: state), .none)
     }
 
     func testTinyMovementIsAClickNotADrag() {
@@ -67,9 +67,9 @@ final class PointerControllerTests: XCTestCase {
         let state = k.state([[k.c(.five, .hearts)], [k.c(.six, .hearts)]])
         var p = PointerController()
         let start = center(state, 0, 0)
-        p.pointerChanged(start: start, translation: Size(width: 1, height: 1), state: state, layout: layout)
+        p.pointerChanged(start: start, translation: BoardSize(width: 1, height: 1), state: state, layout: layout)
         XCTAssertNil(p.drag)
-        XCTAssertEqual(p.pointerEnded(start: start, translation: Size(width: 1, height: 1), time: 1, state: state, layout: layout), .none)
+        XCTAssertEqual(p.pointerEnded(start: start, translation: BoardSize(width: 1, height: 1), time: 1, state: state, layout: layout), .none)
     }
 
     func testDoubleClickAutoMovesToBestTarget() {
@@ -101,7 +101,7 @@ final class PointerControllerTests: XCTestCase {
         let stock = layout.stockFrames(dealsRemaining: 2).last!
         XCTAssertEqual(p.pointerEnded(start: stock.center, translation: .zero, time: 0, state: state, layout: layout),
                        .perform(.deal))
-        let felt = Point(x: layout.scoreBoxFrame.midX, y: layout.tableauBottom - 2)
+        let felt = BoardPoint(x: layout.scoreBoxFrame.midX, y: layout.tableauBottom - 2)
         XCTAssertEqual(p.pointerEnded(start: felt, translation: .zero, time: 0, state: state, layout: layout), .none)
     }
 
@@ -130,5 +130,21 @@ final class PointerControllerTests: XCTestCase {
             XCTAssertEqual(result, .perform(hint.action))
             try game.perform(hint.action)
         }
+    }
+}
+
+final class PointerControllerRecoveryTests: XCTestCase {
+    func testNewPressAfterCancelledGestureStartsFresh() {
+        var k = Cards()
+        let layout = BoardLayout(boardSize: BoardSize(width: 800, height: 600))
+        let state = k.state([[k.c(.five, .hearts)], [k.c(.six, .hearts)], [k.c(.nine, .clubs)]])
+        var p = PointerController()
+        let a = layout.cardFrames(column: 0, cards: state.columns[0])[0].center
+        p.pointerChanged(start: a, translation: BoardSize(width: 40, height: 0), state: state, layout: layout)
+        XCTAssertEqual(p.drag?.from, 0)
+        // No end event (e.g. an alert stole the mouse). The next gesture starts on column 2.
+        let b = layout.cardFrames(column: 2, cards: state.columns[2])[0].center
+        p.pointerChanged(start: b, translation: BoardSize(width: 40, height: 0), state: state, layout: layout)
+        XCTAssertEqual(p.drag?.from, 2)
     }
 }

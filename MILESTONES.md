@@ -3,7 +3,7 @@
 Each milestone is small enough to review on its own and ends in a state you can check. Milestones
 M2 to M8 need a Mac with Xcode 15 or later. M1 can also be checked on Linux.
 
-Status: **M1 is done.** M2 to M8 are not started.
+Status: **M1 is done.** M2 and M3 are implemented and unit-tested on Linux, and are waiting for a manual check on a Mac. M4 to M8 are not started.
 
 ---
 
@@ -39,7 +39,15 @@ Status: **M1 is done.** M2 to M8 are not started.
   invariants hold throughout.
 - [x] The game and its undo history round-trip through `Codable`.
 
-### M2: SwiftUI board rendering
+### M2: SwiftUI board rendering 🟡 (implemented, waiting for a Mac check)
+**Implemented:**
+- the `SpiderBoard` target (pure Swift): `BoardLayout`, which handles card size scaling with the window width, column positions, face-down and face-up fan steps, column compression, and the stock, foundation and score-box frames
+- `placements(for:drag:)`, which gives every card a frame keyed by its stable id, so moves and deals animate
+- `CardFace.pips`, the pip layout for number cards
+- SwiftUI views: `CardView`, which draws faces and the blue lattice back in code; `BoardView`; `ScoreBoxView`; and the felt
+
+Not done yet: snapshot images and SwiftUI previews.
+
 **Scope:**
 - `CardView` with vector faces and backs at a 71:96 ratio
 - `ColumnView` with face-down and face-up offsets, and compression for tall columns
@@ -55,7 +63,16 @@ Status: **M1 is done.** M2 to M8 are not started.
 - SwiftUI previews render for an opening position, a mid-game position and a near-win position.
 - Snapshot images of these 3 positions are committed under `docs/screenshots/`.
 
-### M3: Drag and drop
+### M3: Drag and drop 🟡 (implemented, waiting for a Mac check)
+**Implemented:** `PointerController` (pure Swift, tested) receives a single board-wide `DragGesture`. It handles:
+- lifting a run from any card in a same-suit run
+- dropping on the legal column the run overlaps most
+- snapping back after an illegal drop
+- clicking the stock to deal
+- double-clicking to send a run to its best target (`GameState.bestDestination`)
+
+Not done yet: `docs/QA.md`.
+
 **Scope:**
 - a drag gesture that lifts a movable run, hit-testing the drop target, a return animation for
   illegal drops, and double-click to auto-move

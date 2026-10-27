@@ -18,11 +18,11 @@ struct Cards {
 }
 
 final class BoardLayoutTests: XCTestCase {
-    let size = Size(width: 800, height: 600)
+    let size = BoardSize(width: 800, height: 600)
 
     func testCardsScaleWithWidthAndKeepAspect() {
-        let small = BoardLayout(boardSize: Size(width: 800, height: 600))
-        let big = BoardLayout(boardSize: Size(width: 1100, height: 900))
+        let small = BoardLayout(boardSize: BoardSize(width: 800, height: 600))
+        let big = BoardLayout(boardSize: BoardSize(width: 1100, height: 900))
         XCTAssertGreaterThan(big.cardSize.width, small.cardSize.width)
         for layout in [small, big] {
             XCTAssertEqual(layout.cardSize.height / layout.cardSize.width, 96.0 / 71.0, accuracy: 1e-9)
@@ -31,15 +31,15 @@ final class BoardLayoutTests: XCTestCase {
     }
 
     func testCardWidthClampedAndRowCentred() {
-        let huge = BoardLayout(boardSize: Size(width: 4000, height: 3000))
+        let huge = BoardLayout(boardSize: BoardSize(width: 4000, height: 3000))
         XCTAssertEqual(huge.cardSize.width, BoardLayout.maxCardWidth)
         let rowWidth = huge.columnX[9] + huge.cardSize.width - huge.columnX[0]
         XCTAssertEqual(huge.columnX[0], (4000 - rowWidth) / 2, accuracy: 1e-9)
-        XCTAssertEqual(BoardLayout(boardSize: Size(width: 100, height: 100)).cardSize.width, BoardLayout.minCardWidth)
+        XCTAssertEqual(BoardLayout(boardSize: BoardSize(width: 100, height: 100)).cardSize.width, BoardLayout.minCardWidth)
     }
 
     func testShortWindowLimitsCardSizeByHeight() {
-        let wideShort = BoardLayout(boardSize: Size(width: 1600, height: 500))
+        let wideShort = BoardLayout(boardSize: BoardSize(width: 1600, height: 500))
         XCTAssertLessThanOrEqual(wideShort.cardSize.height * 2.6, 500 + 1e-9)
     }
 
@@ -114,11 +114,11 @@ final class BoardLayoutTests: XCTestCase {
         let state = k.state([[k.c(.two, up: false), k.c(.nine), k.c(.eight)]])
         let layout = BoardLayout(boardSize: size)
         let f = layout.cardFrames(column: 0, cards: state.columns[0])
-        XCTAssertEqual(layout.card(at: Point(x: f[0].midX, y: f[0].minY + 1), in: state), CardLocation(column: 0, index: 0))
-        XCTAssertEqual(layout.card(at: Point(x: f[1].midX, y: f[1].minY + 1), in: state), CardLocation(column: 0, index: 1))
+        XCTAssertEqual(layout.card(at: BoardPoint(x: f[0].midX, y: f[0].minY + 1), in: state), CardLocation(column: 0, index: 0))
+        XCTAssertEqual(layout.card(at: BoardPoint(x: f[1].midX, y: f[1].minY + 1), in: state), CardLocation(column: 0, index: 1))
         XCTAssertEqual(layout.card(at: f[2].center, in: state), CardLocation(column: 0, index: 2))
-        XCTAssertNil(layout.card(at: Point(x: f[0].midX, y: f[2].maxY + 5), in: state), "below the column")
-        XCTAssertNil(layout.card(at: Point(x: layout.columnX[1] - layout.gap / 2, y: f[0].midY), in: state), "in the gap")
+        XCTAssertNil(layout.card(at: BoardPoint(x: f[0].midX, y: f[2].maxY + 5), in: state), "below the column")
+        XCTAssertNil(layout.card(at: BoardPoint(x: layout.columnX[1] - layout.gap / 2, y: f[0].midY), in: state), "in the gap")
         XCTAssertNil(layout.card(at: layout.slotFrame(column: 4).center, in: state), "empty column")
     }
 
@@ -152,11 +152,11 @@ final class BoardLayoutTests: XCTestCase {
     }
 
     func testRectHelpers() {
-        let a = Rect(x: 0, y: 0, width: 10, height: 10)
-        XCTAssertEqual(a.intersectionArea(Rect(x: 5, y: 5, width: 10, height: 10)), 25)
-        XCTAssertEqual(a.intersectionArea(Rect(x: 10, y: 0, width: 5, height: 5)), 0)
-        XCTAssertEqual(a.union(Rect(x: 20, y: 5, width: 5, height: 10)), Rect(x: 0, y: 0, width: 25, height: 15))
-        XCTAssertTrue(a.contains(Point(x: 0, y: 0)))
-        XCTAssertFalse(a.contains(Point(x: 10, y: 5)))
+        let a = BoardRect(x: 0, y: 0, width: 10, height: 10)
+        XCTAssertEqual(a.intersectionArea(BoardRect(x: 5, y: 5, width: 10, height: 10)), 25)
+        XCTAssertEqual(a.intersectionArea(BoardRect(x: 10, y: 0, width: 5, height: 5)), 0)
+        XCTAssertEqual(a.union(BoardRect(x: 20, y: 5, width: 5, height: 10)), BoardRect(x: 0, y: 0, width: 25, height: 15))
+        XCTAssertTrue(a.contains(BoardPoint(x: 0, y: 0)))
+        XCTAssertFalse(a.contains(BoardPoint(x: 10, y: 5)))
     }
 }

@@ -13,7 +13,7 @@ public struct PointerController: Sendable {
     public struct Drag: Hashable, Sendable {
         public let from: Int
         public let index: Int
-        public var translation: Size
+        public var translation: BoardSize
     }
 
     public enum Result: Hashable, Sendable {
@@ -27,6 +27,9 @@ public struct PointerController: Sendable {
 
     public private(set) var drag: Drag?
     private var pressed: CardLocation?
+    /// Where the current press began; a different start means a new gesture (the old one was
+    /// cancelled without an end event), so stale state is dropped.
+    private var pressStart: BoardPoint?
     private var lastClick: (location: CardLocation, time: Double)?
 
     public init() {}
@@ -37,8 +40,10 @@ public struct PointerController: Sendable {
         return column == drag.from && index >= drag.index
     }
 
-    public mutating func pointerChanged(start: Point, translation: Size, state: GameState, layout: BoardLayout) {
-        if drag == nil, pressed == nil {
+    public mutating func pointerChanged(start: BoardPoint, translation: BoardSize, state: GameState, layout: BoardLayout) {
+        if pressStart != start {
+            drag = nil
+            pressStart = start
             pressed = layout.card(at: start, in: state)
         }
         guard let pressed, PointerController.exceedsThreshold(translation) else { return }
@@ -50,9 +55,9 @@ public struct PointerController: Sendable {
         }
     }
 
-    public mutating func pointerEnded(start: Point, translation: Size, time: Double,
+    public mutating func pointerEnded(start: BoardPoint, translation: BoardSize, time: Double,
                                       state: GameState, layout: BoardLayout) -> Result {
-        defer { pressed = nil; drag = nil }
+        defer { pressed = nil; pressStart = nil; drag = nil }
 
         if let drag {
             lastClick = nil
@@ -90,11 +95,12 @@ public struct PointerController: Sendable {
     public mutating func reset() {
         drag = nil
         pressed = nil
+        pressStart = nil
         lastClick = nil
     }
 
     /// Compares squared lengths (no square root, so no libm dependency on Linux).
-    static func exceedsThreshold(_ s: Size) -> Bool {
+    static func exceedsThreshold(_ s: BoardSize) -> Bool {
         s.width * s.width + s.height * s.height >= dragThreshold * dragThreshold
     }
 }

@@ -18,8 +18,8 @@ public struct BoardLayout: Sendable, Equatable {
     /// The board must fit roughly this many card heights vertically (tableau + bottom row).
     static let minHeightInCards: Double = 2.6
 
-    public let boardSize: Size
-    public let cardSize: Size
+    public let boardSize: BoardSize
+    public let cardSize: BoardSize
     public let gap: Double
     /// Left edge of each of the 10 columns.
     public let columnX: [Double]
@@ -29,7 +29,7 @@ public struct BoardLayout: Sendable, Equatable {
     /// Top edge of the bottom row (foundation, score box, stock).
     public let bottomRowY: Double
 
-    public init(boardSize: Size) {
+    public init(boardSize: BoardSize) {
         self.boardSize = boardSize
         let n = Double(GameState.columnCount)
         let byWidth = boardSize.width / (n + (n + 1) * BoardLayout.gapRatio)
@@ -37,7 +37,7 @@ public struct BoardLayout: Sendable, Equatable {
         let width = max(BoardLayout.minCardWidth, min(BoardLayout.maxCardWidth, byWidth, byHeight))
         let height = width * BoardLayout.cardAspect
         let gap = width * BoardLayout.gapRatio
-        cardSize = Size(width: width, height: height)
+        cardSize = BoardSize(width: width, height: height)
         self.gap = gap
 
         let rowWidth = n * width + (n - 1) * gap
@@ -52,8 +52,8 @@ public struct BoardLayout: Sendable, Equatable {
     // MARK: Tableau
 
     /// Empty-slot outline for a column.
-    public func slotFrame(column: Int) -> Rect {
-        Rect(x: columnX[column], y: tableauTop, width: cardSize.width, height: cardSize.height)
+    public func slotFrame(column: Int) -> BoardRect {
+        BoardRect(x: columnX[column], y: tableauTop, width: cardSize.width, height: cardSize.height)
     }
 
     /// Top edge of each card in a column. Steps shrink proportionally when the natural fan would
@@ -75,16 +75,16 @@ public struct BoardLayout: Sendable, Equatable {
         return result
     }
 
-    public func cardFrames(column: Int, cards: [Card]) -> [Rect] {
-        cardOffsets(for: cards).map { Rect(x: columnX[column], y: $0, width: cardSize.width, height: cardSize.height) }
+    public func cardFrames(column: Int, cards: [Card]) -> [BoardRect] {
+        cardOffsets(for: cards).map { BoardRect(x: columnX[column], y: $0, width: cardSize.width, height: cardSize.height) }
     }
 
-    public func cardFrames(in state: GameState) -> [[Rect]] {
+    public func cardFrames(in state: GameState) -> [[BoardRect]] {
         state.columns.indices.map { cardFrames(column: $0, cards: state.columns[$0]) }
     }
 
     /// The card under `point`, topmost first (later cards are drawn over earlier ones).
-    public func card(at point: Point, in state: GameState) -> CardLocation? {
+    public func card(at point: BoardPoint, in state: GameState) -> CardLocation? {
         for column in state.columns.indices {
             let x = columnX[column]
             guard point.x >= x, point.x < x + cardSize.width else { continue }
@@ -100,49 +100,49 @@ public struct BoardLayout: Sendable, Equatable {
 
     /// One stacked back per remaining deal, right-aligned with column 10. The last frame is the
     /// top of the pile (the next deal) and sits rightmost.
-    public func stockFrames(dealsRemaining: Int) -> [Rect] {
+    public func stockFrames(dealsRemaining: Int) -> [BoardRect] {
         guard dealsRemaining > 0 else { return [] }
         let step = cardSize.width * BoardLayout.stockStepRatio
         let right = columnX[GameState.columnCount - 1]
         return (0..<dealsRemaining).map { i in
-            Rect(x: right - Double(dealsRemaining - 1 - i) * step, y: bottomRowY,
+            BoardRect(x: right - Double(dealsRemaining - 1 - i) * step, y: bottomRowY,
                  width: cardSize.width, height: cardSize.height)
         }
     }
 
     /// Frame for the stock card at `stockIndex` in `GameState.stock` (dealt from the end).
-    public func stockFrame(forStockIndex stockIndex: Int, dealsRemaining: Int) -> Rect? {
+    public func stockFrame(forStockIndex stockIndex: Int, dealsRemaining: Int) -> BoardRect? {
         let frames = stockFrames(dealsRemaining: dealsRemaining)
         let group = stockIndex / GameState.columnCount
         return frames.indices.contains(group) ? frames[group] : nil
     }
 
-    public func stockHitFrame(dealsRemaining: Int) -> Rect? {
+    public func stockHitFrame(dealsRemaining: Int) -> BoardRect? {
         let frames = stockFrames(dealsRemaining: dealsRemaining)
         guard let first = frames.first, let last = frames.last else { return nil }
         return first.union(last)
     }
 
     /// One king per completed suit, fanned rightwards from column 1.
-    public func foundationFrames(count: Int) -> [Rect] {
+    public func foundationFrames(count: Int) -> [BoardRect] {
         let step = cardSize.width * BoardLayout.foundationStepRatio
         return (0..<count).map { i in
-            Rect(x: columnX[0] + Double(i) * step, y: bottomRowY, width: cardSize.width, height: cardSize.height)
+            BoardRect(x: columnX[0] + Double(i) * step, y: bottomRowY, width: cardSize.width, height: cardSize.height)
         }
     }
 
     /// Outline of the empty foundation area (8 fanned cards wide).
-    public var foundationAreaFrame: Rect {
+    public var foundationAreaFrame: BoardRect {
         let step = cardSize.width * BoardLayout.foundationStepRatio
-        return Rect(x: columnX[0], y: bottomRowY,
+        return BoardRect(x: columnX[0], y: bottomRowY,
                     width: cardSize.width + Double(GameState.suitsToWin - 1) * step, height: cardSize.height)
     }
 
     /// XP's centred "Score / Moves" box.
-    public var scoreBoxFrame: Rect {
+    public var scoreBoxFrame: BoardRect {
         let width = min(cardSize.width * 3.2, boardSize.width * 0.36)
         let height = cardSize.height * 0.62
-        return Rect(x: boardSize.width / 2 - width / 2, y: bottomRowY + (cardSize.height - height) / 2,
+        return BoardRect(x: boardSize.width / 2 - width / 2, y: bottomRowY + (cardSize.height - height) / 2,
                     width: width, height: height)
     }
 
@@ -150,7 +150,7 @@ public struct BoardLayout: Sendable, Equatable {
 
     /// Column a dragged run should land in: of the columns where the move is legal, the one whose
     /// top card (or empty slot) overlaps the dragged card most. Nil = snap back.
-    public func dropColumn(for state: GameState, from: Int, index: Int, draggedFrame: Rect) -> Int? {
+    public func dropColumn(for state: GameState, from: Int, index: Int, draggedFrame: BoardRect) -> Int? {
         var best: (column: Int, area: Double)?
         for to in state.columns.indices where state.canMove(from: from, index: index, to: to) {
             let target = cardFrames(column: to, cards: state.columns[to]).last ?? slotFrame(column: to)
