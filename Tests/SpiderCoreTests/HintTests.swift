@@ -77,3 +77,30 @@ final class HintTests: XCTestCase {
         XCTAssertEqual(s.stock.count % 10, 0, file: file, line: line)
     }
 }
+
+final class StuckTests: XCTestCase {
+    func testStuckWhenNoHintNoDealNoEmptyColumn() {
+        var t = Table()
+        let stuck = t.state([[t.c(.two)], [t.c(.five)], [t.c(.nine)]], pad: true)
+        XCTAssertTrue(stuck.isStuck)
+    }
+
+    func testNotStuckWhenADealIsPossible() {
+        var t = Table()
+        let canDeal = t.state([[t.c(.two)], [t.c(.five)], [t.c(.nine)]], stock: t.stock(10), pad: true)
+        XCTAssertFalse(canDeal.isStuck)
+    }
+
+    func testNotStuckWithAnEmptyColumnOrAHint() {
+        var t = Table()
+        XCTAssertFalse(t.state([[t.c(.two)], []], pad: true).isStuck)
+        XCTAssertFalse(t.state([[t.c(.two)], [t.c(.three, .hearts)]], pad: true).isStuck)
+    }
+
+    func testWonGameIsNotStuck() {
+        let won = GameState(difficulty: .oneSuit, seed: 0,
+                            columns: Array(repeating: [Card](), count: 10), stock: [],
+                            completed: Array(repeating: .spades, count: 8))
+        XCTAssertFalse(won.isStuck)
+    }
+}

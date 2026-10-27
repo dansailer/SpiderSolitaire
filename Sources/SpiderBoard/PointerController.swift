@@ -23,6 +23,8 @@ public struct PointerController: Sendable {
         case perform(Action)
         /// A drag ended somewhere illegal: animate the run back.
         case snapBack
+        /// Click on the score box: show the next hint (XP behaviour).
+        case hint
     }
 
     public private(set) var drag: Drag?
@@ -74,6 +76,11 @@ public struct PointerController: Sendable {
         if let stock = layout.stockHitFrame(dealsRemaining: state.dealsRemaining), stock.contains(start) {
             lastClick = nil
             return .perform(.deal)
+        }
+
+        if layout.scoreBoxFrame.contains(start) {
+            lastClick = nil
+            return .hint
         }
 
         guard let location = layout.card(at: start, in: state) else {

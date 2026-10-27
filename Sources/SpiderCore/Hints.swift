@@ -16,6 +16,13 @@ public struct Hint: Sendable, Hashable, Codable {
     public let to: Int
     public let kind: Kind
 
+    public init(from: Int, index: Int, to: Int, kind: Kind) {
+        self.from = from
+        self.index = index
+        self.to = to
+        self.kind = kind
+    }
+
     public var action: Action { .move(from: from, index: index, to: to) }
 }
 
@@ -89,5 +96,13 @@ extension GameState {
         if let to = legal.first(where: { !columns[$0].isEmpty }) { return to }
         if index > 0, let to = legal.first(where: { columns[$0].isEmpty }) { return to }
         return nil
+    }
+}
+
+extension GameState {
+    /// No useful move is left: nothing to suggest, no deal possible, and no empty column to work
+    /// with. This is when the UI says "There are no more moves." Never true for a won game.
+    public var isStuck: Bool {
+        !isWon && !canDeal && !columns.contains { $0.isEmpty } && hints().isEmpty
     }
 }

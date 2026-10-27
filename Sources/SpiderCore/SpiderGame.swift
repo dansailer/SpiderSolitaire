@@ -10,6 +10,17 @@ public enum Action: Codable, Sendable, Hashable {
 public struct CompletedRun: Sendable, Hashable {
     public let column: Int
     public let suit: Suit
+    /// The 13 removed cards, King first (bottom of the run) to Ace (top), for the fly-off animation.
+    public let cards: [Card]
+    /// Foundation slot the run went to (0 = first completed suit).
+    public let foundationSlot: Int
+
+    public init(column: Int, suit: Suit, cards: [Card] = [], foundationSlot: Int = 0) {
+        self.column = column
+        self.suit = suit
+        self.cards = cards
+        self.foundationSlot = foundationSlot
+    }
 }
 
 /// Side effects of an action, for the UI to animate (flip, fly to foundation, deal sweep).
@@ -18,6 +29,9 @@ public struct ActionOutcome: Sendable, Hashable {
     public var completedRuns: [CompletedRun] = []
     /// Ids of cards turned face up by this action (not counting dealt cards).
     public var revealedCardIDs: [Int] = []
+    /// Ids of the cards a deal put on the columns, in column order (empty for moves). Cards that a
+    /// deal immediately completed into a run are included too.
+    public var dealtCardIDs: [Int] = []
     public var didWin = false
 }
 
@@ -110,6 +124,7 @@ public struct SpiderGame: Codable, Sendable {
                 guard var card = state.stock.popLast() else { break }
                 card.isFaceUp = true
                 state.columns[col].append(card)
+                outcome.dealtCardIDs.append(card.id)
             }
             penalty = scoring.dealPenalty
             removeCompletedRuns(in: Array(0..<GameState.columnCount), outcome: &outcome)
@@ -150,10 +165,12 @@ public struct SpiderGame: Codable, Sendable {
     private mutating func removeCompletedRuns(in columns: [Int], outcome: inout ActionOutcome) {
         for col in columns {
             guard let suit = state.completedRun(in: col) else { continue }
+            let cards = Array(state.columns[col].suffix(13))
             state.columns[col].removeLast(13)
+            outcome.completedRuns.append(CompletedRun(column: col, suit: suit, cards: cards,
+                                                      foundationSlot: state.completed.count))
             state.completed.append(suit)
             state.score += scoring.completedSuitBonus
-            outcome.completedRuns.append(CompletedRun(column: col, suit: suit))
             if let id = flipTop(of: col) { outcome.revealedCardIDs.append(id) }
         }
     }
