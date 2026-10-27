@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<!--
+  Spider Solitaire website. Structure, copy and visual system follow the landing page design
+  skill by Elaya (MIT, (c) 2026 Elaya): https://github.com/elayadesign/ai-design-skills
+  Static HTML and CSS with a little vanilla JS. Everything is served from this folder: no CDN,
+  no web fonts from third parties, no trackers, no cookies.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spider Solitaire for Mac: the Windows XP classic, free and native</title>
+<meta name="description" content="A free, faithful remake of Windows XP Spider Solitaire for macOS 14 and later. One, two or four suits, classic scoring, unlimited undo, winnable deals and 14 achievements. No ads, no account.">
+<link rel="canonical" href="https://dansailer.github.io/SpiderSolitaire/">
+<meta name="theme-color" content="#131209">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Spider Solitaire">
+<meta property="og:title" content="Spider Solitaire for Mac: the Windows XP classic, free and native">
+<meta property="og:description" content="Same rules, same scoring, built natively for macOS. Free and open source.">
+<meta property="og:url" content="https://dansailer.github.io/SpiderSolitaire/">
+<meta property="og:image" content="https://dansailer.github.io/SpiderSolitaire/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A game of Spider Solitaire with two suits in progress on green felt">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="fonts/cormorant-garamond/cormorant-garamond-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/manrope/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="site.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Spider Solitaire",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "macOS 14 or later",
+  "url": "https://dansailer.github.io/SpiderSolitaire/",
+  "downloadUrl": "https://github.com/dansailer/SpiderSolitaire/releases/latest",
+  "license": "https://opensource.org/license/mit",
+  "image": "https://dansailer.github.io/SpiderSolitaire/assets/icon-512.png",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type": "Question", "name": "Is Spider Solitaire really free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. There are no ads, no purchases inside the app and no account. The source code is open under the MIT licence."}},
+    {"@type": "Question", "name": "Which Macs does it run on?", "acceptedAnswer": {"@type": "Answer", "text": "Any Mac with macOS 14 Sonoma or later. The download is a universal app for Apple silicon and Intel Macs."}},
+    {"@type": "Question", "name": "Why does macOS warn me the first time I open it?", "acceptedAnswer": {"@type": "Answer", "text": "The app is signed ad hoc rather than with a paid Apple Developer ID, so Gatekeeper cannot check who made it. Right click the app, choose Open, then confirm. You only do this once."}},
+    {"@type": "Question", "name": "Does it collect any data?", "acceptedAnswer": {"@type": "Answer", "text": "No. The only network request is the optional update check, which reads the public list of releases on GitHub at most once a day. You can turn it off in Settings."}},
+    {"@type": "Question", "name": "Does it work offline?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Everything runs on your Mac. Without a connection the update check simply waits for the next day."}},
+    {"@type": "Question", "name": "How close is it to the Windows XP version?", "acceptedAnswer": {"@type": "Answer", "text": "The rules, the scoring, the dealing rule for empty columns, hints, statistics and the three difficulties all follow XP. Redo, winnable deals and achievements are new, and you can switch undo to the classic XP behaviour."}},
+    {"@type": "Question", "name": "Can every game be won?", "acceptedAnswer": {"@type": "Answer", "text": "Not every random deal. Turn on Only deal winnable games and each new game is one the built in solver has already won."}},
+    {"@type": "Question", "name": "How do I update it?", "acceptedAnswer": {"@type": "Answer", "text": "Choose Spider Solitaire, then Check for Updates. If a new version exists, Download saves it to your Downloads folder and you replace the app in Applications."}},
+    {"@type": "Question", "name": "How do I uninstall it?", "acceptedAnswer": {"@type": "Answer", "text": "Drag the app to the Trash. Your saved game and statistics live in the SpiderSolitaire folder inside Library, Application Support, which you can delete too."}}
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" aria-label="Main">
+  <a class="brand" href="./" aria-label="Spider Solitaire, home">
+    <img src="assets/icon-180.png" alt="" width="24" height="24">
+    <span>Spider Solitaire</span>
+  </a>
+  <ul class="nav-links text-sm">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#credits">Credits</a></li>
+  </ul>
+  <a class="button button-primary" href="https://github.com/dansailer/SpiderSolitaire/releases/latest">Download</a>
+  <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu"><span></span><span></span></button>
+</nav>
+<div class="mobile-menu" id="mobile-menu" aria-hidden="true">
+  <ul>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#credits">Credits</a></li>
+    <li><a class="button button-primary" href="https://github.com/dansailer/SpiderSolitaire/releases/latest">Download for Mac</a></li>
+  </ul>
+</div>
+
+<main id="main">
+  <header class="hero container">
+    <div class="hero-fan" aria-hidden="true">
+      <img src="assets/spades-king.png" alt="" width="64" height="96">
+      <img src="assets/hearts-queen.png" alt="" width="64" height="96">
+      <img src="assets/spades-ace.png" alt="" width="64" height="96">
+    </div>
+    <p class="eyebrow text-sm"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-apple-logo"/></svg>Free for macOS 14 Sonoma and later</p>
+    <h1 class="serif text-6xl">The Spider Solitaire you remember,<br> made for your Mac</h1>
+    <p class="subheading text-lg">A faithful remake of the Windows XP classic. The same rules, the same scoring and the same quiet joy of a finished suit, built natively for macOS.</p>
+    <div class="cta-row">
+      <a class="button button-primary button-large" href="https://github.com/dansailer/SpiderSolitaire/releases/latest">
+        <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-download-simple"/></svg>Download for Mac
+      </a>
+      <a class="text-link text-base" href="https://github.com/dansailer/SpiderSolitaire">
+        <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-github-logo"/></svg>View the source on GitHub
+      </a>
+    </div>
+    <ul class="proof text-sm" aria-label="What you get">
+      <li><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-check-circle"/></svg>No ads</li>
+      <li><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-lock-key"/></svg>No account, no tracking</li>
+      <li><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-wifi-slash"/></svg>Plays offline</li>
+      <li><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-heart"/></svg>Open source, MIT</li>
+    </ul>
+    <div class="window">
+      <div class="window-bar text-sm" aria-hidden="true"><i></i><i></i><i></i><span>Spider Solitaire</span></div>
+      <div class="shot">
+        <img src="assets/board.webp" width="1600" height="1200" fetchpriority="high"
+             alt="Spider Solitaire on green felt: a two suit game 38 moves in, with runs of spades and hearts across ten columns, score 464 and the stock in the corner">
+      </div>
+    </div>
+  </header>
+
+  <section class="container reveal" aria-labelledby="story-title">
+    <div class="story">
+      <div>
+        <span class="kicker text-sm">Why this exists</span>
+        <h2 id="story-title" class="serif text-5xl">Windows XP is gone. Your favourite card game does not have to be.</h2>
+        <p class="muted text-lg" style="margin-top: var(--s-300)">Many solitaire apps now come with banners, nagging timers and coins to buy. This one is the game as you knew it: ten columns, two packs, a stock of fifty cards and a score that starts at 500.</p>
+      </div>
+      <div class="story-cards" aria-hidden="true">
+        <img src="assets/hearts-king.png" alt="" width="160" height="240">
+        <img src="assets/spades-jack.png" alt="" width="160" height="240">
+        <img src="assets/card-back.png" alt="" width="160" height="240">
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="container reveal" aria-labelledby="features-title">
+    <div class="section-head">
+      <span class="kicker text-sm">Features</span>
+      <h2 id="features-title" class="serif text-5xl">Everything you liked, and a few things XP never had</h2>
+    </div>
+    <ul class="benefits">
+      <li class="benefit">
+        <span class="badge"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-cards"/></svg></span>
+        <h3>Rules you already know</h3>
+        <p>One, two or four suits. You start with 500 points, pay one for every move and earn 100 for each finished suit, exactly like XP.</p>
+      </li>
+      <li class="benefit">
+        <span class="badge"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-seal-check"/></svg></span>
+        <h3>Deals you can win</h3>
+        <p>Turn on winnable deals and every new game is one the built in solver has already beaten.</p>
+      </li>
+      <li class="benefit">
+        <span class="badge"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-arrow-counter-clockwise"/></svg></span>
+        <h3>Undo as far as you like</h3>
+        <p>Go back to the first move and redo what you undid, or pick classic XP undo for a stricter game.</p>
+      </li>
+      <li class="benefit">
+        <span class="badge"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-trophy"/></svg></span>
+        <h3>Fourteen achievements</h3>
+        <p>From your first win to four suits without a single undo. A banner slides in when you earn one, and your statistics keep every streak.</p>
+      </li>
+      <li class="benefit">
+        <span class="badge"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-palette"/></svg></span>
+        <h3>Classic card art</h3>
+        <p>Traditional English pattern faces by Dmitry Fomin and a gold rosette back, or a clean simple set drawn by the app.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="tagline container" aria-label="In short">
+    <p class="serif text-5xl" data-tagline>
+      <span data-line>Ten columns. Two packs.</span><br>
+      <span data-line>One calm hour</span><br>
+      <span data-line>with nothing in the way.</span>
+    </p>
+  </section>
+
+  <section class="container reveal" aria-labelledby="screens-title">
+    <div class="section-head">
+      <span class="kicker text-sm">A real Mac app</span>
+      <h2 id="screens-title" class="serif text-5xl">Native menus, settings and help</h2>
+      <p class="text-lg">Keyboard shortcuts for every command, full screen, a help window with the rules and the scoring, and settings that apply the moment you change them.</p>
+    </div>
+    <div class="gallery">
+      <figure class="tall">
+        <div class="shot"><img src="assets/help.webp" width="764" height="1344" loading="lazy"
+             alt="The help window showing the rules: the goal, the layout, moving cards, empty columns and dealing"></div>
+        <figcaption class="text-sm"><strong>Help built in</strong>Rules, scoring, tips and every shortcut, one press of ⌘? away.</figcaption>
+      </figure>
+      <figure>
+        <div class="shot"><img src="assets/settings-appearance.webp" width="1040" height="830" loading="lazy"
+             alt="Appearance settings with a live preview of the Classic and Simple card faces and the gold rosette card back"></div>
+        <figcaption class="text-sm"><strong>See your cards before you choose</strong>Settings show the faces and the back exactly as they appear on the table.</figcaption>
+      </figure>
+      <figure>
+        <div class="shot"><img src="assets/achievements.webp" width="1440" height="1120" loading="lazy"
+             alt="The achievements window with badges such as First Win, Purist, Speedster and Hat Trick, all still locked"></div>
+        <figcaption class="text-sm"><strong>Something to aim for</strong>Badges stay grey until you earn them, then turn gold with the date.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="how" class="container reveal" aria-labelledby="how-title">
+    <div class="section-head">
+      <span class="kicker text-sm">How it works</span>
+      <h2 id="how-title" class="serif text-5xl">Playing in three steps</h2>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <span class="step-number" aria-hidden="true">1</span>
+        <h3>Download</h3>
+        <p>Get SpiderSolitaire.zip from the latest release on GitHub, open it and drag Spider Solitaire into Applications.</p>
+      </li>
+      <li class="step">
+        <span class="step-number" aria-hidden="true">2</span>
+        <h3>Open it once by hand</h3>
+        <p>The first time, right click the app and choose Open, then Open again. macOS remembers your choice.</p>
+      </li>
+      <li class="step">
+        <span class="step-number" aria-hidden="true">3</span>
+        <h3>Play</h3>
+        <p>Drag cards, click the stock to deal and press ⌘T for a hint. Your game is saved when you quit.</p>
+      </li>
+    </ol>
+    <div class="gatekeeper" id="first-launch">
+      <h3><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-shield-check"/></svg>Why macOS asks the first time</h3>
+      <p class="muted" style="margin-top: var(--s-100)">The app is signed ad hoc, not with a paid Apple Developer ID, so Gatekeeper cannot confirm who made it and blocks a plain double click. Any of these lets it open:</p>
+      <ol class="text-base">
+        <li><strong>Right click Open.</strong> In Applications, right click Spider Solitaire, choose Open, then Open in the dialog.</li>
+        <li><strong>Open Anyway.</strong> After a blocked attempt, go to System Settings, Privacy &amp; Security, scroll down and click Open Anyway.</li>
+        <li><strong>Terminal.</strong> Remove the quarantine flag that macOS added to the download:</li>
+      </ol>
+      <div class="code">
+        <code id="xattr-command">xattr -dr com.apple.quarantine "/Applications/Spider Solitaire.app"</code>
+        <button class="copy" type="button" data-copy="xattr-command" aria-describedby="copy-status">Copy</button>
+      </div>
+      <p class="copy-status text-sm" id="copy-status" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="container reveal" aria-labelledby="open-title">
+    <div class="section-head">
+      <span class="kicker text-sm">Open and checkable</span>
+      <h2 id="open-title" class="serif text-5xl">Nothing hidden in the box</h2>
+    </div>
+    <div class="facts">
+      <div class="fact">
+        <p class="value">MIT</p>
+        <h3>Open source</h3>
+        <p>Every line of the game is on GitHub. Read it, build it yourself or fork it.</p>
+      </div>
+      <div class="fact">
+        <p class="value">200+</p>
+        <h3>Automated tests</h3>
+        <p>The rules, the scoring, undo and redo, the solver and the update check are tested on every change.</p>
+      </div>
+      <div class="fact">
+        <p class="value">SHA256</p>
+        <h3>Checksummed releases</h3>
+        <p>Each release is built by GitHub Actions from a tagged commit and ships with a checksum file next to the zip.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="container reveal" aria-labelledby="faq-title">
+    <div class="section-head center">
+      <span class="kicker text-sm">Questions</span>
+      <h2 id="faq-title" class="serif text-5xl">Frequently asked</h2>
+    </div>
+    <div class="faq">
+      <details><summary>Is Spider Solitaire really free?</summary><p>Yes. There are no ads, no purchases inside the app and no account. The source code is open under the MIT licence.</p></details>
+      <details><summary>Which Macs does it run on?</summary><p>Any Mac with macOS 14 Sonoma or later. The download is a universal app for Apple silicon and Intel Macs.</p></details>
+      <details><summary>Why does macOS warn me the first time I open it?</summary><p>The app is signed ad hoc rather than with a paid Apple Developer ID, so Gatekeeper cannot check who made it. Right click the app, choose Open, then confirm. You only do this once. <a class="text-link" href="#first-launch">More ways to open it</a></p></details>
+      <details><summary>Does it collect any data?</summary><p>No. The only network request is the optional update check, which reads the public list of releases on GitHub at most once a day. You can turn it off in Settings, General.</p></details>
+      <details><summary>Does it work offline?</summary><p>Yes. Everything runs on your Mac. Without a connection the update check simply waits for the next day.</p></details>
+      <details><summary>How close is it to the Windows XP version?</summary><p>The rules, the scoring, the dealing rule for empty columns, hints, statistics and the three difficulties all follow XP. Redo, winnable deals and achievements are new, and you can switch undo to the classic XP behaviour.</p></details>
+      <details><summary>Can every game be won?</summary><p>Not every random deal. Turn on Only deal winnable games and each new game is one the built in solver has already won.</p></details>
+      <details><summary>How do I update it?</summary><p>Choose Spider Solitaire, then Check for Updates. If a new version exists, Download saves it to your Downloads folder and you replace the app in Applications.</p></details>
+      <details><summary>How do I uninstall it?</summary><p>Drag the app to the Trash. Your saved game and statistics live in the SpiderSolitaire folder inside Library, Application Support, which you can delete too.</p></details>
+    </div>
+  </section>
+
+  <section class="final container reveal" aria-labelledby="final-title">
+    <div class="final-card">
+      <img src="assets/icon-512.png" alt="Spider Solitaire app icon: an ace of spades over a blue card back on green felt" width="96" height="96" loading="lazy">
+      <h2 id="final-title" class="serif text-5xl gradient-text">Deal yourself a game tonight</h2>
+      <p class="text-lg">Free, with nothing to sign up for and nothing to cancel. If it is not for you, drag it to the Trash.</p>
+      <div class="cta-row">
+        <a class="button button-primary button-large" href="https://github.com/dansailer/SpiderSolitaire/releases/latest">
+          <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-download-simple"/></svg>Download for Mac
+        </a>
+        <a class="text-link text-base" href="https://github.com/dansailer/SpiderSolitaire">
+          <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-github-logo"/></svg>View the source on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section id="credits" class="container reveal" aria-labelledby="credits-title">
+    <div class="section-head">
+      <span class="kicker text-sm">Credits</span>
+      <h2 id="credits-title" class="serif text-4xl">Made with generous work by others</h2>
+    </div>
+    <ul class="credits">
+      <li class="credit">
+        <h3>Classic card faces</h3>
+        <p>The English pattern playing cards by Dmitry Fomin, dedicated to the public domain under CC0 1.0.</p>
+        <p class="links text-sm">
+          <a class="text-link" href="https://commons.wikimedia.org/wiki/Category:SVG_English_pattern_playing_cards">Cards on Wikimedia Commons<svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-arrow-up-right"/></svg></a>
+          <a class="text-link" href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0</a>
+        </p>
+      </li>
+      <li class="credit">
+        <h3>Ornate ace of spades</h3>
+        <p>The centre of the ace of spades comes from Byron Knoll's vector playing cards, released into the public domain by its author.</p>
+        <p class="links text-sm">
+          <a class="text-link" href="https://commons.wikimedia.org/wiki/File:Ace_of_spades.svg">Ace of spades file page<svg class="icon" aria-hidden="true"><use href="assets/icons.svg#i-arrow-up-right"/></svg></a>
+          <a class="text-link" href="https://en.wikipedia.org/wiki/Public_domain">Public domain</a>
+        </p>
+      </li>
+      <li class="credit">
+        <h3>Fonts and icons</h3>
+        <p>Cormorant Garamond by the Cormorant Project Authors and Manrope by the Manrope Project Authors, both under the SIL Open Font License 1.1 and served from this site. Icons from Phosphor, MIT licensed.</p>
+        <p class="links text-sm">
+          <a class="text-link" href="https://github.com/CatharsisFonts/Cormorant">Cormorant</a>
+          <a class="text-link" href="https://github.com/sharanda/manrope">Manrope</a>
+          <a class="text-link" href="https://openfontlicense.org/">SIL OFL 1.1</a>
+          <a class="text-link" href="https://phosphoricons.com/">Phosphor Icons</a>
+        </p>
+      </li>
+      <li class="credit">
+        <h3>This website</h3>
+        <p>Designed with the landing page design skill by Elaya, MIT licensed. The screenshots are taken from the app itself.</p>
+        <p class="links text-sm">
+          <a class="text-link" href="https://github.com/elayadesign/ai-design-skills">Elaya's design skills</a>
+          <a class="text-link" href="https://github.com/dansailer/SpiderSolitaire/blob/main/Sources/SpiderSolitaire/Resources/Cards/CREDITS.md">Full card credits</a>
+        </p>
+      </li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="footer-row text-sm">
+      <p>© 2026 Dan Sailer. Spider Solitaire is not affiliated with Microsoft.</p>
+      <ul>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="https://github.com/dansailer/SpiderSolitaire/security/policy">Security</a></li>
+        <li><a href="https://github.com/dansailer/SpiderSolitaire">GitHub</a></li>
+        <li><a href="#main">Back to top</a></li>
+      </ul>
+    </div>
+    <p class="note text-xs">No cookies, no analytics. Website design guided by Elaya's landing page design skill (MIT).</p>
+  </div>
+</footer>
+<script src="site.js" defer></script>
+</body>
+</html>

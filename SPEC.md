@@ -257,6 +257,17 @@ Why these keys:
 - Game ▸ Achievements… (⇧⌘A) opens a window with a grid of medals drawn in code (`BadgeArt`):
   gold with the unlock date once earned, grey with the hint before. No spider motifs.
 
+### 3.6d Settings and updates
+- Settings (⌘,) is a toolbar tab window: General (save on quit, what opens at launch, sounds, automatic update
+  check), Gameplay (winnable deals, undo rules; difficulty stays in Game ▸ Difficulty), Appearance (live
+  previews of the Classic and Simple faces and the card back, animations) and Credits (links to every art source, the repo and the website).
+- Check for Updates… (app menu) reads `releases/latest` from GitHub's public API, compares semver with
+  CFBundleShortVersionString (`SpiderUpdates`) and offers Download (zip to ~/Downloads, shown in
+  Finder) or Later. The automatic check runs at launch at most once a day and is silent unless a newer
+  release exists. Drafts, prereleases and non version tags are ignored. No self replacement (that needs
+  Developer ID signing and Sparkle).
+- Help ▸ Visit Website opens https://dansailer.github.io/SpiderSolitaire/ (source in `docs/`).
+
 ### 3.7 Sound
 - The game plays short cues for deal, drop, cannot-deal, hint, no-hint and win.
 - The cues are built-in macOS system sounds played with `NSSound(named:)` (Pop, Tink, Basso, Ping, Funk,

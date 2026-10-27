@@ -4,6 +4,9 @@ A native macOS clone of Windows XP Spider Solitaire, written in Swift and SwiftU
 
 - The rules and UI are described in [SPEC.md](SPEC.md).
 - It builds, tests and packages on macOS 14; the rules engine also builds and tests on Linux.
+- Website: https://dansailer.github.io/SpiderSolitaire/ · Downloads: https://github.com/dansailer/SpiderSolitaire/releases/latest
+- Code: MIT ([LICENSE](LICENSE)). Card art: CC0 / public domain ([CREDITS.md](Sources/SpiderSolitaire/Resources/Cards/CREDITS.md)).
+- Outside contributions are not accepted ([CONTRIBUTING.md](CONTRIBUTING.md)); report security issues privately ([SECURITY.md](SECURITY.md)).
 
 ## Requirements
 - macOS 14 (Sonoma) or later
@@ -115,6 +118,38 @@ you then replace the app yourself. With "Check for updates automatically" on (Se
 the default) it checks at launch, at most once a day, and stays silent unless an update exists.
 The app does not replace itself: that would need Developer ID signing and notarization plus an
 updater such as Sparkle, which this project does not use yet.
+
+## Releases, CI and the website
+All workflows run only on a push to `main`, a `v*` tag push (release) or a manual dispatch, and only
+for `dansailer` in `dansailer/SpiderSolitaire`. Every action is pinned to a commit SHA, the token is
+read only by default, and checkouts do not keep credentials.
+
+| Workflow | Does |
+|---|---|
+| `ci.yml` | Linux `swift test` in a pinned container; macOS `swift test` plus `scripts/package.sh` |
+| `release.yml` | On a `v*` tag: tests, `VERSION=<tag without v> UNIVERSAL=1 scripts/package.sh`, then a GitHub release with `SpiderSolitaire.zip`, its `.sha256` and generated notes (a tag with `-` becomes a prerelease) |
+| `pages.yml` | Deploys `docs/` to GitHub Pages (Settings ▸ Pages ▸ Source must be "GitHub Actions") |
+| `jactionlint.yml` | Lints the workflows with jactionlint |
+
+Cut a release from an up to date `main`:
+```bash
+git tag -a v1.0.0 -m "Spider Solitaire 1.0.0"
+git push origin v1.0.0
+```
+If the run fails after the tag exists, fix it and rerun from Actions ▸ Release ▸ Run workflow with
+the tag (the workflow builds the tagged commit). Lint the workflows locally with
+`pipx run jactionlint` (or `pip install jactionlint`).
+
+The website in `docs/` is static HTML, CSS and a little vanilla JavaScript with no build step and no
+third party requests; fonts (Cormorant Garamond, Manrope, SIL OFL) and Phosphor icons are committed.
+Its screenshots come from the app itself:
+```bash
+scripts/package.sh && "build/Spider Solitaire.app/Contents/MacOS/SpiderSolitaire" --snapshot /tmp/snaps
+python3 scripts/site_assets.py /tmp/snaps <icon.svg> <back.svg> <fontsource dir> <phosphor dir>
+```
+`--snapshot <dir>` uses a temporary store and a fixed two suit deal, plays 38 solver moves and writes
+PNGs of the board, help, achievements and every Settings tab (no screen recording permission needed).
+`--menu-probe <seconds>` plays moves while checking that the menu bar never changes (exit 0 if so).
 
 ## Solver tool (developers)
 ```bash
