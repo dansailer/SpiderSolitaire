@@ -33,6 +33,12 @@ struct SpiderSolitaireApp: App {
         }
         .defaultSize(width: 720, height: 560)
 
+        Window(MenuCommand.help.title, id: HelpView.windowID) {
+            HelpView()
+        }
+        .defaultSize(width: 560, height: 640)
+        .windowResizability(WindowResizability.contentMinSize)
+
         // Spider Solitaire ▸ Settings… (⌘,)
         Settings {
             SettingsView(model: model)
@@ -42,7 +48,7 @@ struct SpiderSolitaireApp: App {
 
 /// The menu bar (SPEC.md §3.5). Titles and shortcuts come from `MenuCommand` in SpiderBoard,
 /// where tests check them for clashes. Edit, View and File are emptied here and removed by
-/// `MainMenuCleaner`; Enter Full Screen moves to the Window menu.
+/// `MainMenuCleaner`; AppKit then puts Enter Full Screen in the Window menu.
 struct GameCommands: Commands {
     @ObservedObject var model: GameModel
 
@@ -50,38 +56,44 @@ struct GameCommands: Commands {
         CommandGroup(replacing: CommandGroupPlacement.appInfo) {
             Button("About Spider Solitaire") { AboutPanel.show() }
         }
-        // Help: placeholder until there is help to show.
+        // Help ▸ Spider Solitaire Help (⌘?); macOS adds the search field.
         CommandGroup(replacing: CommandGroupPlacement.help) {
-            Button(MenuCommand.help.title) {}
-                .disabled(true)
+            HelpMenuButton()
         }
 
+        // Groups keep each builder block at 10 items or fewer.
         CommandMenu(MenuCommand.Menu.game.rawValue) {
-            CommandButton(MenuCommand.newGame) { model.requestNewGame(nil) }
-            CommandButton(MenuCommand.restartGame) { model.requestRestart() }
-            Divider()
-            CommandButton(MenuCommand.undo) { model.undo() }
-                .disabled(!model.canUndo)
-            CommandButton(MenuCommand.redo) { model.redo() }
-                .disabled(!model.canRedo)
-            Divider()
-            CommandButton(MenuCommand.dealNextRow) { model.deal() }
-            CommandButton(MenuCommand.showHint) { model.showHint() }
-            Divider()
-            Menu(MenuCommand.Menu.difficulty.rawValue) {
-                DifficultyItem(model: model, command: MenuCommand.oneSuit, difficulty: Difficulty.oneSuit)
-                DifficultyItem(model: model, command: MenuCommand.twoSuits, difficulty: Difficulty.twoSuits)
-                DifficultyItem(model: model, command: MenuCommand.fourSuits, difficulty: Difficulty.fourSuits)
+            Group {
+                CommandButton(MenuCommand.newGame) { model.requestNewGame(nil) }
+                CommandButton(MenuCommand.restartGame) { model.requestRestart() }
+                Divider()
+                CommandButton(MenuCommand.undo) { model.undo() }
+                    .disabled(!model.canUndo)
+                CommandButton(MenuCommand.redo) { model.redo() }
+                    .disabled(!model.canRedo)
+                Divider()
             }
-            Divider()
-            CommandButton(MenuCommand.statistics) { model.showStatisticsSheet = true }
-            AchievementsMenuButton()
-            Divider()
-            CommandButton(MenuCommand.saveGame) { model.saveGame() }
-            CommandButton(MenuCommand.openSavedGame) { model.requestOpenSavedGame() }
-                .disabled(!model.hasSavedGame)
-            Divider()
-            CommandButton(MenuCommand.closeWindow) { NSApplication.shared.keyWindow?.performClose(nil) }
+            Group {
+                CommandButton(MenuCommand.dealNextRow) { model.deal() }
+                CommandButton(MenuCommand.showHint) { model.showHint() }
+                Divider()
+                Menu(MenuCommand.Menu.difficulty.rawValue) {
+                    DifficultyItem(model: model, command: MenuCommand.oneSuit, difficulty: Difficulty.oneSuit)
+                    DifficultyItem(model: model, command: MenuCommand.twoSuits, difficulty: Difficulty.twoSuits)
+                    DifficultyItem(model: model, command: MenuCommand.fourSuits, difficulty: Difficulty.fourSuits)
+                }
+                Divider()
+            }
+            Group {
+                CommandButton(MenuCommand.statistics) { model.showStatisticsSheet = true }
+                AchievementsMenuButton()
+                Divider()
+                CommandButton(MenuCommand.saveGame) { model.saveGame() }
+                CommandButton(MenuCommand.openSavedGame) { model.requestOpenSavedGame() }
+                    .disabled(!model.hasSavedGame)
+                Divider()
+                CommandButton(MenuCommand.closeWindow) { NSApplication.shared.keyWindow?.performClose(nil) }
+            }
         }
     }
 }

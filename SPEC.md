@@ -172,7 +172,7 @@ a hint.
 | | Zoom | | |
 | | Enter Full Screen / Exit Full Screen | ⌃⌘F | |
 | | (window list, Bring All to Front, and the macOS 15 tiling items) | | |
-| Help | Spider Solitaire Help (placeholder, disabled) and the menu search field | | F1 |
+| Help | Spider Solitaire Help, and the menu search field | ⌘? | F1 / Help ▸ Contents |
 
 Why these keys:
 - **⌘D Deal Next Row:** the HIG's ⌘D is Duplicate, which has no meaning in a card game. It keeps XP's D.
@@ -186,12 +186,26 @@ Why these keys:
   history. In Classic XP undo mode, redo can only bring back what undo could reach.
 - **Close Window** sits in the Game menu because there is no File menu. Closing the game window quits
   the app (the usual quit-time save rules apply).
+- **⌘? Spider Solitaire Help** is the standard Help shortcut (⇧⌘/ on most layouts). It opens a
+  single help window (`Window` scene "help", about 560 × 640 pt, resizable) with a sidebar of five
+  sections: Rules, Scoring, Tips, Achievements and Keyboard Shortcuts. The text lives as data in
+  `HelpContent` (SpiderBoard). The scoring numbers come from `ScoringRules`, the achievements table
+  from `Achievement.all`, and the shortcuts table from `MenuCommand` plus the standard app and window
+  shortcuts, so tests catch any drift.
 - SwiftUI still inserts File, Edit and View menus even with all their groups replaced, so
   `MainMenuCleaner` removes every menu other than the app menu, Game, Window and Help. It identifies
-  them by structure, not title: position 0, `NSApp.windowsMenu`, `NSApp.helpMenu`, and the menu
-  holding ⌘N. It moves AppKit's `toggleFullScreen:` item into the Window menu after Zoom, and it runs
-  again whenever a menu gains an item. Start Dictation and Emoji & Symbols are switched off with the
-  `NSDisabledDictationMenuItem` and `NSDisabledCharacterPaletteMenuItem` defaults.
+  them by structure, not title: position 0, `NSApp.windowsMenu`, `NSApp.helpMenu` (or the menu
+  holding ⌘?, which it then registers as `NSApp.helpMenu` so the search field appears), and the menu
+  holding ⌘N. From the Window menu it removes only the tab items. It never adds or moves Enter Full
+  Screen: AppKit places that item itself. The plan is a pure function (`MenuBarPlan`, tested) and
+  running it twice changes nothing.
+- The cleaner runs at launch and when SwiftUI adds an item to the main menu bar itself (a rebuild),
+  debounced by 150 ms. It never runs while a menu is open (`NSMenu.didBeginTracking` /
+  `didEndTracking`); a clean that comes due then waits until the menu closes. An earlier version
+  reacted to items added to *any* menu, so opening the Window menu (which fills in its window list
+  as it opens) made it edit the menu on screen, and the menu visibly shrank. Start Dictation and
+  Emoji & Symbols are switched off with the `NSDisabledDictationMenuItem` and
+  `NSDisabledCharacterPaletteMenuItem` defaults.
 
 - Choosing a new difficulty, or a new game while a game is in progress, first asks "Are you sure you
   want to quit this game?" If the player confirms, the abandoned game counts as a loss, as in XP.

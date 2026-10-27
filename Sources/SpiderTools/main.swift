@@ -3,6 +3,8 @@
 //   swift run -c release SpiderTools seeds <suits> <wanted> [maxNodes]   (Swift array literal)
 //   swift run -c release SpiderTools find <suits> <runs>      (time to find one winnable seed, like the app)
 //   swift run -c release SpiderTools bundled <suits> 0         (re-check WinnableDeals.bundled)
+//   swift run SpiderTools help                                  (the built-in help as Markdown)
+import SpiderBoard
 import SpiderCore
 #if canImport(Glibc)
 import Glibc
@@ -31,6 +33,11 @@ func fmt(_ x: Double) -> String {
 }
 
 let args = Array(CommandLine.arguments.dropFirst())
+// SpiderTools help: the built-in help as Markdown (for previews).
+if args.first == "help" {
+    print(HelpContent.sections.map(HelpContent.markdown).joined(separator: "\n"))
+    exit(0)
+}
 guard args.count >= 3 else { fatalError("usage: SpiderTools bench|seeds <suits> <count> [maxNodes]") }
 let diff = difficulty(args[1])
 let count = Int(args[2]) ?? 10

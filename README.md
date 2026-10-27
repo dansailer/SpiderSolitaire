@@ -102,7 +102,7 @@ Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
 | | Save Game / Open Saved Game | ⌘S / ⌘O |
 | | Close Window | ⌘W |
 | Window | Minimize, Zoom, Enter Full Screen | ⌘M, –, ⌃⌘F |
-| Help | Spider Solitaire Help (placeholder) | |
+| Help | Spider Solitaire Help: rules, scoring, tips, achievements and every shortcut | ⌘? |
 
 There is no File, Edit or View menu and no window tabs. SPEC.md §3.5 explains each choice.
 
@@ -112,7 +112,11 @@ swift build -c release --product SpiderTools
 .build/release/SpiderTools bench 2 50     # success rate and time per seed, as the app runs it
 .build/release/SpiderTools find 4 20      # time to find one winnable deal
 .build/release/SpiderTools seeds 1 24     # generate verified seeds for WinnableDeals.bundled
+.build/release/SpiderTools help           # the help window's text as Markdown
 ```
+
+`python3 scripts/check_builders.py` flags any SwiftUI builder block with more than 10 direct
+children (the `Commands` and `Scene` builders stop at 10, and Linux can't compile the app target).
 
 ## Linux (rules engine only)
 `SpiderCore` and `SpiderBoard` use only the Swift standard library, so they build and test anywhere Swift runs:

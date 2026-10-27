@@ -90,9 +90,11 @@ public enum MenuCommand: String, CaseIterable, Sendable {
         case .saveGame: return MenuShortcut("s")
         case .openSavedGame: return MenuShortcut("o")
         case .closeWindow: return MenuShortcut("w")
-        // AppKit's own toggleFullScreen: item; listed so the table shows the whole menu bar.
+        // AppKit adds and places its own toggleFullScreen: item in the Window menu; the app never
+        // creates or moves it. Listed so the table (and the help) show the whole menu bar.
         case .enterFullScreen: return MenuShortcut("f", control: true)
-        case .help: return nil
+        // The standard Help shortcut (⇧⌘/ on most keyboards).
+        case .help: return MenuShortcut("?")
         }
     }
 
@@ -111,8 +113,8 @@ public enum MenuCommand: String, CaseIterable, Sendable {
         MenuShortcut("m"): "Minimize",
         MenuShortcut("m", option: true): "Minimize All",
         MenuShortcut("`"): "Cycle Through Windows",
-        MenuShortcut("?"): "Help menu search",
-        MenuShortcut("/", shift: true): "Help menu search",
+        MenuShortcut("?"): "Spider Solitaire Help",
+        MenuShortcut("/", shift: true): "Spider Solitaire Help",
         MenuShortcut(" "): "Spotlight",
         MenuShortcut(" ", control: true): "Emoji & Symbols / input sources",
         MenuShortcut("\t"): "App Switcher",
