@@ -6,6 +6,7 @@
 //   swift run SpiderTools help                                  (the built-in help as Markdown)
 import SpiderBoard
 import SpiderCore
+
 #if canImport(Glibc)
 import Glibc
 #else
@@ -101,7 +102,9 @@ case "bench":
         let (result, nodes) = attempt(seed)
         let t = seconds(clock.now - start)
         totalTime += t; maxTime = max(maxTime, t); totalNodes += nodes
-        if getenvString("VERBOSE") != nil { print("  deal \(i) seed \(seed): \(result.label) nodes \(nodes) " + fmt(t) + " s") }
+        if getenvString("VERBOSE") != nil {
+            print("  deal \(i) seed \(seed): \(result.label) nodes \(nodes) " + fmt(t) + " s")
+        }
         switch result {
         case .solved(let actions):
             precondition(Solver.verify(difficulty: diff, seed: seed, actions: actions), "bad solution for \(seed)")
@@ -111,10 +114,13 @@ case "bench":
         }
     }
     let avgLen = lengths.isEmpty ? 0 : lengths.reduce(0, +) / lengths.count
-    print("suits=\(diff.rawValue) deals=\(count) budget=\(custom ? String(budget.maxNodes) : "app attempts"): solved \(solved) (\(solved * 100 / count)%), unsolvable \(unsolvable), gave up \(gaveUp)")
+    print(
+        "suits=\(diff.rawValue) deals=\(count) budget=\(custom ? String(budget.maxNodes) : "app attempts"): solved \(solved) (\(solved * 100 / count)%), unsolvable \(unsolvable), gave up \(gaveUp)"
+    )
     let avgTime: Double = totalTime / Double(count)
     let avgSolved: Double = solved > 0 ? solvedTime / Double(solved) : 0
-    let line: String = "  avg time " + fmt(avgTime) + " s (solved only " + fmt(avgSolved) + " s), max " + fmt(maxTime)
+    let line: String =
+        "  avg time " + fmt(avgTime) + " s (solved only " + fmt(avgSolved) + " s), max " + fmt(maxTime)
         + " s, avg nodes \(totalNodes / count), avg solution \(avgLen) moves (min \(lengths.min() ?? 0), max \(lengths.max() ?? 0))"
     print(line)
 case "find":
@@ -131,8 +137,11 @@ case "find":
         times.append(seconds(clock.now - start)); tries.append(n)
     }
     let sorted = times.sorted()
-    print("suits=\(diff.rawValue) runs=\(count): avg " + fmt(times.reduce(0, +) / Double(count)) + " s, median "
-        + fmt(sorted[count / 2]) + " s, max " + fmt(sorted.last ?? 0) + " s, within 5 s \(times.filter { $0 <= 5 }.count)/\(count), avg seeds tried " + fmt(Double(tries.reduce(0, +)) / Double(count)))
+    print(
+        "suits=\(diff.rawValue) runs=\(count): avg " + fmt(times.reduce(0, +) / Double(count)) + " s, median "
+            + fmt(sorted[count / 2]) + " s, max " + fmt(sorted.last ?? 0)
+            + " s, within 5 s \(times.filter { $0 <= 5 }.count)/\(count), avg seeds tried "
+            + fmt(Double(tries.reduce(0, +)) / Double(count)))
 case "bundled":
     // Nodes each bundled seed needs with the app's attempts (count is ignored).
     for seed in WinnableDeals.bundled[diff] ?? [] {
@@ -146,7 +155,8 @@ case "seeds":
     while found.count < count {
         seed = rng.next()
         if case .solved(let actions) = attempt(seed).0,
-           Solver.verify(difficulty: diff, seed: seed, actions: actions) {
+            Solver.verify(difficulty: diff, seed: seed, actions: actions)
+        {
             found.append(seed)
         }
     }

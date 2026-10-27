@@ -76,12 +76,15 @@ public struct SessionController: Sendable {
 
     public var game: SpiderGame { session.game }
 
-    public init(options: Options, statistics: Statistics, achievements: AchievementBook = AchievementBook(),
-                seed: UInt64) {
+    public init(
+        options: Options, statistics: Statistics, achievements: AchievementBook = AchievementBook(),
+        seed: UInt64
+    ) {
         self.options = options
         self.statistics = statistics
         self.achievements = achievements
-        session = SavedSession(game: SpiderGame(difficulty: options.difficulty, seed: seed, undoPolicy: options.undoPolicy))
+        session = SavedSession(
+            game: SpiderGame(difficulty: options.difficulty, seed: seed, undoPolicy: options.undoPolicy))
     }
 
     // MARK: Lifecycle
@@ -100,7 +103,8 @@ public struct SessionController: Sendable {
     public mutating func restart() {
         let state = session.game.state
         recordLossIfInProgress()
-        session = SavedSession(game: SpiderGame(difficulty: state.difficulty, seed: state.seed, undoPolicy: options.undoPolicy))
+        session = SavedSession(
+            game: SpiderGame(difficulty: state.difficulty, seed: state.seed, undoPolicy: options.undoPolicy))
     }
 
     /// Continue a saved game (⌘O, or resume at launch). The current game counts as a loss if in progress.
@@ -184,8 +188,9 @@ public struct SessionController: Sendable {
     private mutating func evaluate(_ event: AchievementEvent, state: GameState, tracker: GameTracker) {
         var book = achievements
         for id in pendingUnlocks { book.unlocked[id] = 0 }
-        pendingUnlocks += AchievementEvaluator.newlyUnlocked(by: event, state: state, tracker: tracker,
-                                                             statistics: statistics, book: book)
+        pendingUnlocks += AchievementEvaluator.newlyUnlocked(
+            by: event, state: state, tracker: tracker,
+            statistics: statistics, book: book)
     }
 
     // MARK: Quit and launch

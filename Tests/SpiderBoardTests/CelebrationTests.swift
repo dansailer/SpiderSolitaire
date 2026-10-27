@@ -1,5 +1,6 @@
-import XCTest
 import SpiderCore
+import XCTest
+
 @testable import SpiderBoard
 
 final class CelebrationTests: XCTestCase {

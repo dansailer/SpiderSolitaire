@@ -1,5 +1,6 @@
-import XCTest
 import SpiderCore
+import XCTest
+
 @testable import SpiderBoard
 
 final class DealAnimationTests: XCTestCase {
@@ -15,7 +16,8 @@ final class DealAnimationTests: XCTestCase {
         XCTAssertFalse(anim.isIdle)
 
         let pile = layout.stockFrames(dealsRemaining: dealsBefore).last!
-        var byID = Dictionary(uniqueKeysWithValues: layout.placements(for: game.state, animations: anim).map { ($0.id, $0) })
+        var byID = Dictionary(
+            uniqueKeysWithValues: layout.placements(for: game.state, animations: anim).map { ($0.id, $0) })
         for id in outcome.dealtCardIDs {
             XCTAssertEqual(byID[id]!.frame, pile)
             XCTAssertFalse(byID[id]!.card.isFaceUp, "drawn as a back while waiting")
@@ -26,7 +28,8 @@ final class DealAnimationTests: XCTestCase {
         let first = outcome.dealtCardIDs[0]
         XCTAssertTrue(anim.releaseDealtCard(first))
         XCTAssertFalse(anim.releaseDealtCard(first), "only once")
-        byID = Dictionary(uniqueKeysWithValues: layout.placements(for: game.state, animations: anim).map { ($0.id, $0) })
+        byID = Dictionary(
+            uniqueKeysWithValues: layout.placements(for: game.state, animations: anim).map { ($0.id, $0) })
         XCTAssertEqual(byID[first]!.frame, layout.cardFrames(in: game.state)[0].last!)
         XCTAssertTrue(byID[first]!.card.isFaceUp)
         XCTAssertEqual(byID[outcome.dealtCardIDs[1]]!.frame, pile)
@@ -107,8 +110,9 @@ final class FlightTests: XCTestCase {
         let (game, outcome, _) = try completeOneSuit()
         var anim = BoardAnimations()
         anim.beginFlights(outcome.completedRuns, columns: game.state.columns)
-        let placements = layout.placements(for: game.state, drag: PointerController.Drag(from: 1, index: 0, translation: .zero),
-                                           animations: anim)
+        let placements = layout.placements(
+            for: game.state, drag: PointerController.Drag(from: 1, index: 0, translation: .zero),
+            animations: anim)
         let flyingIDs = Set(outcome.completedRuns[0].cards.map(\.id))
         let minFlying = placements.filter { flyingIDs.contains($0.id) }.map(\.zIndex).min()!
         let maxOther = placements.filter { !flyingIDs.contains($0.id) }.map(\.zIndex).max() ?? 0
@@ -177,7 +181,9 @@ final class HintCyclerTests: XCTestCase {
         let layout = BoardLayout(boardSize: BoardSize(width: 800, height: 600))
         let state = k.state([[k.c(.five)]])
         var p = PointerController()
-        XCTAssertEqual(p.pointerEnded(start: layout.scoreBoxFrame.center, translation: .zero, time: 0,
-                                      state: state, layout: layout), .hint)
+        XCTAssertEqual(
+            p.pointerEnded(
+                start: layout.scoreBoxFrame.center, translation: .zero, time: 0,
+                state: state, layout: layout), .hint)
     }
 }

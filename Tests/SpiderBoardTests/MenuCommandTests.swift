@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import SpiderBoard
 
 final class MenuCommandTests: XCTestCase {
@@ -11,8 +12,9 @@ final class MenuCommandTests: XCTestCase {
         // Full Screen and Help are the standard items themselves.
         for command in MenuCommand.allCases where command != .enterFullScreen && command != .help {
             guard let shortcut = command.shortcut else { continue }
-            XCTAssertNil(MenuCommand.reservedShortcuts[shortcut],
-                         "\(command) \(shortcut) clashes with \(MenuCommand.reservedShortcuts[shortcut] ?? "")")
+            XCTAssertNil(
+                MenuCommand.reservedShortcuts[shortcut],
+                "\(command) \(shortcut) clashes with \(MenuCommand.reservedShortcuts[shortcut] ?? "")")
         }
         XCTAssertEqual(MenuCommand.reservedShortcuts[MenuCommand.enterFullScreen.shortcut!], "Enter Full Screen")
         XCTAssertEqual(MenuCommand.reservedShortcuts[MenuCommand.help.shortcut!], MenuCommand.help.title)

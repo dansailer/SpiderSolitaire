@@ -41,10 +41,12 @@ final class WindowController: NSObject, NSWindowDelegate {
 
     @discardableResult
     func showBoard() -> NSWindow {
-        let window: NSWindow = board ?? makeWindow(
-            title: "Spider Solitaire", autosave: "SpiderSolitaireBoard",
-            size: NSSize(width: 800, height: 600), resizable: true,
-            content: BoardView(model: model).frame(minWidth: 640, minHeight: 480))
+        let window: NSWindow =
+            board
+            ?? makeWindow(
+                title: "Spider Solitaire", autosave: "SpiderSolitaireBoard",
+                size: NSSize(width: 800, height: 600), resizable: true,
+                content: BoardView(model: model).frame(minWidth: 640, minHeight: 480))
         window.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenPrimary)
         board = window
         window.makeKeyAndOrderFront(nil)
@@ -53,10 +55,12 @@ final class WindowController: NSObject, NSWindowDelegate {
 
     @discardableResult
     func showAchievements() -> NSWindow {
-        let window: NSWindow = achievements ?? makeWindow(
-            title: "Achievements", autosave: "SpiderSolitaireAchievements",
-            size: NSSize(width: 720, height: 560), resizable: true,
-            content: AchievementsView(model: model))
+        let window: NSWindow =
+            achievements
+            ?? makeWindow(
+                title: "Achievements", autosave: "SpiderSolitaireAchievements",
+                size: NSSize(width: 720, height: 560), resizable: true,
+                content: AchievementsView(model: model))
         achievements = window
         window.makeKeyAndOrderFront(nil)
         return window
@@ -64,10 +68,12 @@ final class WindowController: NSObject, NSWindowDelegate {
 
     @discardableResult
     func showHelp() -> NSWindow {
-        let window: NSWindow = help ?? makeWindow(
-            title: MenuCommand.help.title, autosave: "SpiderSolitaireHelp",
-            size: NSSize(width: 560, height: 640), resizable: true,
-            content: HelpView())
+        let window: NSWindow =
+            help
+            ?? makeWindow(
+                title: MenuCommand.help.title, autosave: "SpiderSolitaireHelp",
+                size: NSSize(width: 560, height: 640), resizable: true,
+                content: HelpView())
         help = window
         window.makeKeyAndOrderFront(nil)
         return window
@@ -75,35 +81,43 @@ final class WindowController: NSObject, NSWindowDelegate {
 
     @discardableResult
     func showSettings() -> NSWindow {
-        let window: NSWindow = settings ?? {
-            let tabs: SettingsTabViewController = SettingsTabViewController(model: model, updates: updates)
-            let w: NSWindow = NSWindow(contentViewController: tabs)
-            w.styleMask = [NSWindow.StyleMask.titled, NSWindow.StyleMask.closable]
-            w.toolbarStyle = NSWindow.ToolbarStyle.preference
-            w.tabbingMode = NSWindow.TabbingMode.disallowed
-            w.isReleasedWhenClosed = false
-            w.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenNone)
-            if let first: NSView = tabs.tabViewItems.first?.viewController?.view {
-                w.setContentSize(first.fittingSize)
-            }
-            w.center()
-            w.setFrameAutosaveName("SpiderSolitaireSettingsWindow")
-            return w
-        }()
+        let window: NSWindow =
+            settings
+            ?? {
+                let tabs: SettingsTabViewController = SettingsTabViewController(model: model, updates: updates)
+                let w: NSWindow = NSWindow(contentViewController: tabs)
+                w.styleMask = [NSWindow.StyleMask.titled, NSWindow.StyleMask.closable]
+                w.toolbarStyle = NSWindow.ToolbarStyle.preference
+                w.tabbingMode = NSWindow.TabbingMode.disallowed
+                w.isReleasedWhenClosed = false
+                w.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenNone)
+                if let first: NSView = tabs.tabViewItems.first?.viewController?.view {
+                    w.setContentSize(first.fittingSize)
+                }
+                w.center()
+                w.setFrameAutosaveName("SpiderSolitaireSettingsWindow")
+                return w
+            }()
         settings = window
         window.makeKeyAndOrderFront(nil)
         return window
     }
 
-    private func makeWindow<Content: View>(title: String, autosave: String, size: NSSize?, resizable: Bool,
-                                           content: Content) -> NSWindow {
+    private func makeWindow<Content: View>(
+        title: String, autosave: String, size: NSSize?, resizable: Bool,
+        content: Content
+    ) -> NSWindow {
         let controller: NSHostingController<Content> = NSHostingController<Content>(rootView: content)
-        controller.sizingOptions = resizable ? [NSHostingSizingOptions.minSize] : [NSHostingSizingOptions.preferredContentSize]
-        var style: NSWindow.StyleMask = [NSWindow.StyleMask.titled, NSWindow.StyleMask.closable,
-                                         NSWindow.StyleMask.miniaturizable]
+        controller.sizingOptions =
+            resizable ? [NSHostingSizingOptions.minSize] : [NSHostingSizingOptions.preferredContentSize]
+        var style: NSWindow.StyleMask = [
+            NSWindow.StyleMask.titled, NSWindow.StyleMask.closable,
+            NSWindow.StyleMask.miniaturizable,
+        ]
         if resizable { style.insert(NSWindow.StyleMask.resizable) }
-        let window: NSWindow = NSWindow(contentRect: NSRect(origin: NSPoint.zero, size: size ?? NSSize(width: 480, height: 400)),
-                                        styleMask: style, backing: NSWindow.BackingStoreType.buffered, defer: false)
+        let window: NSWindow = NSWindow(
+            contentRect: NSRect(origin: NSPoint.zero, size: size ?? NSSize(width: 480, height: 400)),
+            styleMask: style, backing: NSWindow.BackingStoreType.buffered, defer: false)
         window.contentViewController = controller
         window.title = title
         window.tabbingMode = NSWindow.TabbingMode.disallowed
@@ -136,7 +150,8 @@ enum SnapshotMode {
 
     static func makeModel() -> GameModel {
         let directory: URL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("SpiderSolitaireSnapshot-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
+            .appendingPathComponent(
+                "SpiderSolitaireSnapshot-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
         let store: SpiderStore = SpiderStore(directory: directory)
         var options: Options = Options()
         options.difficulty = Difficulty.twoSuits
@@ -171,7 +186,8 @@ enum SnapshotMode {
 
     private static func save(_ window: NSWindow?, _ name: String, _ directory: URL) {
         guard let view: NSView = window?.contentView,
-              let rep: NSBitmapImageRep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+            let rep: NSBitmapImageRep = view.bitmapImageRepForCachingDisplay(in: view.bounds)
+        else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
         guard let data: Data = rep.representation(using: NSBitmapImageRep.FileType.png, properties: [:]) else { return }
         let url: URL = directory.appendingPathComponent(name + ".png")
@@ -205,9 +221,10 @@ enum MenuProbe {
             let app: NSApplication = NSApplication.shared
             let tops: [String] = app.mainMenu?.items.map { (item: NSMenuItem) -> String in item.title } ?? []
             let expected: [String] = MenuBarLayout.menuBar.map { (top: MenuBarLayout.TopMenu) -> String in top.title }
-            let fullScreen: Int = app.windowsMenu?.items.filter { (item: NSMenuItem) -> Bool in
-                !item.isHidden && item.action == #selector(NSWindow.toggleFullScreen(_:))
-            }.count ?? 0
+            let fullScreen: Int =
+                app.windowsMenu?.items.filter { (item: NSMenuItem) -> Bool in
+                    !item.isHidden && item.action == #selector(NSWindow.toggleFullScreen(_:))
+                }.count ?? 0
             print("MENUPROBE distinct menu bars: \(seen.count)")
             for (bar, count) in seen { print("MENUPROBE \(count)x \(bar)") }
             print("MENUPROBE top menus as designed: \(tops == expected); visible Full Screen items: \(fullScreen)")
@@ -300,7 +317,9 @@ import SpiderCore
 enum SpiderSolitaireStub {
     static func main() {
         let game = SpiderGame(difficulty: .oneSuit, seed: 1)
-        print("SpiderSolitaire UI needs macOS. Core OK: score \(game.state.score), \(game.state.dealsRemaining) deals left.")
+        print(
+            "SpiderSolitaire UI needs macOS. Core OK: score \(game.state.score), \(game.state.dealsRemaining) deals left."
+        )
     }
 }
 #endif

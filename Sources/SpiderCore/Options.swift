@@ -34,7 +34,8 @@ public struct Options: Codable, Sendable, Hashable {
     // Tolerant decoding: a missing or unknown field falls back to its default, so adding options
     // later never throws away a user's settings file.
     private enum CodingKeys: String, CodingKey {
-        case difficulty, undoPolicy, animationsEnabled, saveOnExit, openOnStart, soundsEnabled, cardFaces, winnableDealsOnly
+        case difficulty, undoPolicy, animationsEnabled, saveOnExit, openOnStart, soundsEnabled, cardFaces,
+            winnableDealsOnly
         case checkForUpdatesAutomatically
     }
 
@@ -49,7 +50,8 @@ public struct Options: Codable, Sendable, Hashable {
         soundsEnabled = (try? c.decode(Bool.self, forKey: .soundsEnabled)) ?? d.soundsEnabled
         cardFaces = (try? c.decode(CardFaceStyle.self, forKey: .cardFaces)) ?? d.cardFaces
         winnableDealsOnly = (try? c.decode(Bool.self, forKey: .winnableDealsOnly)) ?? d.winnableDealsOnly
-        checkForUpdatesAutomatically = (try? c.decode(Bool.self, forKey: .checkForUpdatesAutomatically))
+        checkForUpdatesAutomatically =
+            (try? c.decode(Bool.self, forKey: .checkForUpdatesAutomatically))
             ?? d.checkForUpdatesAutomatically
     }
 }

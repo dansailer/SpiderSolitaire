@@ -1,5 +1,6 @@
-import XCTest
 import SpiderCore
+import XCTest
+
 @testable import SpiderBoard
 
 final class PointerControllerTests: XCTestCase {
@@ -11,12 +12,17 @@ final class PointerControllerTests: XCTestCase {
     }
 
     private func translation(from: BoardPoint, toColumn column: Int, in state: GameState) -> BoardSize {
-        let target = layout.cardFrames(column: column, cards: state.columns[column]).last ?? layout.slotFrame(column: column)
+        let target =
+            layout.cardFrames(column: column, cards: state.columns[column]).last ?? layout.slotFrame(column: column)
         return BoardSize(width: target.midX - from.x, height: target.midY - from.y)
     }
 
-    private func drag(_ p: inout PointerController, start: BoardPoint, to t: BoardSize, state: GameState) -> PointerController.Result {
-        p.pointerChanged(start: start, translation: BoardSize(width: t.width / 2, height: t.height / 2), state: state, layout: layout)
+    private func drag(_ p: inout PointerController, start: BoardPoint, to t: BoardSize, state: GameState)
+        -> PointerController.Result
+    {
+        p.pointerChanged(
+            start: start, translation: BoardSize(width: t.width / 2, height: t.height / 2), state: state, layout: layout
+        )
         p.pointerChanged(start: start, translation: t, state: state, layout: layout)
         return p.pointerEnded(start: start, translation: t, time: 0, state: state, layout: layout)
     }
@@ -47,7 +53,8 @@ final class PointerControllerTests: XCTestCase {
         let state = k.state([[k.c(.five, .hearts)], [k.c(.nine)]])
         var p = PointerController()
         let start = center(state, 0, 0)
-        XCTAssertEqual(drag(&p, start: start, to: translation(from: start, toColumn: 1, in: state), state: state), .snapBack)
+        XCTAssertEqual(
+            drag(&p, start: start, to: translation(from: start, toColumn: 1, in: state), state: state), .snapBack)
         XCTAssertNil(p.drag)
     }
 
@@ -69,7 +76,10 @@ final class PointerControllerTests: XCTestCase {
         let start = center(state, 0, 0)
         p.pointerChanged(start: start, translation: BoardSize(width: 1, height: 1), state: state, layout: layout)
         XCTAssertNil(p.drag)
-        XCTAssertEqual(p.pointerEnded(start: start, translation: BoardSize(width: 1, height: 1), time: 1, state: state, layout: layout), .none)
+        XCTAssertEqual(
+            p.pointerEnded(
+                start: start, translation: BoardSize(width: 1, height: 1), time: 1, state: state, layout: layout), .none
+        )
     }
 
     func testDoubleClickAutoMovesToBestTarget() {
@@ -77,11 +87,14 @@ final class PointerControllerTests: XCTestCase {
         let state = k.state([[k.c(.five, .hearts)], [k.c(.six, .clubs)], [k.c(.six, .hearts)]])
         var p = PointerController()
         let start = center(state, 0, 0)
-        XCTAssertEqual(p.pointerEnded(start: start, translation: .zero, time: 10.0, state: state, layout: layout), .none)
-        XCTAssertEqual(p.pointerEnded(start: start, translation: .zero, time: 10.2, state: state, layout: layout),
-                       .perform(.move(from: 0, index: 0, to: 2)))
+        XCTAssertEqual(
+            p.pointerEnded(start: start, translation: .zero, time: 10.0, state: state, layout: layout), .none)
+        XCTAssertEqual(
+            p.pointerEnded(start: start, translation: .zero, time: 10.2, state: state, layout: layout),
+            .perform(.move(from: 0, index: 0, to: 2)))
         // A third click starts a new pair.
-        XCTAssertEqual(p.pointerEnded(start: start, translation: .zero, time: 10.3, state: state, layout: layout), .none)
+        XCTAssertEqual(
+            p.pointerEnded(start: start, translation: .zero, time: 10.3, state: state, layout: layout), .none)
     }
 
     func testSlowOrDifferentCardClicksAreNotDoubleClicks() {
@@ -90,8 +103,10 @@ final class PointerControllerTests: XCTestCase {
         var p = PointerController()
         let a = center(state, 0, 0), b = center(state, 2, 0)
         _ = p.pointerEnded(start: a, translation: .zero, time: 0, state: state, layout: layout)
-        XCTAssertEqual(p.pointerEnded(start: a, translation: .zero, time: 1, state: state, layout: layout), .none, "too slow")
-        XCTAssertEqual(p.pointerEnded(start: b, translation: .zero, time: 1.1, state: state, layout: layout), .none, "other card")
+        XCTAssertEqual(
+            p.pointerEnded(start: a, translation: .zero, time: 1, state: state, layout: layout), .none, "too slow")
+        XCTAssertEqual(
+            p.pointerEnded(start: b, translation: .zero, time: 1.1, state: state, layout: layout), .none, "other card")
     }
 
     func testClickOnStockDeals() {
@@ -99,8 +114,9 @@ final class PointerControllerTests: XCTestCase {
         let state = k.state((0..<10).map { _ in [k.c(.king)] }, stock: 20)
         var p = PointerController()
         let stock = layout.stockFrames(dealsRemaining: 2).last!
-        XCTAssertEqual(p.pointerEnded(start: stock.center, translation: .zero, time: 0, state: state, layout: layout),
-                       .perform(.deal))
+        XCTAssertEqual(
+            p.pointerEnded(start: stock.center, translation: .zero, time: 0, state: state, layout: layout),
+            .perform(.deal))
         let felt = BoardPoint(x: layout.scoreBoxFrame.midX, y: layout.tableauBottom - 2)
         XCTAssertEqual(p.pointerEnded(start: felt, translation: .zero, time: 0, state: state, layout: layout), .none)
     }
@@ -111,8 +127,9 @@ final class PointerControllerTests: XCTestCase {
         let state = k.state([(0..<12).map { _ in k.c(.king, up: false) } + [k.c(.king)]], stock: 10)
         var p = PointerController()
         let stock = layout.stockFrames(dealsRemaining: 1)[0]
-        XCTAssertEqual(p.pointerEnded(start: stock.center, translation: .zero, time: 0, state: state, layout: layout),
-                       .perform(.deal))
+        XCTAssertEqual(
+            p.pointerEnded(start: stock.center, translation: .zero, time: 0, state: state, layout: layout),
+            .perform(.deal))
         XCTAssertFalse(state.canDeal)
     }
 

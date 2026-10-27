@@ -16,7 +16,8 @@ public enum Suit: Int, CaseIterable, Codable, Sendable, Hashable {
 
 /// Card rank, Ace (1) through King (13).
 public enum Rank: Int, CaseIterable, Codable, Sendable, Hashable, Comparable {
-    case ace = 1, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king
+    case ace = 1
+    case two, three, four, five, six, seven, eight, nine, ten, jack, queen, king
 
     public static func < (lhs: Rank, rhs: Rank) -> Bool { lhs.rawValue < rhs.rawValue }
 

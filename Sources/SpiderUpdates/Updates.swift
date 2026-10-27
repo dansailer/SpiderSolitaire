@@ -6,8 +6,10 @@ public enum ProjectLinks {
     public static let repository: String = "SpiderSolitaire"
     public static let website: URL = URL(string: "https://dansailer.github.io/SpiderSolitaire/")!
     public static let sourceCode: URL = URL(string: "https://github.com/dansailer/SpiderSolitaire")!
-    public static let latestReleasePage: URL = URL(string: "https://github.com/dansailer/SpiderSolitaire/releases/latest")!
-    public static let latestReleaseAPI: URL = URL(string: "https://api.github.com/repos/dansailer/SpiderSolitaire/releases/latest")!
+    public static let latestReleasePage: URL = URL(
+        string: "https://github.com/dansailer/SpiderSolitaire/releases/latest")!
+    public static let latestReleaseAPI: URL = URL(
+        string: "https://api.github.com/repos/dansailer/SpiderSolitaire/releases/latest")!
     /// The release asset the app downloads (scripts/package.sh and .github/workflows/release.yml).
     public static let assetName: String = "SpiderSolitaire.zip"
 }
@@ -42,7 +44,9 @@ public struct SemanticVersion: Comparable, Hashable, Sendable, CustomStringConve
         guard (1...3).contains(parts.count) else { return nil }
         var numbers: [Int] = []
         for part in parts {
-            guard !part.isEmpty, part.allSatisfy(\.isASCII), part.allSatisfy(\.isNumber), let n = Int(part) else { return nil }
+            guard !part.isEmpty, part.allSatisfy(\.isASCII), part.allSatisfy(\.isNumber), let n = Int(part) else {
+                return nil
+            }
             numbers.append(n)
         }
         while numbers.count < 3 { numbers.append(0) }
@@ -61,7 +65,7 @@ public struct SemanticVersion: Comparable, Hashable, Sendable, CustomStringConve
         if a.prerelease.isEmpty || b.prerelease.isEmpty { return !a.prerelease.isEmpty && b.prerelease.isEmpty }
         for (x, y) in zip(a.prerelease, b.prerelease) where x != y {
             switch (Int(x), Int(y)) {
-            case let (i?, j?): return i < j
+            case (let i?, let j?): return i < j
             case (.some, nil): return true // numeric identifiers sort before alphanumeric ones
             case (nil, .some): return false
             case (nil, nil): return x < y
@@ -93,7 +97,10 @@ public struct ReleaseInfo: Decodable, Hashable, Sendable {
     public let assets: [Asset]
 
     enum CodingKeys: String, CodingKey {
-        case tagName = "tag_name", name, body, htmlURL = "html_url", draft, prerelease, assets
+        case tagName = "tag_name"
+        case name, body
+        case htmlURL = "html_url"
+        case draft, prerelease, assets
     }
 
     public init(from decoder: Decoder) throws {
@@ -129,7 +136,8 @@ public enum UpdateStatus: Hashable, Sendable {
         guard let text = currentVersion, let current = SemanticVersion(text) else {
             return .unknownCurrent(latest: latest, release: release)
         }
-        return current < latest ? .available(current: current, latest: latest, release: release) : .upToDate(current: current)
+        return current < latest
+            ? .available(current: current, latest: latest, release: release) : .upToDate(current: current)
     }
 
     public var isUpdate: Bool {
@@ -157,7 +165,9 @@ public enum ReleaseNotes {
     public static func excerpt(_ markdown: String?, limit: Int = 600) -> String {
         guard let markdown else { return "" }
         var lines: [String] = []
-        for raw in markdown.replacingOccurrences(of: "\r\n", with: "\n").split(separator: "\n", omittingEmptySubsequences: false) {
+        for raw in markdown.replacingOccurrences(of: "\r\n", with: "\n").split(
+            separator: "\n", omittingEmptySubsequences: false)
+        {
             var line: String = raw.trimmingCharacters(in: .whitespaces)
             if line.hasPrefix("<!--") { continue }
             while line.hasPrefix("#") { line.removeFirst() }
@@ -181,8 +191,9 @@ public enum ReleaseNotes {
         var rest: Substring = Substring(line)
         while let open = rest.firstIndex(of: "[") {
             guard let close = rest[open...].firstIndex(of: "]"),
-                  rest.index(after: close) < rest.endIndex, rest[rest.index(after: close)] == "(",
-                  let paren = rest[close...].firstIndex(of: ")") else { break }
+                rest.index(after: close) < rest.endIndex, rest[rest.index(after: close)] == "(",
+                let paren = rest[close...].firstIndex(of: ")")
+            else { break }
             out += rest[..<open]
             out += rest[rest.index(after: open)..<close]
             rest = rest[rest.index(after: paren)...]

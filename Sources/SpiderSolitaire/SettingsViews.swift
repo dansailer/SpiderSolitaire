@@ -35,7 +35,9 @@ final class SettingsTabViewController: NSTabViewController {
     init(model: GameModel, updates: UpdateController) {
         super.init(nibName: nil, bundle: nil)
         tabStyle = NSTabViewController.TabStyle.toolbar
-        transitionOptions = [NSViewController.TransitionOptions.crossfade, NSViewController.TransitionOptions.allowUserInteraction]
+        transitionOptions = [
+            NSViewController.TransitionOptions.crossfade, NSViewController.TransitionOptions.allowUserInteraction,
+        ]
         for tab in SettingsTab.allCases {
             let root: AnyView
             switch tab {
@@ -156,16 +158,18 @@ struct GeneralSettingsView: View {
                 .labelsHidden()
             }
             Section {
-                DescribedToggle(title: "Play sounds",
-                                detail: "Soft macOS sounds when you deal, drop a card, finish a suit or win.",
-                                symbol: "speaker.wave.2.fill",
-                                isOn: optionBinding(model, \Options.soundsEnabled))
+                DescribedToggle(
+                    title: "Play sounds",
+                    detail: "Soft macOS sounds when you deal, drop a card, finish a suit or win.",
+                    symbol: "speaker.wave.2.fill",
+                    isOn: optionBinding(model, \Options.soundsEnabled))
             }
             Section {
-                DescribedToggle(title: "Check for updates automatically",
-                                detail: "Once a day at launch. You only hear about it when a new version is out.",
-                                symbol: "arrow.triangle.2.circlepath",
-                                isOn: optionBinding(model, \Options.checkForUpdatesAutomatically))
+                DescribedToggle(
+                    title: "Check for updates automatically",
+                    detail: "Once a day at launch. You only hear about it when a new version is out.",
+                    symbol: "arrow.triangle.2.circlepath",
+                    isOn: optionBinding(model, \Options.checkForUpdatesAutomatically))
                 HStack {
                     Text("Version \(UpdateController.currentVersion ?? "development build")")
                         .foregroundColor(Color.secondary)
@@ -185,10 +189,12 @@ struct GameplaySettingsView: View {
     var body: some View {
         SettingsPane {
             Section {
-                DescribedToggle(title: "Only deal winnable games",
-                                detail: "Every new game is one a built-in solver has already won. Four suits can take a few seconds to deal.",
-                                symbol: "checkmark.seal.fill",
-                                isOn: optionBinding(model, \Options.winnableDealsOnly))
+                DescribedToggle(
+                    title: "Only deal winnable games",
+                    detail:
+                        "Every new game is one a built-in solver has already won. Four suits can take a few seconds to deal.",
+                    symbol: "checkmark.seal.fill",
+                    isOn: optionBinding(model, \Options.winnableDealsOnly))
             }
             Section("Undo") {
                 Picker("Undo", selection: optionBinding(model, \Options.undoPolicy)) {
@@ -210,10 +216,12 @@ struct GameplaySettingsView: View {
             }
             Section {
                 Label {
-                    Text("Change the number of suits from Game ▸ Difficulty: one suit is gentle, four is a real challenge.")
-                        .font(Font.callout)
-                        .foregroundColor(Color.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text(
+                        "Change the number of suits from Game ▸ Difficulty: one suit is gentle, four is a real challenge."
+                    )
+                    .font(Font.callout)
+                    .foregroundColor(Color.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 } icon: {
                     Image(systemName: "lightbulb.fill").foregroundColor(CardStyle.gold)
                 }
@@ -231,12 +239,14 @@ struct AppearanceSettingsView: View {
         SettingsPane {
             Section("Card faces") {
                 HStack(spacing: 14) {
-                    FaceStyleTile(style: CardFaceStyle.classic, title: "Classic",
-                                  detail: "Traditional English pattern art",
-                                  selection: optionBinding(model, \Options.cardFaces))
-                    FaceStyleTile(style: CardFaceStyle.simple, title: "Simple",
-                                  detail: "Clean, drawn by the app",
-                                  selection: optionBinding(model, \Options.cardFaces))
+                    FaceStyleTile(
+                        style: CardFaceStyle.classic, title: "Classic",
+                        detail: "Traditional English pattern art",
+                        selection: optionBinding(model, \Options.cardFaces))
+                    FaceStyleTile(
+                        style: CardFaceStyle.simple, title: "Simple",
+                        detail: "Clean, drawn by the app",
+                        selection: optionBinding(model, \Options.cardFaces))
                 }
                 .padding(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
             }
@@ -253,10 +263,11 @@ struct AppearanceSettingsView: View {
                 }
             }
             Section {
-                DescribedToggle(title: "Show animations",
-                                detail: "Cards glide into place and the XP style celebration plays when you win.",
-                                symbol: "sparkles",
-                                isOn: optionBinding(model, \Options.animationsEnabled))
+                DescribedToggle(
+                    title: "Show animations",
+                    detail: "Cards glide into place and the XP style celebration plays when you win.",
+                    symbol: "sparkles",
+                    isOn: optionBinding(model, \Options.animationsEnabled))
             }
         }
     }
@@ -286,7 +297,8 @@ struct FaceStyleTile: View {
             VStack(spacing: 10) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10).fill(BoardView.felt)
-                    ForEach(Array(FaceStyleTile.cards.enumerated()), id: \.offset) { (item: (offset: Int, element: Card)) in
+                    ForEach(Array(FaceStyleTile.cards.enumerated()), id: \.offset) {
+                        (item: (offset: Int, element: Card)) in
                         CardView(card: item.element, size: CGSize(width: 54, height: 73))
                             .shadow(color: Color.black.opacity(0.3), radius: 2, x: 1, y: 2)
                             .rotationEffect(Angle.degrees(fanAngle(item.offset)), anchor: UnitPoint.bottom)
@@ -307,7 +319,8 @@ struct FaceStyleTile: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(isSelected ? SettingsStyle.accent : Color.primary.opacity(0.1), lineWidth: isSelected ? 3 : 1)
+                    .strokeBorder(
+                        isSelected ? SettingsStyle.accent : Color.primary.opacity(0.1), lineWidth: isSelected ? 3 : 1)
             )
             .contentShape(RoundedRectangle(cornerRadius: 14))
         }

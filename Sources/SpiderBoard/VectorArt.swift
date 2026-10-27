@@ -49,9 +49,10 @@ public struct Affine2D: Hashable, Sendable {
     }
     /// `self` first, then `next`.
     public func then(_ next: Affine2D) -> Affine2D {
-        Affine2D(a: next.a * a + next.c * b, b: next.b * a + next.d * b,
-                 c: next.a * c + next.c * d, d: next.b * c + next.d * d,
-                 tx: next.a * tx + next.c * ty + next.tx, ty: next.b * tx + next.d * ty + next.ty)
+        Affine2D(
+            a: next.a * a + next.c * b, b: next.b * a + next.d * b,
+            c: next.a * c + next.c * d, d: next.b * c + next.d * d,
+            tx: next.a * tx + next.c * ty + next.tx, ty: next.b * tx + next.d * ty + next.ty)
     }
     public func apply(_ p: BoardPoint) -> BoardPoint {
         BoardPoint(x: a * p.x + c * p.y + tx, y: b * p.x + d * p.y + ty)
@@ -74,14 +75,15 @@ public struct VectorPath: Hashable, Sendable {
     public mutating func append(_ other: VectorPath) { commands += other.commands }
 
     public func transformed(by t: Affine2D) -> VectorPath {
-        VectorPath(commands.map { (command: PathCommand) -> PathCommand in
-            switch command {
-            case .move(let p): return .move(t.apply(p))
-            case .line(let p): return .line(t.apply(p))
-            case .curve(let c1, let c2, let p): return .curve(t.apply(c1), t.apply(c2), t.apply(p))
-            case .close: return .close
-            }
-        })
+        VectorPath(
+            commands.map { (command: PathCommand) -> PathCommand in
+                switch command {
+                case .move(let p): return .move(t.apply(p))
+                case .line(let p): return .line(t.apply(p))
+                case .curve(let c1, let c2, let p): return .curve(t.apply(c1), t.apply(c2), t.apply(p))
+                case .close: return .close
+                }
+            })
     }
 
     /// Bounding box of all points, control points included (exact for the shapes used here,
@@ -103,8 +105,10 @@ public struct VectorPath: Hashable, Sendable {
     }
 
     public static func rect(_ r: BoardRect) -> VectorPath {
-        VectorPath([.move(BoardPoint(x: r.minX, y: r.minY)), .line(BoardPoint(x: r.maxX, y: r.minY)),
-                    .line(BoardPoint(x: r.maxX, y: r.maxY)), .line(BoardPoint(x: r.minX, y: r.maxY)), .close])
+        VectorPath([
+            .move(BoardPoint(x: r.minX, y: r.minY)), .line(BoardPoint(x: r.maxX, y: r.minY)),
+            .line(BoardPoint(x: r.maxX, y: r.maxY)), .line(BoardPoint(x: r.minX, y: r.maxY)), .close,
+        ])
     }
 
     /// Rounded rectangle with circular corners (cubic approximation, k = 0.5523).
@@ -145,7 +149,8 @@ public enum Paint: Hashable, Sendable {
         switch self {
         case .solid: return self
         case .linear(let s, let e, let f, let to): return .linear(start: t.apply(s), end: t.apply(e), from: f, to: to)
-        case .radial(let c, let r, let f, let to): return .radial(center: t.apply(c), radius: r * t.lengthScale, from: f, to: to)
+        case .radial(let c, let r, let f, let to):
+            return .radial(center: t.apply(c), radius: r * t.lengthScale, from: f, to: to)
         }
     }
 }
@@ -171,14 +176,17 @@ public struct VectorItem: Hashable, Sendable {
     public var stroke: Stroke?
     public var clip: VectorPath?
     public var shadow: Shadow?
-    public init(path: VectorPath, fill: Paint? = nil, stroke: Stroke? = nil, clip: VectorPath? = nil, shadow: Shadow? = nil) {
+    public init(
+        path: VectorPath, fill: Paint? = nil, stroke: Stroke? = nil, clip: VectorPath? = nil, shadow: Shadow? = nil
+    ) {
         self.path = path; self.fill = fill; self.stroke = stroke; self.clip = clip; self.shadow = shadow
     }
 
     public func transformed(by t: Affine2D) -> VectorItem {
-        VectorItem(path: path.transformed(by: t), fill: fill?.transformed(by: t),
-                   stroke: stroke.map { Stroke($0.color, width: $0.width * t.lengthScale) },
-                   clip: clip?.transformed(by: t), shadow: shadow)
+        VectorItem(
+            path: path.transformed(by: t), fill: fill?.transformed(by: t),
+            stroke: stroke.map { Stroke($0.color, width: $0.width * t.lengthScale) },
+            clip: clip?.transformed(by: t), shadow: shadow)
     }
 }
 
@@ -234,14 +242,17 @@ public enum Rosette {
             BoardPoint(x: c.x, y: c.y - r * 1.3), BoardPoint(x: c.x + r * 0.95, y: c.y),
             BoardPoint(x: c.x, y: c.y + r * 1.3), BoardPoint(x: c.x - r * 0.95, y: c.y),
         ])
-        items.append(VectorItem(path: lozenge, fill: .solid(navy.withAlpha(0.35)), stroke: Stroke(gold, width: lineWidth)))
+        items.append(
+            VectorItem(path: lozenge, fill: .solid(navy.withAlpha(0.35)), stroke: Stroke(gold, width: lineWidth)))
         for k in 0..<8 {
             let angle = Double(k) * Double.pi / 4
             let petal = petalPath(center: c, angle: angle, length: r * (k % 2 == 0 ? 0.92 : 0.7), halfWidth: r * 0.2)
             items.append(VectorItem(path: petal, fill: .solid(k % 2 == 0 ? gold : cream.withAlpha(0.9))))
         }
-        items.append(VectorItem(path: .circle(center: c, radius: r * 0.2), fill: .solid(gold),
-                                stroke: Stroke(navy.withAlpha(0.6), width: lineWidth * 0.6)))
+        items.append(
+            VectorItem(
+                path: .circle(center: c, radius: r * 0.2), fill: .solid(gold),
+                stroke: Stroke(navy.withAlpha(0.6), width: lineWidth * 0.6)))
         items.append(VectorItem(path: .circle(center: c, radius: r * 0.08), fill: .solid(navy)))
         return items
     }
@@ -283,20 +294,35 @@ public enum CardBackArt {
 
         var items: [VectorItem] = []
         items.append(VectorItem(path: .roundedRect(card, radius: radius), fill: .solid(white)))
-        items.append(VectorItem(path: fieldPath, fill: .linear(start: BoardPoint(x: field.minX, y: field.minY),
-                                                               end: BoardPoint(x: field.maxX, y: field.maxY),
-                                                               from: blueLight, to: blueDark)))
-        items.append(VectorItem(path: lattice(in: field, spacing: max(4, w * 0.1)), stroke: Stroke(white.withAlpha(0.22), width: hairline),
-                                clip: fieldPath))
+        items.append(
+            VectorItem(
+                path: fieldPath,
+                fill: .linear(
+                    start: BoardPoint(x: field.minX, y: field.minY),
+                    end: BoardPoint(x: field.maxX, y: field.maxY),
+                    from: blueLight, to: blueDark)))
+        items.append(
+            VectorItem(
+                path: lattice(in: field, spacing: max(4, w * 0.1)),
+                stroke: Stroke(white.withAlpha(0.22), width: hairline),
+                clip: fieldPath))
         let frameInset = max(2, w * 0.05) + hairline / 2
-        let frame = BoardRect(x: field.minX + frameInset, y: field.minY + frameInset,
-                              width: field.width - 2 * frameInset, height: field.height - 2 * frameInset)
-        items.append(VectorItem(path: .roundedRect(frame, radius: max(1, inner - 1)), stroke: Stroke(Rosette.gold.withAlpha(0.8), width: hairline)))
-        items += Rosette.items(center: BoardPoint(x: w / 2, y: h / 2), radius: w * 0.2, lineWidth: max(1, w * 0.015) * lineScale)
+        let frame = BoardRect(
+            x: field.minX + frameInset, y: field.minY + frameInset,
+            width: field.width - 2 * frameInset, height: field.height - 2 * frameInset)
+        items.append(
+            VectorItem(
+                path: .roundedRect(frame, radius: max(1, inner - 1)),
+                stroke: Stroke(Rosette.gold.withAlpha(0.8), width: hairline)))
+        items += Rosette.items(
+            center: BoardPoint(x: w / 2, y: h / 2), radius: w * 0.2, lineWidth: max(1, w * 0.015) * lineScale)
         let half = hairline / 2
-        items.append(VectorItem(path: .roundedRect(BoardRect(x: half, y: half, width: w - hairline, height: h - hairline),
-                                                   radius: max(0, radius - half)),
-                                stroke: Stroke(border, width: hairline)))
+        items.append(
+            VectorItem(
+                path: .roundedRect(
+                    BoardRect(x: half, y: half, width: w - hairline, height: h - hairline),
+                    radius: max(0, radius - half)),
+                stroke: Stroke(border, width: hairline)))
         return VectorScene(size: size, items: items)
     }
 
@@ -305,10 +331,12 @@ public enum CardBackArt {
         var path = VectorPath()
         var offset = -rect.height
         while offset < rect.width + rect.height {
-            path.commands += [.move(BoardPoint(x: rect.minX + offset, y: rect.minY)),
-                              .line(BoardPoint(x: rect.minX + offset + rect.height, y: rect.maxY)),
-                              .move(BoardPoint(x: rect.minX + offset + rect.height, y: rect.minY)),
-                              .line(BoardPoint(x: rect.minX + offset, y: rect.maxY))]
+            path.commands += [
+                .move(BoardPoint(x: rect.minX + offset, y: rect.minY)),
+                .line(BoardPoint(x: rect.minX + offset + rect.height, y: rect.maxY)),
+                .move(BoardPoint(x: rect.minX + offset + rect.height, y: rect.minY)),
+                .line(BoardPoint(x: rect.minX + offset, y: rect.maxY)),
+            ]
             offset += spacing
         }
         return path
@@ -325,10 +353,16 @@ public enum AppIconArt {
         var items: [VectorItem] = []
         let tile = BoardRect(x: 100, y: 100, width: 824, height: 824)
         let tilePath = VectorPath.roundedRect(tile, radius: 185)
-        items.append(VectorItem(path: tilePath, fill: .solid(RGBA(0.0, 0.42, 0.06)),
-                                shadow: Shadow(dx: 0, dy: 10, blur: 24, color: RGBA(0, 0, 0, 0.35))))
-        items.append(VectorItem(path: tilePath, fill: .radial(center: BoardPoint(x: 470, y: 380), radius: 600,
-                                                              from: RGBA(0.08, 0.62, 0.16), to: RGBA(0.0, 0.36, 0.05))))
+        items.append(
+            VectorItem(
+                path: tilePath, fill: .solid(RGBA(0.0, 0.42, 0.06)),
+                shadow: Shadow(dx: 0, dy: 10, blur: 24, color: RGBA(0, 0, 0, 0.35))))
+        items.append(
+            VectorItem(
+                path: tilePath,
+                fill: .radial(
+                    center: BoardPoint(x: 470, y: 380), radius: 600,
+                    from: RGBA(0.08, 0.62, 0.16), to: RGBA(0.0, 0.36, 0.05))))
         items.append(VectorItem(path: tilePath, stroke: Stroke(RGBA(0, 0.2, 0, 0.6), width: 6)))
 
         let cardSize = BoardSize(width: 400, height: 400 * 96 / 71)
@@ -344,15 +378,23 @@ public enum AppIconArt {
         let w = cardSize.width, h = cardSize.height
         let radius = w * 0.07
         var face: [VectorItem] = [cardShadow(cardSize, shadow)]
-        face.append(VectorItem(path: .roundedRect(BoardRect(x: 0, y: 0, width: w, height: h), radius: radius), fill: .solid(RGBA(1, 1, 1))))
+        face.append(
+            VectorItem(
+                path: .roundedRect(BoardRect(x: 0, y: 0, width: w, height: h), radius: radius),
+                fill: .solid(RGBA(1, 1, 1))))
         let black = RGBA(0.06, 0.06, 0.06)
-        face.append(VectorItem(path: SpadePip.path(in: BoardRect(x: w * 0.17, y: h * 0.2, width: w * 0.66, height: h * 0.6)), fill: .solid(black)))
+        face.append(
+            VectorItem(
+                path: SpadePip.path(in: BoardRect(x: w * 0.17, y: h * 0.2, width: w * 0.66, height: h * 0.6)),
+                fill: .solid(black)))
         let corner = BoardRect(x: w * 0.07, y: h * 0.06, width: w * 0.13, height: w * 0.15)
         face.append(VectorItem(path: SpadePip.path(in: corner), fill: .solid(black)))
         let flip = Affine2D.rotation(degrees: 180).then(.translation(w, h))
         face.append(VectorItem(path: SpadePip.path(in: corner).transformed(by: flip), fill: .solid(black)))
-        face.append(VectorItem(path: .roundedRect(BoardRect(x: 2.5, y: 2.5, width: w - 5, height: h - 5), radius: radius - 2.5),
-                               stroke: Stroke(RGBA(0.12, 0.12, 0.12), width: 5)))
+        face.append(
+            VectorItem(
+                path: .roundedRect(BoardRect(x: 2.5, y: 2.5, width: w - 5, height: h - 5), radius: radius - 2.5),
+                stroke: Stroke(RGBA(0.12, 0.12, 0.12), width: 5)))
         items += face.map { $0.transformed(by: front) }
         return VectorScene(size: BoardSize(width: size, height: size), items: items)
     }
@@ -364,16 +406,18 @@ public enum AppIconArt {
     }
 
     static func cardShadow(_ card: BoardSize, _ shadow: Shadow) -> VectorItem {
-        VectorItem(path: .roundedRect(BoardRect(x: 0, y: 0, width: card.width, height: card.height), radius: card.width * 0.07),
-                   fill: .solid(RGBA(1, 1, 1)), shadow: shadow)
+        VectorItem(
+            path: .roundedRect(
+                BoardRect(x: 0, y: 0, width: card.width, height: card.height), radius: card.width * 0.07),
+            fill: .solid(RGBA(1, 1, 1)), shadow: shadow)
     }
 }
 
 // MARK: - SVG
 
-public extension VectorScene {
+extension VectorScene {
     /// Standalone SVG (used for Linux previews and tests; the app draws natively).
-    func svg() -> String {
+    public func svg() -> String {
         var defs: [String] = []
         var body: [String] = []
         func n(_ v: Double) -> String {
@@ -390,7 +434,9 @@ public extension VectorScene {
                 }
             }.joined(separator: " ")
         }
-        func rgb(_ c: RGBA) -> String { "rgb(\(Int((c.r * 255).rounded())),\(Int((c.g * 255).rounded())),\(Int((c.b * 255).rounded())))" }
+        func rgb(_ c: RGBA) -> String {
+            "rgb(\(Int((c.r * 255).rounded())),\(Int((c.g * 255).rounded())),\(Int((c.b * 255).rounded())))"
+        }
         for (i, item) in items.enumerated() {
             var attributes: [String] = ["d=\"\(d(item.path))\""]
             if let clip = item.clip {
@@ -398,29 +444,38 @@ public extension VectorScene {
                 attributes.append("clip-path=\"url(#c\(i))\"")
             }
             if let s = item.shadow {
-                defs.append("<filter id=\"s\(i)\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\"><feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"\(n(s.blur / 2))\"/>"
-                            + "<feOffset dx=\"\(n(s.dx))\" dy=\"\(n(s.dy))\" result=\"o\"/><feFlood flood-color=\"\(rgb(s.color))\" flood-opacity=\"\(n(s.color.a))\"/>"
-                            + "<feComposite in2=\"o\" operator=\"in\"/><feMerge><feMergeNode/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter>")
+                defs.append(
+                    "<filter id=\"s\(i)\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\"><feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"\(n(s.blur / 2))\"/>"
+                        + "<feOffset dx=\"\(n(s.dx))\" dy=\"\(n(s.dy))\" result=\"o\"/><feFlood flood-color=\"\(rgb(s.color))\" flood-opacity=\"\(n(s.color.a))\"/>"
+                        + "<feComposite in2=\"o\" operator=\"in\"/><feMerge><feMergeNode/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter>"
+                )
                 attributes.append("filter=\"url(#s\(i))\"")
             }
             switch item.fill {
             case .none: attributes.append("fill=\"none\"")
             case .solid(let c)?: attributes.append("fill=\"\(rgb(c))\" fill-opacity=\"\(n(c.a))\"")
             case .linear(let s, let e, let f, let t)?:
-                defs.append("<linearGradient id=\"g\(i)\" gradientUnits=\"userSpaceOnUse\" x1=\"\(n(s.x))\" y1=\"\(n(s.y))\" x2=\"\(n(e.x))\" y2=\"\(n(e.y))\">"
-                            + "<stop offset=\"0\" stop-color=\"\(rgb(f))\" stop-opacity=\"\(n(f.a))\"/><stop offset=\"1\" stop-color=\"\(rgb(t))\" stop-opacity=\"\(n(t.a))\"/></linearGradient>")
+                defs.append(
+                    "<linearGradient id=\"g\(i)\" gradientUnits=\"userSpaceOnUse\" x1=\"\(n(s.x))\" y1=\"\(n(s.y))\" x2=\"\(n(e.x))\" y2=\"\(n(e.y))\">"
+                        + "<stop offset=\"0\" stop-color=\"\(rgb(f))\" stop-opacity=\"\(n(f.a))\"/><stop offset=\"1\" stop-color=\"\(rgb(t))\" stop-opacity=\"\(n(t.a))\"/></linearGradient>"
+                )
                 attributes.append("fill=\"url(#g\(i))\"")
             case .radial(let c, let r, let f, let t)?:
-                defs.append("<radialGradient id=\"g\(i)\" gradientUnits=\"userSpaceOnUse\" cx=\"\(n(c.x))\" cy=\"\(n(c.y))\" r=\"\(n(r))\">"
-                            + "<stop offset=\"0\" stop-color=\"\(rgb(f))\" stop-opacity=\"\(n(f.a))\"/><stop offset=\"1\" stop-color=\"\(rgb(t))\" stop-opacity=\"\(n(t.a))\"/></radialGradient>")
+                defs.append(
+                    "<radialGradient id=\"g\(i)\" gradientUnits=\"userSpaceOnUse\" cx=\"\(n(c.x))\" cy=\"\(n(c.y))\" r=\"\(n(r))\">"
+                        + "<stop offset=\"0\" stop-color=\"\(rgb(f))\" stop-opacity=\"\(n(f.a))\"/><stop offset=\"1\" stop-color=\"\(rgb(t))\" stop-opacity=\"\(n(t.a))\"/></radialGradient>"
+                )
                 attributes.append("fill=\"url(#g\(i))\"")
             }
             if let s = item.stroke {
-                attributes.append("stroke=\"\(rgb(s.color))\" stroke-opacity=\"\(n(s.color.a))\" stroke-width=\"\(n(s.width))\" stroke-linecap=\"round\" stroke-linejoin=\"round\"")
+                attributes.append(
+                    "stroke=\"\(rgb(s.color))\" stroke-opacity=\"\(n(s.color.a))\" stroke-width=\"\(n(s.width))\" stroke-linecap=\"round\" stroke-linejoin=\"round\""
+                )
             }
             body.append("<path " + attributes.joined(separator: " ") + "/>")
         }
-        return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\(n(size.width))\" height=\"\(n(size.height))\" viewBox=\"0 0 \(n(size.width)) \(n(size.height))\">\n"
+        return
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\(n(size.width))\" height=\"\(n(size.height))\" viewBox=\"0 0 \(n(size.width)) \(n(size.height))\">\n"
             + "<defs>" + defs.joined() + "</defs>\n" + body.joined(separator: "\n") + "\n</svg>\n"
     }
 }

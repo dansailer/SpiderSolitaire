@@ -1,5 +1,6 @@
-import XCTest
 import SpiderCore
+import XCTest
+
 @testable import SpiderBoard
 
 /// Hand-built cards for board tests.
@@ -35,7 +36,8 @@ final class BoardLayoutTests: XCTestCase {
         XCTAssertEqual(huge.cardSize.width, BoardLayout.maxCardWidth)
         let rowWidth = huge.columnX[9] + huge.cardSize.width - huge.columnX[0]
         XCTAssertEqual(huge.columnX[0], (4000 - rowWidth) / 2, accuracy: 1e-9)
-        XCTAssertEqual(BoardLayout(boardSize: BoardSize(width: 100, height: 100)).cardSize.width, BoardLayout.minCardWidth)
+        XCTAssertEqual(
+            BoardLayout(boardSize: BoardSize(width: 100, height: 100)).cardSize.width, BoardLayout.minCardWidth)
     }
 
     func testShortWindowLimitsCardSizeByHeight() {
@@ -47,7 +49,8 @@ final class BoardLayoutTests: XCTestCase {
         let layout = BoardLayout(boardSize: size)
         XCTAssertEqual(layout.columnX.count, 10)
         for i in 1..<10 {
-            XCTAssertEqual(layout.columnX[i] - layout.columnX[i - 1], layout.cardSize.width + layout.gap, accuracy: 1e-9)
+            XCTAssertEqual(
+                layout.columnX[i] - layout.columnX[i - 1], layout.cardSize.width + layout.gap, accuracy: 1e-9)
         }
         XCTAssertGreaterThanOrEqual(layout.columnX[0], 0)
         XCTAssertLessThanOrEqual(layout.columnX[9] + layout.cardSize.width, size.width + 1e-9)
@@ -114,11 +117,14 @@ final class BoardLayoutTests: XCTestCase {
         let state = k.state([[k.c(.two, up: false), k.c(.nine), k.c(.eight)]])
         let layout = BoardLayout(boardSize: size)
         let f = layout.cardFrames(column: 0, cards: state.columns[0])
-        XCTAssertEqual(layout.card(at: BoardPoint(x: f[0].midX, y: f[0].minY + 1), in: state), CardLocation(column: 0, index: 0))
-        XCTAssertEqual(layout.card(at: BoardPoint(x: f[1].midX, y: f[1].minY + 1), in: state), CardLocation(column: 0, index: 1))
+        XCTAssertEqual(
+            layout.card(at: BoardPoint(x: f[0].midX, y: f[0].minY + 1), in: state), CardLocation(column: 0, index: 0))
+        XCTAssertEqual(
+            layout.card(at: BoardPoint(x: f[1].midX, y: f[1].minY + 1), in: state), CardLocation(column: 0, index: 1))
         XCTAssertEqual(layout.card(at: f[2].center, in: state), CardLocation(column: 0, index: 2))
         XCTAssertNil(layout.card(at: BoardPoint(x: f[0].midX, y: f[2].maxY + 5), in: state), "below the column")
-        XCTAssertNil(layout.card(at: BoardPoint(x: layout.columnX[1] - layout.gap / 2, y: f[0].midY), in: state), "in the gap")
+        XCTAssertNil(
+            layout.card(at: BoardPoint(x: layout.columnX[1] - layout.gap / 2, y: f[0].midY), in: state), "in the gap")
         XCTAssertNil(layout.card(at: layout.slotFrame(column: 4).center, in: state), "empty column")
     }
 
@@ -137,15 +143,20 @@ final class BoardLayoutTests: XCTestCase {
 
         // Mostly over column 1, a little over column 2.
         let dx1 = target1.x - source.x + layout.cardSize.width * 0.3
-        XCTAssertEqual(layout.dropColumn(for: state, from: 0, index: 0, draggedFrame: source.offsetBy(dx: dx1, dy: 20)), 1)
+        XCTAssertEqual(
+            layout.dropColumn(for: state, from: 0, index: 0, draggedFrame: source.offsetBy(dx: dx1, dy: 20)), 1)
         // Dead centre on column 2.
         let dx2 = layout.columnX[2] - source.x
-        XCTAssertEqual(layout.dropColumn(for: state, from: 0, index: 0, draggedFrame: source.offsetBy(dx: dx2, dy: 10)), 2)
+        XCTAssertEqual(
+            layout.dropColumn(for: state, from: 0, index: 0, draggedFrame: source.offsetBy(dx: dx2, dy: 10)), 2)
         // Over the illegal 9: nothing.
-        XCTAssertNil(layout.dropColumn(for: state, from: 0, index: 0, draggedFrame: source.offsetBy(dx: target3.x - source.x, dy: 0)))
+        XCTAssertNil(
+            layout.dropColumn(
+                for: state, from: 0, index: 0, draggedFrame: source.offsetBy(dx: target3.x - source.x, dy: 0)))
         // Over an empty column's slot: allowed.
         let dx5 = layout.columnX[5] - source.x
-        XCTAssertEqual(layout.dropColumn(for: state, from: 0, index: 0, draggedFrame: source.offsetBy(dx: dx5, dy: 0)), 5)
+        XCTAssertEqual(
+            layout.dropColumn(for: state, from: 0, index: 0, draggedFrame: source.offsetBy(dx: dx5, dy: 0)), 5)
         // Dropped back on itself / far away: nothing.
         XCTAssertNil(layout.dropColumn(for: state, from: 0, index: 0, draggedFrame: source))
         XCTAssertNil(layout.dropColumn(for: state, from: 0, index: 0, draggedFrame: source.offsetBy(dx: 0, dy: 400)))
@@ -155,7 +166,8 @@ final class BoardLayoutTests: XCTestCase {
         let a = BoardRect(x: 0, y: 0, width: 10, height: 10)
         XCTAssertEqual(a.intersectionArea(BoardRect(x: 5, y: 5, width: 10, height: 10)), 25)
         XCTAssertEqual(a.intersectionArea(BoardRect(x: 10, y: 0, width: 5, height: 5)), 0)
-        XCTAssertEqual(a.union(BoardRect(x: 20, y: 5, width: 5, height: 10)), BoardRect(x: 0, y: 0, width: 25, height: 15))
+        XCTAssertEqual(
+            a.union(BoardRect(x: 20, y: 5, width: 5, height: 10)), BoardRect(x: 0, y: 0, width: 25, height: 15))
         XCTAssertTrue(a.contains(BoardPoint(x: 0, y: 0)))
         XCTAssertFalse(a.contains(BoardPoint(x: 10, y: 5)))
     }

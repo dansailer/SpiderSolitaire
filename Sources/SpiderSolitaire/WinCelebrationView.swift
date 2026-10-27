@@ -20,7 +20,8 @@ struct WinCelebrationView: View {
     ]
 
     var body: some View {
-        let simulation: WinCelebration = WinCelebration(layout: layout, suits: celebration.suits, seed: celebration.seed)
+        let simulation: WinCelebration = WinCelebration(
+            layout: layout, suits: celebration.suits, seed: celebration.seed)
         let cardSize: CGSize = layout.cardSize.cgSize
         TimelineView(AnimationTimelineSchedule()) { context in
             let t: Double = context.date.timeIntervalSince(celebration.start)
@@ -29,15 +30,18 @@ struct WinCelebrationView: View {
                     let centre: CGPoint = CGPoint(x: CGFloat(sprite.center.x), y: CGFloat(sprite.center.y))
                     switch sprite.kind {
                     case .card(let id):
-                        guard let symbol: GraphicsContext.ResolvedSymbol = graphics.resolveSymbol(id: id) else { continue }
+                        guard let symbol: GraphicsContext.ResolvedSymbol = graphics.resolveSymbol(id: id) else {
+                            continue
+                        }
                         var layer: GraphicsContext = graphics
                         layer.opacity = sprite.alpha
                         layer.draw(symbol, at: centre, anchor: UnitPoint.center)
                     case .spark(let colorIndex):
                         let r: CGFloat = CGFloat(sprite.radius)
                         let colour: Color = WinCelebrationView.palette[colorIndex % WinCelebrationView.palette.count]
-                        graphics.fill(Path(ellipseIn: CGRect(x: centre.x - r, y: centre.y - r, width: 2 * r, height: 2 * r)),
-                                      with: GraphicsContext.Shading.color(colour.opacity(sprite.alpha)))
+                        graphics.fill(
+                            Path(ellipseIn: CGRect(x: centre.x - r, y: centre.y - r, width: 2 * r, height: 2 * r)),
+                            with: GraphicsContext.Shading.color(colour.opacity(sprite.alpha)))
                     }
                 }
             } symbols: {

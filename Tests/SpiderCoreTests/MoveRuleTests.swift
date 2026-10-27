@@ -1,14 +1,15 @@
 import XCTest
+
 @testable import SpiderCore
 
 final class MoveRuleTests: XCTestCase {
     func testMovableRunStopsAtSuitBreakRankBreakAndFaceDown() {
         var t = Table()
         let state = t.state([
-            [t.c(.nine, up: false), t.c(.eight), t.c(.seven), t.c(.six)],          // whole face-up run
-            [t.c(.nine), t.c(.eight, .hearts), t.c(.seven, .hearts)],               // suit break
-            [t.c(.nine), t.c(.seven), t.c(.six)],                                    // rank gap
-            [t.c(.six, up: false), t.c(.five, up: false)],                           // top face down
+            [t.c(.nine, up: false), t.c(.eight), t.c(.seven), t.c(.six)], // whole face-up run
+            [t.c(.nine), t.c(.eight, .hearts), t.c(.seven, .hearts)], // suit break
+            [t.c(.nine), t.c(.seven), t.c(.six)], // rank gap
+            [t.c(.six, up: false), t.c(.five, up: false)], // top face down
             [],
         ])
         XCTAssertEqual(state.movableRunStart(in: 0), 1)
@@ -45,10 +46,11 @@ final class MoveRuleTests: XCTestCase {
     func testMovingRunMovesWholeSuffixAndFlipsExposedCard() throws {
         var t = Table()
         let hidden = t.c(.two, .clubs, up: false)
-        var game = SpiderGame(state: t.state([
-            [hidden] + t.run(.eight, .six, .hearts),
-            [t.c(.nine, .spades)],
-        ]))
+        var game = SpiderGame(
+            state: t.state([
+                [hidden] + t.run(.eight, .six, .hearts),
+                [t.c(.nine, .spades)],
+            ]))
         let outcome = try game.perform(.move(from: 0, index: 1, to: 1))
         XCTAssertEqual(game.state.columns[1].map(\.rank), [.nine, .eight, .seven, .six])
         XCTAssertEqual(game.state.columns[0].count, 1)

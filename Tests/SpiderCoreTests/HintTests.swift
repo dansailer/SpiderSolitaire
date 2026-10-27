@@ -1,15 +1,16 @@
 import XCTest
+
 @testable import SpiderCore
 
 final class HintTests: XCTestCase {
     func testSameSuitBeforeOtherSuitBeforeEmptyColumn() {
         var t = Table()
         let state = t.state([
-            [t.c(.two, up: false), t.c(.five, .hearts)],   // 0: red 5
-            [t.c(.six, .clubs)],                           // 1: black 6 (other suit)
-            [t.c(.six, .hearts)],                          // 2: red 6 (same suit)
-            [t.c(.three, up: false), t.c(.jack)],          // 3: J -> empty
-            [],                                            // 4: empty
+            [t.c(.two, up: false), t.c(.five, .hearts)], // 0: red 5
+            [t.c(.six, .clubs)], // 1: black 6 (other suit)
+            [t.c(.six, .hearts)], // 2: red 6 (same suit)
+            [t.c(.three, up: false), t.c(.jack)], // 3: J -> empty
+            [], // 4: empty
         ])
         let hints = state.hints()
         XCTAssertEqual(hints.first, Hint(from: 0, index: 1, to: 2, kind: .sameSuit))
@@ -21,14 +22,15 @@ final class HintTests: XCTestCase {
 
     func testSkipsPointlessShuffles() {
         var t = Table()
-        let state = t.state([
-            [t.c(.seven, .clubs), t.c(.six, .hearts)],   // 6♥ already on a 7: moving it to 7♠ is pointless
-            [t.c(.seven, .spades)],
-            [t.c(.eight), t.c(.seven)],                  // same-suit run: never suggest moving 7♠ off 8♠
-            [t.c(.eight, .hearts)],
-            [t.c(.king)],                                // lone king fills its column: no empty-column hint
-            [],
-        ], pad: true)
+        let state = t.state(
+            [
+                [t.c(.seven, .clubs), t.c(.six, .hearts)], // 6♥ already on a 7: moving it to 7♠ is pointless
+                [t.c(.seven, .spades)],
+                [t.c(.eight), t.c(.seven)], // same-suit run: never suggest moving 7♠ off 8♠
+                [t.c(.eight, .hearts)],
+                [t.c(.king)], // lone king fills its column: no empty-column hint
+                [],
+            ], pad: true)
         let hints = state.hints()
         XCTAssertFalse(hints.contains { $0.from == 0 && $0.to == 1 })
         XCTAssertFalse(hints.contains { $0.from == 2 && $0.index == 1 && $0.kind != .emptyColumn })
@@ -57,9 +59,13 @@ final class HintTests: XCTestCase {
                 for _ in 0..<60 {
                     let hints = game.state.hints()
                     for hint in hints { XCTAssertTrue(game.canPerform(hint.action), "\(seed) \(hint)") }
-                    if let hint = hints.first { try game.perform(hint.action) }
-                    else if game.state.canDeal { try game.perform(.deal) }
-                    else { break }
+                    if let hint = hints.first {
+                        try game.perform(hint.action)
+                    } else if game.state.canDeal {
+                        try game.perform(.deal)
+                    } else {
+                        break
+                    }
                     assertInvariants(game.state)
                 }
             }
@@ -71,7 +77,8 @@ final class HintTests: XCTestCase {
         for column in s.columns where !column.isEmpty {
             XCTAssertTrue(column.last!.isFaceUp, "top card always face up", file: file, line: line)
             if let firstUp = column.firstIndex(where: \.isFaceUp) {
-                XCTAssertTrue(column[firstUp...].allSatisfy(\.isFaceUp), "no face-down above face-up", file: file, line: line)
+                XCTAssertTrue(
+                    column[firstUp...].allSatisfy(\.isFaceUp), "no face-down above face-up", file: file, line: line)
             }
         }
         XCTAssertEqual(s.stock.count % 10, 0, file: file, line: line)
@@ -98,9 +105,10 @@ final class StuckTests: XCTestCase {
     }
 
     func testWonGameIsNotStuck() {
-        let won = GameState(difficulty: .oneSuit, seed: 0,
-                            columns: Array(repeating: [Card](), count: 10), stock: [],
-                            completed: Array(repeating: .spades, count: 8))
+        let won = GameState(
+            difficulty: .oneSuit, seed: 0,
+            columns: Array(repeating: [Card](), count: 10), stock: [],
+            completed: Array(repeating: .spades, count: 8))
         XCTAssertFalse(won.isStuck)
     }
 }

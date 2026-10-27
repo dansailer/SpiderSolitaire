@@ -62,7 +62,9 @@ public enum ClassicCardArt {
     /// 2. `X.app/<bundle>` / next to the executable — where SwiftPM's generated `Bundle.module`
     ///    looks, and where `swift run` / Xcode builds put it (`.build/<config>/`).
     /// SwiftPM uses `.bundle` on Apple platforms and `.resources` elsewhere; both are listed.
-    public static func bundleCandidates(resourcePath: String?, mainBundlePath: String, executablePath: String?) -> [String] {
+    public static func bundleCandidates(resourcePath: String?, mainBundlePath: String, executablePath: String?)
+        -> [String]
+    {
         var directories: [String] = []
         if let resourcePath { directories.append(resourcePath) }
         directories.append(mainBundlePath)

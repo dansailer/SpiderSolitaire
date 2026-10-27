@@ -30,23 +30,28 @@ extension BoardLayout {
     /// - `animations`: dealt cards still held on the stock, and completed-run cards flying to the
     ///   foundation (they are no longer in `state`).
     /// - `highlightedIDs`: cards to draw inverted for the hint flash.
-    public func placements(for state: GameState, drag: PointerController.Drag? = nil,
-                           animations: BoardAnimations = BoardAnimations(),
-                           highlightedIDs: Set<Int> = []) -> [CardPlacement] {
+    public func placements(
+        for state: GameState, drag: PointerController.Drag? = nil,
+        animations: BoardAnimations = BoardAnimations(),
+        highlightedIDs: Set<Int> = []
+    ) -> [CardPlacement] {
         var result: [CardPlacement] = []
         result.reserveCapacity(state.stock.count + state.tableauCardCount + animations.flying.count)
 
         let deals = state.dealsRemaining
         for (i, card) in state.stock.enumerated() {
             guard let frame = stockFrame(forStockIndex: i, dealsRemaining: deals) else { continue }
-            result.append(CardPlacement(card: card, frame: frame, zIndex: Double(i),
-                                        isHighlighted: highlightedIDs.contains(card.id)))
+            result.append(
+                CardPlacement(
+                    card: card, frame: frame, zIndex: Double(i),
+                    isHighlighted: highlightedIDs.contains(card.id)))
         }
 
         let heldFrame: BoardRect? = animations.dealHold.flatMap { stockFrames(dealsRemaining: $0.dealsBefore).last }
-        let held: [Int: Int] = animations.dealHold.map { hold in
-            Dictionary(uniqueKeysWithValues: hold.waitingIDs.enumerated().map { ($0.element, $0.offset) })
-        } ?? [:]
+        let held: [Int: Int] =
+            animations.dealHold.map { hold in
+                Dictionary(uniqueKeysWithValues: hold.waitingIDs.enumerated().map { ($0.element, $0.offset) })
+            } ?? [:]
 
         for column in state.columns.indices {
             let frames = cardFrames(column: column, cards: state.columns[column])
@@ -55,20 +60,24 @@ extension BoardLayout {
                     var faceDown = card
                     faceDown.isFaceUp = false
                     // Waiting cards sit on the stock, the next to fly on top.
-                    result.append(CardPlacement(card: faceDown, frame: heldFrame, zIndex: 60 + Double(held.count - order)))
+                    result.append(
+                        CardPlacement(card: faceDown, frame: heldFrame, zIndex: 60 + Double(held.count - order)))
                     continue
                 }
                 let lifted = drag.map { $0.from == column && index >= $0.index } ?? false
                 var frame = frames[index]
                 if lifted, let drag { frame = frame.offsetBy(dx: drag.translation.width, dy: drag.translation.height) }
                 let z = (lifted ? 1000.0 : 100.0) + Double(index)
-                result.append(CardPlacement(card: card, frame: frame, zIndex: z, isLifted: lifted,
-                                            isHighlighted: highlightedIDs.contains(card.id)))
+                result.append(
+                    CardPlacement(
+                        card: card, frame: frame, zIndex: z, isLifted: lifted,
+                        isHighlighted: highlightedIDs.contains(card.id)))
             }
         }
 
         for flight in animations.flying {
-            result.append(CardPlacement(card: flight.card, frame: frame(of: flight), zIndex: 3000 + Double(flight.runIndex)))
+            result.append(
+                CardPlacement(card: flight.card, frame: frame(of: flight), zIndex: 3000 + Double(flight.runIndex)))
         }
         return result
     }
@@ -84,8 +93,10 @@ extension BoardLayout {
     }
 
     /// Completed-suit kings in the bottom-left, minus slots whose run is still in the air.
-    public func foundationPlacements(for state: GameState,
-                                     animations: BoardAnimations = BoardAnimations()) -> [CardPlacement] {
+    public func foundationPlacements(
+        for state: GameState,
+        animations: BoardAnimations = BoardAnimations()
+    ) -> [CardPlacement] {
         let pending = Set(animations.flying.map(\.foundationSlot))
         let frames = foundationFrames(count: state.completed.count)
         return state.completed.enumerated().compactMap { slot, suit in

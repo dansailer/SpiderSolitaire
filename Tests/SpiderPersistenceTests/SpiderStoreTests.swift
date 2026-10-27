@@ -1,6 +1,7 @@
 import Foundation
-import XCTest
 import SpiderCore
+import XCTest
+
 @testable import SpiderPersistence
 
 final class SpiderStoreTests: XCTestCase {
@@ -95,7 +96,8 @@ final class SpiderStoreTests: XCTestCase {
         try store.saveStatistics(c.statistics)
 
         let options = store.loadOptions()
-        XCTAssertEqual(SessionController.launchDecision(options: options, hasSavedGame: store.hasSavedGame), .resumeSaved)
+        XCTAssertEqual(
+            SessionController.launchDecision(options: options, hasSavedGame: store.hasSavedGame), .resumeSaved)
         var relaunched = SessionController(options: options, statistics: store.loadStatistics(), seed: 999)
         relaunched.open(try XCTUnwrap(store.takeSavedGame()))
         XCTAssertEqual(relaunched.game.state, c.game.state)

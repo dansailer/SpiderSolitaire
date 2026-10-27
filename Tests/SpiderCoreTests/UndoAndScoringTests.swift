@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import SpiderCore
 
 final class UndoAndScoringTests: XCTestCase {
@@ -44,9 +45,13 @@ final class UndoAndScoringTests: XCTestCase {
         let start = game.state
         var actions = 0
         for _ in 0..<30 {
-            if let hint = game.state.hints().first { try game.perform(hint.action) }
-            else if game.state.canDeal { try game.perform(.deal) }
-            else { break }
+            if let hint = game.state.hints().first {
+                try game.perform(hint.action)
+            } else if game.state.canDeal {
+                try game.perform(.deal)
+            } else {
+                break
+            }
             actions += 1
         }
         XCTAssertEqual(game.undoDepth, actions)

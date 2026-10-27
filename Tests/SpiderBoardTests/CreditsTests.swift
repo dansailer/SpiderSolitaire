@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+
 @testable import SpiderBoard
 
 final class CreditsTests: XCTestCase {

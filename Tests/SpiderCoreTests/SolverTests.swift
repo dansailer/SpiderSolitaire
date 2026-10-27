@@ -1,12 +1,15 @@
 import XCTest
+
 @testable import SpiderCore
 
 final class SolverTests: XCTestCase {
     /// 1-suit deals the solver finds quickly (measured with `SpiderTools bench 1 ...`).
     static let easyOneSuitSeeds: [UInt64] = [12345, 11_400_714_819_323_210_830, 4_354_685_564_936_857_699]
 
-    private func solution(_ difficulty: Difficulty, _ seed: UInt64, nodes: Int = 60_000,
-                          file: StaticString = #filePath, line: UInt = #line) -> [Action]? {
+    private func solution(
+        _ difficulty: Difficulty, _ seed: UInt64, nodes: Int = 60_000,
+        file: StaticString = #filePath, line: UInt = #line
+    ) -> [Action]? {
         let report = Solver.solve(difficulty: difficulty, seed: seed, budget: SolverBudget(maxNodes: nodes))
         guard case .solved(let actions) = report.result else {
             XCTFail("seed \(seed) not solved: \(report.result) after \(report.nodes) nodes", file: file, line: line)
@@ -46,13 +49,15 @@ final class SolverTests: XCTestCase {
         let seed = Self.easyOneSuitSeeds[0]
         let actions = try XCTUnwrap(solution(.oneSuit, seed))
         XCTAssertFalse(Solver.verify(difficulty: .oneSuit, seed: seed, actions: Array(actions.dropLast())))
-        XCTAssertFalse(Solver.verify(difficulty: .oneSuit, seed: seed, actions: [.move(from: 0, index: 0, to: 1)] + actions))
+        XCTAssertFalse(
+            Solver.verify(difficulty: .oneSuit, seed: seed, actions: [.move(from: 0, index: 0, to: 1)] + actions))
     }
 
     func testFinishesANearlyWonPosition() throws {
         var t = Table()
-        let s = t.state([t.run(.king, .three), [t.c(.two), t.c(.ace)]], completed: Array(repeating: .spades, count: 7),
-                        pad: false)
+        let s = t.state(
+            [t.run(.king, .three), [t.c(.two), t.c(.ace)]], completed: Array(repeating: .spades, count: 7),
+            pad: false)
         let report = Solver.solve(s, budget: SolverBudget(maxNodes: 1_000))
         guard case .solved(let actions) = report.result else { return XCTFail("\(report.result)") }
         var game = SpiderGame(state: s)
@@ -69,10 +74,12 @@ final class SolverTests: XCTestCase {
 
     func testBudgetAndStopHookGiveUp() {
         let seed = Self.easyOneSuitSeeds[0]
-        XCTAssertEqual(Solver.solve(difficulty: .fourSuits, seed: seed, budget: SolverBudget(maxNodes: 50)).result,
-                       SolverResult.gaveUp)
-        let stopped = Solver.solve(difficulty: .fourSuits, seed: seed, budget: SolverBudget(maxNodes: 1_000_000),
-                                   shouldStop: { true })
+        XCTAssertEqual(
+            Solver.solve(difficulty: .fourSuits, seed: seed, budget: SolverBudget(maxNodes: 50)).result,
+            SolverResult.gaveUp)
+        let stopped = Solver.solve(
+            difficulty: .fourSuits, seed: seed, budget: SolverBudget(maxNodes: 1_000_000),
+            shouldStop: { true })
         XCTAssertEqual(stopped.result, SolverResult.gaveUp)
         XCTAssertLessThanOrEqual(stopped.nodes, 1_024)
     }
@@ -91,14 +98,16 @@ final class SolverTests: XCTestCase {
             XCTAssertEqual(Set(seeds).count, seeds.count, "no duplicates")
             for seed in sample[difficulty] ?? [] {
                 XCTAssertTrue(seeds.contains(seed))
-                XCTAssertNotNil(Solver.winningLine(difficulty: difficulty, seed: seed), "bundled \(difficulty) seed \(seed)")
+                XCTAssertNotNil(
+                    Solver.winningLine(difficulty: difficulty, seed: seed), "bundled \(difficulty) seed \(seed)")
             }
         }
     }
 
     func testSearchReturnsTheFirstWinnableSeedAndHonoursStop() {
         var candidates: [UInt64] = Self.easyOneSuitSeeds
-        let found = WinnableDeals.search(difficulty: .oneSuit, nextSeed: { candidates.removeFirst() }, shouldStop: { false })
+        let found = WinnableDeals.search(
+            difficulty: .oneSuit, nextSeed: { candidates.removeFirst() }, shouldStop: { false })
         XCTAssertEqual(found, Self.easyOneSuitSeeds[0])
         XCTAssertNil(WinnableDeals.search(difficulty: .oneSuit, nextSeed: { 1 }, shouldStop: { true }))
     }
@@ -139,6 +148,7 @@ final class SolverTests: XCTestCase {
         XCTAssertTrue(try JSONDecoder().decode(Options.self, from: Data(old.utf8)).checkForUpdatesAutomatically)
         var off = Options()
         off.checkForUpdatesAutomatically = false
-        XCTAssertFalse(try JSONDecoder().decode(Options.self, from: JSONEncoder().encode(off)).checkForUpdatesAutomatically)
+        XCTAssertFalse(
+            try JSONDecoder().decode(Options.self, from: JSONEncoder().encode(off)).checkForUpdatesAutomatically)
     }
 }

@@ -53,30 +53,41 @@ public struct Achievement: Sendable, Hashable, Identifiable {
 
     public static let all: [Achievement] = [
         Achievement(id: .firstWin, title: "First Win", hint: "Win a game.", emblem: .star, rule: .win(nil)),
-        Achievement(id: .twoSuitWin, title: "Two Suits", hint: "Win a game with two suits.",
-                    emblem: .twoPips, rule: .win(.twoSuits)),
-        Achievement(id: .fourSuitWin, title: "Four Suits", hint: "Win a game with four suits.",
-                    emblem: .fourPips, rule: .win(.fourSuits)),
-        Achievement(id: .purist, title: "Purist", hint: "Win a game without using Undo.",
-                    emblem: .laurel, rule: .winWithoutUndo(nil)),
-        Achievement(id: .noPeeking, title: "No Peeking", hint: "Win a game without asking for a hint.",
-                    emblem: .closedEye, rule: .winWithoutHints),
-        Achievement(id: .grandmaster, title: "Grandmaster", hint: "Win with four suits without using Undo.",
-                    emblem: .crown, rule: .winWithoutUndo(.fourSuits)),
-        Achievement(id: .speedster, title: "Speedster",
-                    hint: "Win within 5 minutes (one suit), 12 (two suits) or 25 (four suits).",
-                    emblem: .clock, rule: .winWithinSeconds(speedsterMinutes.mapValues { $0 * 60 })),
-        Achievement(id: .efficient, title: "Efficient",
-                    hint: "Win in at most 150 moves (one suit), 200 (two suits) or 300 (four suits).",
-                    emblem: .target, rule: .winWithinMoves(efficientMoves)),
-        Achievement(id: .cleanSweep, title: "Clean Sweep", hint: "Complete a suit before the first deal.",
-                    emblem: .sweep, rule: .suitBeforeFirstDeal),
-        Achievement(id: .emptyHanded, title: "Empty Handed", hint: "Empty a column before the first deal.",
-                    emblem: .emptySlot, rule: .emptyColumnBeforeFirstDeal),
-        Achievement(id: .hatTrick, title: "Hat Trick", hint: "Win 3 games in a row at one difficulty.",
-                    emblem: .threeStars, rule: .winStreak(3)),
-        Achievement(id: .onARoll, title: "On a Roll", hint: "Win 10 games in a row at one difficulty.",
-                    emblem: .flame, rule: .winStreak(10)),
+        Achievement(
+            id: .twoSuitWin, title: "Two Suits", hint: "Win a game with two suits.",
+            emblem: .twoPips, rule: .win(.twoSuits)),
+        Achievement(
+            id: .fourSuitWin, title: "Four Suits", hint: "Win a game with four suits.",
+            emblem: .fourPips, rule: .win(.fourSuits)),
+        Achievement(
+            id: .purist, title: "Purist", hint: "Win a game without using Undo.",
+            emblem: .laurel, rule: .winWithoutUndo(nil)),
+        Achievement(
+            id: .noPeeking, title: "No Peeking", hint: "Win a game without asking for a hint.",
+            emblem: .closedEye, rule: .winWithoutHints),
+        Achievement(
+            id: .grandmaster, title: "Grandmaster", hint: "Win with four suits without using Undo.",
+            emblem: .crown, rule: .winWithoutUndo(.fourSuits)),
+        Achievement(
+            id: .speedster, title: "Speedster",
+            hint: "Win within 5 minutes (one suit), 12 (two suits) or 25 (four suits).",
+            emblem: .clock, rule: .winWithinSeconds(speedsterMinutes.mapValues { $0 * 60 })),
+        Achievement(
+            id: .efficient, title: "Efficient",
+            hint: "Win in at most 150 moves (one suit), 200 (two suits) or 300 (four suits).",
+            emblem: .target, rule: .winWithinMoves(efficientMoves)),
+        Achievement(
+            id: .cleanSweep, title: "Clean Sweep", hint: "Complete a suit before the first deal.",
+            emblem: .sweep, rule: .suitBeforeFirstDeal),
+        Achievement(
+            id: .emptyHanded, title: "Empty Handed", hint: "Empty a column before the first deal.",
+            emblem: .emptySlot, rule: .emptyColumnBeforeFirstDeal),
+        Achievement(
+            id: .hatTrick, title: "Hat Trick", hint: "Win 3 games in a row at one difficulty.",
+            emblem: .threeStars, rule: .winStreak(3)),
+        Achievement(
+            id: .onARoll, title: "On a Roll", hint: "Win 10 games in a row at one difficulty.",
+            emblem: .flame, rule: .winStreak(10)),
         Achievement(id: .seasoned, title: "Seasoned", hint: "Win 25 games.", emblem: .ribbon, rule: .gamesWon(25)),
         Achievement(id: .century, title: "Century", hint: "Play 100 games.", emblem: .hundred, rule: .gamesPlayed(100)),
     ]
@@ -126,7 +137,8 @@ public struct AchievementBook: Codable, Sendable, Hashable {
         let container = try decoder.container(keyedBy: Key.self)
         for key in container.allKeys {
             guard let id = AchievementID(rawValue: key.stringValue),
-                  let date = try? container.decode(Double.self, forKey: key) else { continue }
+                let date = try? container.decode(Double.self, forKey: key)
+            else { continue }
             unlocked[id] = date
         }
     }
@@ -149,16 +161,20 @@ public enum AchievementEvent: Sendable, Hashable {
 
 public enum AchievementEvaluator {
     /// Achievements that `event` satisfies and `book` does not have yet, in `Achievement.all` order.
-    public static func newlyUnlocked(by event: AchievementEvent, state: GameState, tracker: GameTracker,
-                                     statistics: Statistics, book: AchievementBook) -> [AchievementID] {
+    public static func newlyUnlocked(
+        by event: AchievementEvent, state: GameState, tracker: GameTracker,
+        statistics: Statistics, book: AchievementBook
+    ) -> [AchievementID] {
         Achievement.all.filter { achievement in
             !book.isUnlocked(achievement.id)
                 && isMet(achievement.rule, by: event, state: state, tracker: tracker, statistics: statistics)
         }.map(\.id)
     }
 
-    static func isMet(_ rule: AchievementRule, by event: AchievementEvent, state: GameState,
-                      tracker: GameTracker, statistics: Statistics) -> Bool {
+    static func isMet(
+        _ rule: AchievementRule, by event: AchievementEvent, state: GameState,
+        tracker: GameTracker, statistics: Statistics
+    ) -> Bool {
         let difficulty = state.difficulty
         let won = event == .played && state.isWon
         let stockFull = state.stock.count == GameState.fullStockCount

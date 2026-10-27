@@ -1,6 +1,7 @@
 import Foundation
-import XCTest
 import SpiderCore
+import XCTest
+
 @testable import SpiderBoard
 
 final class ClassicCardArtTests: XCTestCase {
@@ -40,7 +41,8 @@ final class ClassicCardArtTests: XCTestCase {
             let data = try Data(contentsOf: cardsDirectory.appendingPathComponent(name + ".png"))
             XCTAssertGreaterThan(data.count, 24, name)
             let bytes = [UInt8](data.prefix(24))
-            XCTAssertEqual(Array(bytes[0..<8]), [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], "\(name) is not a PNG")
+            XCTAssertEqual(
+                Array(bytes[0..<8]), [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], "\(name) is not a PNG")
             let width = bytes[16..<20].reduce(0) { ($0 << 8) | Int($1) }
             let height = bytes[20..<24].reduce(0) { ($0 << 8) | Int($1) }
             XCTAssertEqual(width, ClassicCardArt.pixelWidth, name)
@@ -112,9 +114,13 @@ final class ClassicCardArtTests: XCTestCase {
             resourcePath: "/Applications/Spider Solitaire.app/Contents/Resources",
             mainBundlePath: "/Applications/Spider Solitaire.app",
             executablePath: "/Applications/Spider Solitaire.app/Contents/MacOS/SpiderSolitaire")
-        XCTAssertEqual(candidates.first, "/Applications/Spider Solitaire.app/Contents/Resources/SpiderSolitaire_SpiderSolitaire.bundle")
+        XCTAssertEqual(
+            candidates.first,
+            "/Applications/Spider Solitaire.app/Contents/Resources/SpiderSolitaire_SpiderSolitaire.bundle")
         XCTAssertTrue(candidates.contains("/Applications/Spider Solitaire.app/SpiderSolitaire_SpiderSolitaire.bundle"))
-        XCTAssertTrue(candidates.contains("/Applications/Spider Solitaire.app/Contents/MacOS/SpiderSolitaire_SpiderSolitaire.bundle"))
+        XCTAssertTrue(
+            candidates.contains(
+                "/Applications/Spider Solitaire.app/Contents/MacOS/SpiderSolitaire_SpiderSolitaire.bundle"))
         XCTAssertEqual(Set(candidates).count, candidates.count)
     }
 
@@ -124,17 +130,21 @@ final class ClassicCardArtTests: XCTestCase {
             resourcePath: nil,
             mainBundlePath: "/repo/.build/arm64-apple-macosx/debug",
             executablePath: "/repo/.build/arm64-apple-macosx/debug/SpiderSolitaire")
-        XCTAssertEqual(candidates, [
-            "/repo/.build/arm64-apple-macosx/debug/SpiderSolitaire_SpiderSolitaire.bundle",
-            "/repo/.build/arm64-apple-macosx/debug/SpiderSolitaire_SpiderSolitaire.resources",
-        ])
+        XCTAssertEqual(
+            candidates,
+            [
+                "/repo/.build/arm64-apple-macosx/debug/SpiderSolitaire_SpiderSolitaire.bundle",
+                "/repo/.build/arm64-apple-macosx/debug/SpiderSolitaire_SpiderSolitaire.resources",
+            ])
     }
 
     func testImagePathCandidatesCoverBothBundleLayouts() {
-        XCTAssertEqual(ClassicCardArt.imagePathCandidates(bundlePath: "/b/R.bundle/", assetName: "hearts_king"), [
-            "/b/R.bundle/Contents/Resources/Cards/hearts_king.png",
-            "/b/R.bundle/Cards/hearts_king.png",
-        ])
+        XCTAssertEqual(
+            ClassicCardArt.imagePathCandidates(bundlePath: "/b/R.bundle/", assetName: "hearts_king"),
+            [
+                "/b/R.bundle/Contents/Resources/Cards/hearts_king.png",
+                "/b/R.bundle/Cards/hearts_king.png",
+            ])
         XCTAssertEqual(ClassicCardArt.parentDirectory(of: "/a/b/c"), "/a/b")
         XCTAssertEqual(ClassicCardArt.parentDirectory(of: "/c"), "/")
         XCTAssertEqual(ClassicCardArt.parentDirectory(of: "c"), ".")

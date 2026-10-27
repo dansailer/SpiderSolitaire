@@ -15,7 +15,8 @@ final class PackagingTests: XCTestCase {
         let template: String = try String(contentsOf: url, encoding: .utf8)
         XCTAssertTrue(template.contains("__VERSION__"))
         XCTAssertTrue(template.contains("__BUILD__"))
-        let text: String = template
+        let text: String =
+            template
             .replacingOccurrences(of: "__VERSION__", with: "1.0.0")
             .replacingOccurrences(of: "__BUILD__", with: "42")
         let object: Any = try PropertyListSerialization.propertyList(from: Data(text.utf8), options: [], format: nil)
@@ -45,7 +46,8 @@ final class PackagingTests: XCTestCase {
         let manifest: String = try String(contentsOf: repoRoot.appendingPathComponent("Package.swift"), encoding: .utf8)
         XCTAssertTrue(manifest.contains("name: \"SpiderSolitaire\""))
         XCTAssertTrue(manifest.contains("name: \"SpiderIcon\""))
-        XCTAssertTrue(manifest.contains(".copy(\"Resources/Cards\")"), "Classic card faces must stay a resource of the app")
+        XCTAssertTrue(
+            manifest.contains(".copy(\"Resources/Cards\")"), "Classic card faces must stay a resource of the app")
     }
 
     func testPackageScriptIsStrictBashAndExecutable() throws {

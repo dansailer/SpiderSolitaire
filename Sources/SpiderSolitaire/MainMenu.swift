@@ -63,22 +63,26 @@ enum MainMenuBuilder {
             // No target: AppKit sends it to the key window or the application.
             return make(standard.title, selector: Selector(standard.selector), shortcut: standard.shortcut, target: nil)
         case .app(let appItem):
-            let item: NSMenuItem = make(appItem.title, selector: #selector(MenuController.performAppItem(_:)),
-                                        shortcut: appItem.shortcut, target: target)
+            let item: NSMenuItem = make(
+                appItem.title, selector: #selector(MenuController.performAppItem(_:)),
+                shortcut: appItem.shortcut, target: target)
             item.representedObject = appItem.rawValue
             return item
         case .command(let command):
             if let selector: String = command.standardSelector {
                 return make(command.title, selector: Selector(selector), shortcut: command.shortcut, target: nil)
             }
-            let item: NSMenuItem = make(command.title, selector: #selector(MenuController.performCommand(_:)),
-                                        shortcut: command.shortcut, target: target)
+            let item: NSMenuItem = make(
+                command.title, selector: #selector(MenuController.performCommand(_:)),
+                shortcut: command.shortcut, target: target)
             item.representedObject = command.rawValue
             return item
         }
     }
 
-    private static func make(_ title: String, selector: Selector, shortcut: MenuShortcut?, target: AnyObject?) -> NSMenuItem {
+    private static func make(_ title: String, selector: Selector, shortcut: MenuShortcut?, target: AnyObject?)
+        -> NSMenuItem
+    {
         let item: NSMenuItem = NSMenuItem(title: title, action: selector, keyEquivalent: "")
         item.target = target
         if let shortcut {
@@ -99,10 +103,11 @@ enum MainMenuBuilder {
     static func snapshot() -> String {
         let app: NSApplication = NSApplication.shared
         let tops: [String] = app.mainMenu?.items.map { (item: NSMenuItem) -> String in item.title } ?? []
-        let window: [String] = app.windowsMenu?.items.map { (item: NSMenuItem) -> String in
-            // Hidden items (AppKit hides ours when it adds its own 🌐F one) are marked.
-            item.isSeparatorItem ? "-" : item.title + (item.isHidden ? "[hidden]" : "")
-        } ?? []
+        let window: [String] =
+            app.windowsMenu?.items.map { (item: NSMenuItem) -> String in
+                // Hidden items (AppKit hides ours when it adds its own 🌐F one) are marked.
+                item.isSeparatorItem ? "-" : item.title + (item.isHidden ? "[hidden]" : "")
+            } ?? []
         return tops.joined(separator: "|") + " :: Window=" + window.joined(separator: "|")
     }
 }
@@ -123,7 +128,8 @@ final class MenuController: NSObject, NSMenuItemValidation {
 
     @objc func performAppItem(_ sender: NSMenuItem) {
         guard let raw: String = sender.representedObject as? String,
-              let item: MenuBarLayout.AppItem = MenuBarLayout.AppItem(rawValue: raw) else { return }
+            let item: MenuBarLayout.AppItem = MenuBarLayout.AppItem(rawValue: raw)
+        else { return }
         switch item {
         case .about: AboutPanel.show()
         case .settings: windows.showSettings()
@@ -132,7 +138,8 @@ final class MenuController: NSObject, NSMenuItemValidation {
 
     @objc func performCommand(_ sender: NSMenuItem) {
         guard let raw: String = sender.representedObject as? String,
-              let command: MenuCommand = MenuCommand(rawValue: raw) else { return }
+            let command: MenuCommand = MenuCommand(rawValue: raw)
+        else { return }
         perform(command)
     }
 
@@ -163,15 +170,18 @@ final class MenuController: NSObject, NSMenuItemValidation {
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         guard let raw: String = menuItem.representedObject as? String,
-              let command: MenuCommand = MenuCommand(rawValue: raw) else { return true }
+            let command: MenuCommand = MenuCommand(rawValue: raw)
+        else { return true }
         switch command {
         case .undo: return model.canUndo
         case .redo: return model.canRedo
         case .openSavedGame: return model.hasSavedGame
         case .closeWindow: return NSApplication.shared.keyWindow != nil
         case .oneSuit, .twoSuits, .fourSuits:
-            let difficulty: Difficulty = command == .oneSuit ? .oneSuit : (command == .twoSuits ? .twoSuits : .fourSuits)
-            menuItem.state = model.game.state.difficulty == difficulty ? NSControl.StateValue.on : NSControl.StateValue.off
+            let difficulty: Difficulty =
+                command == .oneSuit ? .oneSuit : (command == .twoSuits ? .twoSuits : .fourSuits)
+            menuItem.state =
+                model.game.state.difficulty == difficulty ? NSControl.StateValue.on : NSControl.StateValue.off
             return true
         default: return true
         }
@@ -191,11 +201,13 @@ enum AboutPanel {
     static func show() {
         let style: NSMutableParagraphStyle = NSMutableParagraphStyle()
         style.alignment = NSTextAlignment.center
-        let credits: NSAttributedString = NSAttributedString(string: creditsText, attributes: [
-            NSAttributedString.Key.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
-            NSAttributedString.Key.foregroundColor: NSColor.secondaryLabelColor,
-            NSAttributedString.Key.paragraphStyle: style,
-        ])
+        let credits: NSAttributedString = NSAttributedString(
+            string: creditsText,
+            attributes: [
+                NSAttributedString.Key.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                NSAttributedString.Key.foregroundColor: NSColor.secondaryLabelColor,
+                NSAttributedString.Key.paragraphStyle: style,
+            ])
         var options: [NSApplication.AboutPanelOptionKey: Any] = [
             NSApplication.AboutPanelOptionKey.applicationName: "Spider Solitaire",
             NSApplication.AboutPanelOptionKey.credits: credits,

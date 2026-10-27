@@ -8,7 +8,9 @@ public struct MenuShortcut: Hashable, Sendable, CustomStringConvertible {
     public var option = false
     public var control = false
 
-    public init(_ key: Character, command: Bool = true, shift: Bool = false, option: Bool = false, control: Bool = false) {
+    public init(
+        _ key: Character, command: Bool = true, shift: Bool = false, option: Bool = false, control: Bool = false
+    ) {
         self.key = key
         self.command = command
         self.shift = shift
@@ -18,7 +20,8 @@ public struct MenuShortcut: Hashable, Sendable, CustomStringConvertible {
 
     /// As macOS menus show it, modifiers in ⌃⌥⇧⌘ order.
     public var description: String {
-        (control ? "⌃" : "") + (option ? "⌥" : "") + (shift ? "⇧" : "") + (command ? "⌘" : "") + String(key).uppercased()
+        (control ? "⌃" : "") + (option ? "⌥" : "") + (shift ? "⇧" : "") + (command ? "⌘" : "")
+            + String(key).uppercased()
     }
 }
 

@@ -54,50 +54,60 @@ public enum MenuBarLayout {
     }
 
     public static let menuBar: [TopMenu] = [
-        TopMenu(title: MenuCommand.Menu.app.rawValue, role: .app, entries: [
-            .app(.about),
-            .command(.checkForUpdates),
-            .separator,
-            .app(.settings),
-            .separator,
-            .services,
-            .separator,
-            .standard(StandardItem("Hide Spider Solitaire", selector: "hide:", shortcut: MenuShortcut("h"))),
-            .standard(StandardItem("Hide Others", selector: "hideOtherApplications:",
-                                   shortcut: MenuShortcut("h", option: true))),
-            .standard(StandardItem("Show All", selector: "unhideAllApplications:")),
-            .separator,
-            .standard(StandardItem("Quit Spider Solitaire", selector: "terminate:", shortcut: MenuShortcut("q"))),
-        ]),
-        TopMenu(title: MenuCommand.Menu.game.rawValue, role: .game, entries: [
-            .command(.newGame), .command(.restartGame),
-            .separator,
-            .command(.undo), .command(.redo),
-            .separator,
-            .command(.dealNextRow), .command(.showHint),
-            .separator,
-            .submenu(.difficulty, [.command(.oneSuit), .command(.twoSuits), .command(.fourSuits)]),
-            .separator,
-            .command(.statistics), .command(.achievements),
-            .separator,
-            .command(.saveGame), .command(.openSavedGame),
-            .separator,
-            .command(.closeWindow),
-        ]),
-        TopMenu(title: MenuCommand.Menu.window.rawValue, role: .window, entries: [
-            .standard(StandardItem("Minimize", selector: "performMiniaturize:", shortcut: MenuShortcut("m"))),
-            .standard(StandardItem("Zoom", selector: "performZoom:")),
-            .separator,
-            .command(.enterFullScreen),
-            .separator,
-            .standard(StandardItem("Bring All to Front", selector: "arrangeInFront:")),
-            // macOS appends the list of open windows below.
-        ]),
-        TopMenu(title: MenuCommand.Menu.help.rawValue, role: .help, entries: [
-            .command(.help),
-            .separator,
-            .command(.visitWebsite),
-        ]),
+        TopMenu(
+            title: MenuCommand.Menu.app.rawValue, role: .app,
+            entries: [
+                .app(.about),
+                .command(.checkForUpdates),
+                .separator,
+                .app(.settings),
+                .separator,
+                .services,
+                .separator,
+                .standard(StandardItem("Hide Spider Solitaire", selector: "hide:", shortcut: MenuShortcut("h"))),
+                .standard(
+                    StandardItem(
+                        "Hide Others", selector: "hideOtherApplications:",
+                        shortcut: MenuShortcut("h", option: true))),
+                .standard(StandardItem("Show All", selector: "unhideAllApplications:")),
+                .separator,
+                .standard(StandardItem("Quit Spider Solitaire", selector: "terminate:", shortcut: MenuShortcut("q"))),
+            ]),
+        TopMenu(
+            title: MenuCommand.Menu.game.rawValue, role: .game,
+            entries: [
+                .command(.newGame), .command(.restartGame),
+                .separator,
+                .command(.undo), .command(.redo),
+                .separator,
+                .command(.dealNextRow), .command(.showHint),
+                .separator,
+                .submenu(.difficulty, [.command(.oneSuit), .command(.twoSuits), .command(.fourSuits)]),
+                .separator,
+                .command(.statistics), .command(.achievements),
+                .separator,
+                .command(.saveGame), .command(.openSavedGame),
+                .separator,
+                .command(.closeWindow),
+            ]),
+        TopMenu(
+            title: MenuCommand.Menu.window.rawValue, role: .window,
+            entries: [
+                .standard(StandardItem("Minimize", selector: "performMiniaturize:", shortcut: MenuShortcut("m"))),
+                .standard(StandardItem("Zoom", selector: "performZoom:")),
+                .separator,
+                .command(.enterFullScreen),
+                .separator,
+                .standard(StandardItem("Bring All to Front", selector: "arrangeInFront:")),
+                // macOS appends the list of open windows below.
+            ]),
+        TopMenu(
+            title: MenuCommand.Menu.help.rawValue, role: .help,
+            entries: [
+                .command(.help),
+                .separator,
+                .command(.visitWebsite),
+            ]),
     ]
 
     /// Every entry of `menu`, submenus included, in menu order.

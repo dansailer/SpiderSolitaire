@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import SpiderCore
 
 final class DealAndCompletionTests: XCTestCase {
@@ -46,10 +47,11 @@ final class DealAndCompletionTests: XCTestCase {
     func testMoveCompletingKingToAceRemovesRunAndScores100() throws {
         var t = Table()
         let hidden = t.c(.five, .clubs, up: false)
-        var game = SpiderGame(state: t.state([
-            [hidden] + t.run(.king, .two, .hearts),
-            [t.c(.ace, .hearts)],
-        ]))
+        var game = SpiderGame(
+            state: t.state([
+                [hidden] + t.run(.king, .two, .hearts),
+                [t.c(.ace, .hearts)],
+            ]))
         let outcome = try game.perform(.move(from: 1, index: 0, to: 0))
         XCTAssertEqual(outcome.completedRuns.map(\.column), [0])
         XCTAssertEqual(outcome.completedRuns.map(\.suit), [.hearts])
@@ -89,8 +91,10 @@ final class DealAndCompletionTests: XCTestCase {
 
     func testEighthSuitWinsAndEndsGame() throws {
         var t = Table()
-        var game = SpiderGame(state: t.state([t.run(.king, .two), [t.c(.ace)]],
-                                             completed: Array(repeating: .spades, count: 7), pad: false))
+        var game = SpiderGame(
+            state: t.state(
+                [t.run(.king, .two), [t.c(.ace)]],
+                completed: Array(repeating: .spades, count: 7), pad: false))
         let outcome = try game.perform(.move(from: 1, index: 0, to: 0))
         XCTAssertEqual(outcome.completedRuns.first?.foundationSlot, 7)
         XCTAssertTrue(outcome.didWin)

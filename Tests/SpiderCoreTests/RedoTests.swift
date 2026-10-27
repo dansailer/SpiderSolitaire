@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import SpiderCore
 
 final class RedoTests: XCTestCase {
@@ -74,9 +75,10 @@ final class RedoTests: XCTestCase {
 
     func testNoRedoOnceWon() throws {
         var t = Table()
-        let state = GameState(difficulty: .oneSuit, seed: 0,
-                              columns: [t.run(.king, .two), [t.c(.ace)]] + Array(repeating: [], count: 8),
-                              stock: [], completed: Array(repeating: .spades, count: 7))
+        let state = GameState(
+            difficulty: .oneSuit, seed: 0,
+            columns: [t.run(.king, .two), [t.c(.ace)]] + Array(repeating: [], count: 8),
+            stock: [], completed: Array(repeating: .spades, count: 7))
         var game = SpiderGame(state: state)
         try game.perform(.move(from: 1, index: 0, to: 0))
         XCTAssertTrue(game.state.isWon)
@@ -108,9 +110,10 @@ final class RedoTests: XCTestCase {
 
     func testSessionRedoCountsAsPlayAndCanWin() throws {
         var t = Table()
-        let state = GameState(difficulty: .oneSuit, seed: 0,
-                              columns: [t.run(.king, .three), [t.c(.two)], [t.c(.ace)]] + Array(repeating: [], count: 7),
-                              stock: [], completed: Array(repeating: .spades, count: 7))
+        let state = GameState(
+            difficulty: .oneSuit, seed: 0,
+            columns: [t.run(.king, .three), [t.c(.two)], [t.c(.ace)]] + Array(repeating: [], count: 7),
+            stock: [], completed: Array(repeating: .spades, count: 7))
         var c = SessionController(options: Options(), statistics: Statistics(), seed: 1)
         c.open(SavedSession(game: SpiderGame(state: state)))
         try c.perform(.move(from: 1, index: 0, to: 0))
@@ -134,9 +137,10 @@ final class RedoTests: XCTestCase {
 
     func testSessionRedoOfTheWinningMoveRecordsTheWin() throws {
         var t = Table()
-        let state = GameState(difficulty: .oneSuit, seed: 0,
-                              columns: [t.run(.king, .two), [t.c(.ace)], [t.c(.five, .hearts)]] + Array(repeating: [], count: 7),
-                              stock: [], completed: Array(repeating: .spades, count: 7))
+        let state = GameState(
+            difficulty: .oneSuit, seed: 0,
+            columns: [t.run(.king, .two), [t.c(.ace)], [t.c(.five, .hearts)]] + Array(repeating: [], count: 7),
+            stock: [], completed: Array(repeating: .spades, count: 7))
         var c = SessionController(options: Options(), statistics: Statistics(), seed: 1)
         c.open(SavedSession(game: SpiderGame(state: state)))
         try c.perform(.move(from: 2, index: 0, to: 3))

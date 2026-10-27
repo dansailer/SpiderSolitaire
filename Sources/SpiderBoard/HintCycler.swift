@@ -56,10 +56,10 @@ public enum HintHighlight: Hashable, Sendable {
     /// Card ids drawn inverted for this highlight.
     public func cardIDs(in state: GameState) -> Set<Int> {
         switch self {
-        case let .source(column, index):
+        case .source(let column, let index):
             guard state.columns.indices.contains(column), index < state.columns[column].count else { return [] }
             return Set(state.columns[column][index...].map(\.id))
-        case let .target(column):
+        case .target(let column):
             guard state.columns.indices.contains(column), let top = state.columns[column].last else { return [] }
             return [top.id]
         case .stock:
@@ -69,7 +69,7 @@ public enum HintHighlight: Hashable, Sendable {
 
     /// Empty column whose slot outline should light up (target is an empty column).
     public func highlightedSlot(in state: GameState) -> Int? {
-        if case let .target(column) = self, state.columns.indices.contains(column), state.columns[column].isEmpty {
+        if case .target(let column) = self, state.columns.indices.contains(column), state.columns[column].isEmpty {
             return column
         }
         return nil

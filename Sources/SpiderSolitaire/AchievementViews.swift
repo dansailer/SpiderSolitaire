@@ -43,8 +43,10 @@ struct AchievementToastView: View {
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color(red: 1.0, green: 0.98, blue: 0.92))
-                .overlay(RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(red: 0.80, green: 0.60, blue: 0.18), lineWidth: 1.5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color(red: 0.80, green: 0.60, blue: 0.18), lineWidth: 1.5)
+                )
                 .shadow(color: Color.black.opacity(0.35), radius: 6, x: 0, y: 3)
         )
         .accessibilityElement(children: AccessibilityChildBehavior.combine)
@@ -91,7 +93,9 @@ struct AchievementsView: View {
             Text("\(unlockedCount) of \(Achievement.all.count) unlocked")
                 .font(Font.headline)
             ScrollView {
-                LazyVGrid(columns: [GridItem(GridItem.Size.adaptive(minimum: 150, maximum: 200), spacing: 14)], spacing: 18) {
+                LazyVGrid(
+                    columns: [GridItem(GridItem.Size.adaptive(minimum: 150, maximum: 200), spacing: 14)], spacing: 18
+                ) {
                     ForEach(Achievement.all) { (achievement: Achievement) in
                         AchievementTile(achievement: achievement, unlockedAt: book.unlocked[achievement.id])
                     }
@@ -122,10 +126,14 @@ struct AchievementTile: View {
                 .multilineTextAlignment(TextAlignment.center)
                 .fixedSize(horizontal: false, vertical: true)
             if let unlockedAt {
-                Text("Unlocked " + Date(timeIntervalSince1970: unlockedAt).formatted(date: Date.FormatStyle.DateStyle.abbreviated,
-                                                                                     time: Date.FormatStyle.TimeStyle.omitted))
-                    .font(Font.caption.weight(Font.Weight.semibold))
-                    .foregroundColor(Color(red: 0.55, green: 0.38, blue: 0.05))
+                Text(
+                    "Unlocked "
+                        + Date(timeIntervalSince1970: unlockedAt).formatted(
+                            date: Date.FormatStyle.DateStyle.abbreviated,
+                            time: Date.FormatStyle.TimeStyle.omitted)
+                )
+                .font(Font.caption.weight(Font.Weight.semibold))
+                .foregroundColor(Color(red: 0.55, green: 0.38, blue: 0.05))
             }
         }
         .frame(maxWidth: CGFloat.infinity, alignment: Alignment.top)

@@ -27,19 +27,26 @@ struct BoardView: View {
                 EmptySlotView(size: layout.foundationAreaFrame.cgSize, dashed: true)
                     .position(layout.foundationAreaFrame.cgCenter)
 
-                ForEach(layout.foundationPlacements(for: state, animations: model.animations)) { (placement: CardPlacement) in
+                ForEach(layout.foundationPlacements(for: state, animations: model.animations)) {
+                    (placement: CardPlacement) in
                     CardView(card: placement.card, size: placement.frame.cgSize)
                         .position(placement.frame.cgCenter)
                         .zIndex(placement.zIndex)
                 }
 
-                ScoreBoxView(score: state.score, moves: state.moves, seconds: model.elapsedSeconds, frame: layout.scoreBoxFrame)
+                ScoreBoxView(
+                    score: state.score, moves: state.moves, seconds: model.elapsedSeconds, frame: layout.scoreBoxFrame)
 
-                ForEach(layout.placements(for: state, drag: model.pointer.drag, animations: model.animations,
-                                          highlightedIDs: highlightedIDs)) { (placement: CardPlacement) in
+                ForEach(
+                    layout.placements(
+                        for: state, drag: model.pointer.drag, animations: model.animations,
+                        highlightedIDs: highlightedIDs)
+                ) { (placement: CardPlacement) in
                     CardView(card: placement.card, size: placement.frame.cgSize, isHighlighted: placement.isHighlighted)
-                        .shadow(color: Color.black.opacity(placement.isLifted ? 0.45 : 0.0),
-                                radius: placement.isLifted ? 4 : 0, x: 2, y: 3)
+                        .shadow(
+                            color: Color.black.opacity(placement.isLifted ? 0.45 : 0.0),
+                            radius: placement.isLifted ? 4 : 0, x: 2, y: 3
+                        )
                         .position(placement.frame.cgCenter)
                         .zIndex(placement.zIndex)
                 }
@@ -144,8 +151,9 @@ struct EmptySlotView: View {
             RoundedRectangle(cornerRadius: radius)
                 .fill(Color.white.opacity(highlighted ? 0.55 : 0.0))
             RoundedRectangle(cornerRadius: radius)
-                .stroke(Color.black.opacity(0.28),
-                        style: StrokeStyle(lineWidth: 1.5, dash: dashed ? [4, 3] : []))
+                .stroke(
+                    Color.black.opacity(0.28),
+                    style: StrokeStyle(lineWidth: 1.5, dash: dashed ? [4, 3] : []))
         }
         .frame(width: size.width, height: size.height)
     }

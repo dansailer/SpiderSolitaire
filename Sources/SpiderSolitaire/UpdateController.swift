@@ -48,12 +48,14 @@ final class UpdateController: ObservableObject {
                 UserDefaults.standard.set(Date(), forKey: UpdateController.lastCheckKey)
                 switch UpdateStatus.evaluate(currentVersion: UpdateController.currentVersion, release: release) {
                 case .available(let current, let latest, let release)?:
-                    self.phase = .available(current: current.description, latest: latest.description,
-                                            notes: ReleaseNotes.excerpt(release.body), release: release)
+                    self.phase = .available(
+                        current: current.description, latest: latest.description,
+                        notes: ReleaseNotes.excerpt(release.body), release: release)
                     self.showWindow()
                 case .unknownCurrent(let latest, let release)?:
-                    self.phase = .available(current: "development build", latest: latest.description,
-                                            notes: ReleaseNotes.excerpt(release.body), release: release)
+                    self.phase = .available(
+                        current: "development build", latest: latest.description,
+                        notes: ReleaseNotes.excerpt(release.body), release: release)
                     if userInitiated { self.showWindow() }
                 case .upToDate(let current)?:
                     self.phase = .upToDate(version: current.description)
@@ -71,10 +73,13 @@ final class UpdateController: ObservableObject {
     }
 
     nonisolated static func fetchLatest() async -> Result<ReleaseInfo, UpdateFailure> {
-        var request: URLRequest = URLRequest(url: ProjectLinks.latestReleaseAPI,
-                                             cachePolicy: URLRequest.CachePolicy.reloadIgnoringLocalCacheData,
-                                             timeoutInterval: UpdateRequest.timeout)
-        for (field, value) in UpdateRequest.headers(appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) {
+        var request: URLRequest = URLRequest(
+            url: ProjectLinks.latestReleaseAPI,
+            cachePolicy: URLRequest.CachePolicy.reloadIgnoringLocalCacheData,
+            timeoutInterval: UpdateRequest.timeout)
+        for (field, value) in UpdateRequest.headers(
+            appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+        {
             request.setValue(value, forHTTPHeaderField: field)
         }
         let session: URLSession = URLSession(configuration: URLSessionConfiguration.ephemeral)
@@ -102,10 +107,13 @@ final class UpdateController: ObservableObject {
         task = Task { @MainActor [weak self] in
             do {
                 var request: URLRequest = URLRequest(url: asset.browserDownloadURL, timeoutInterval: 120)
-                request.setValue(UpdateRequest.headers(appVersion: UpdateController.currentVersion)["User-Agent"],
-                                 forHTTPHeaderField: "User-Agent")
+                request.setValue(
+                    UpdateRequest.headers(appVersion: UpdateController.currentVersion)["User-Agent"],
+                    forHTTPHeaderField: "User-Agent")
                 let (temporary, response): (URL, URLResponse) = try await URLSession.shared.download(for: request)
-                guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(URLError.Code.badServerResponse) }
+                guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+                    throw URLError(URLError.Code.badServerResponse)
+                }
                 let file: URL = try UpdateController.moveToDownloads(temporary, name: "SpiderSolitaire-\(latest).zip")
                 guard let self else { return }
                 self.phase = .downloaded(file: file)
@@ -120,9 +128,10 @@ final class UpdateController: ObservableObject {
 
     private static func moveToDownloads(_ temporary: URL, name: String) throws -> URL {
         let manager: FileManager = FileManager.default
-        let downloads: URL = try manager.url(for: FileManager.SearchPathDirectory.downloadsDirectory,
-                                             in: FileManager.SearchPathDomainMask.userDomainMask,
-                                             appropriateFor: nil, create: true)
+        let downloads: URL = try manager.url(
+            for: FileManager.SearchPathDirectory.downloadsDirectory,
+            in: FileManager.SearchPathDomainMask.userDomainMask,
+            appropriateFor: nil, create: true)
         var target: URL = downloads.appendingPathComponent(name)
         var n: Int = 2
         while manager.fileExists(atPath: target.path) {
@@ -139,18 +148,21 @@ final class UpdateController: ObservableObject {
     }
 
     private func showWindow() {
-        let window: NSWindow = self.window ?? {
-            let controller: NSHostingController<UpdateView> = NSHostingController<UpdateView>(rootView: UpdateView(controller: self))
-            controller.sizingOptions = [NSHostingSizingOptions.preferredContentSize]
-            let w: NSWindow = NSWindow(contentViewController: controller)
-            w.styleMask = [NSWindow.StyleMask.titled, NSWindow.StyleMask.closable]
-            w.title = "Software Update"
-            w.isReleasedWhenClosed = false
-            w.tabbingMode = NSWindow.TabbingMode.disallowed
-            w.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenNone)
-            w.center()
-            return w
-        }()
+        let window: NSWindow =
+            self.window
+            ?? {
+                let controller: NSHostingController<UpdateView> = NSHostingController<UpdateView>(
+                    rootView: UpdateView(controller: self))
+                controller.sizingOptions = [NSHostingSizingOptions.preferredContentSize]
+                let w: NSWindow = NSWindow(contentViewController: controller)
+                w.styleMask = [NSWindow.StyleMask.titled, NSWindow.StyleMask.closable]
+                w.title = "Software Update"
+                w.isReleasedWhenClosed = false
+                w.tabbingMode = NSWindow.TabbingMode.disallowed
+                w.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenNone)
+                w.center()
+                return w
+            }()
         self.window = window
         window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate()
@@ -212,9 +224,11 @@ struct UpdateView: View {
             buttons(primary: nil, secondary: "Cancel")
         case .downloaded(let file):
             Text("Downloaded").font(Font.headline)
-            Text("\(file.lastPathComponent) is in your Downloads folder. Open it, then drag Spider Solitaire to Applications.")
-                .foregroundColor(Color.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                "\(file.lastPathComponent) is in your Downloads folder. Open it, then drag Spider Solitaire to Applications."
+            )
+            .foregroundColor(Color.secondary)
+            .fixedSize(horizontal: false, vertical: true)
             buttons(primary: ("Done", { controller.close() }), secondary: nil)
         case .failed(let message):
             Text("Couldn't check for updates").font(Font.headline)

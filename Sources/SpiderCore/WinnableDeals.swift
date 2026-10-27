@@ -34,8 +34,10 @@ public enum WinnableDeals {
 
     /// Tries seeds from `nextSeed` until one is proved winnable. Nil when `shouldStop` says stop
     /// (deadline or cancel) first.
-    public static func search(difficulty: Difficulty, nextSeed: () -> UInt64,
-                              shouldStop: @escaping () -> Bool) -> UInt64? {
+    public static func search(
+        difficulty: Difficulty, nextSeed: () -> UInt64,
+        shouldStop: @escaping () -> Bool
+    ) -> UInt64? {
         while !shouldStop() {
             let seed = nextSeed()
             if Solver.winningLine(difficulty: difficulty, seed: seed, shouldStop: shouldStop) != nil { return seed }

@@ -33,7 +33,9 @@ public struct BoardRect: Hashable, Sendable {
 
     public func contains(_ p: BoardPoint) -> Bool { p.x >= minX && p.x < maxX && p.y >= minY && p.y < maxY }
 
-    public func offsetBy(dx: Double, dy: Double) -> BoardRect { BoardRect(x: x + dx, y: y + dy, width: width, height: height) }
+    public func offsetBy(dx: Double, dy: Double) -> BoardRect {
+        BoardRect(x: x + dx, y: y + dy, width: width, height: height)
+    }
 
     /// Area of the overlap with `other` (0 when disjoint).
     public func intersectionArea(_ other: BoardRect) -> Double {

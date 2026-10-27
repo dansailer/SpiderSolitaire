@@ -113,8 +113,9 @@ final class GameModel: ObservableObject {
     init(store: SpiderStore = SpiderStore.standard()) {
         self.store = store
         let options: Options = store.loadOptions()
-        session = SessionController(options: options, statistics: store.loadStatistics(),
-                                    achievements: store.loadAchievements(), seed: GameModel.randomSeed())
+        session = SessionController(
+            options: options, statistics: store.loadStatistics(),
+            achievements: store.loadAchievements(), seed: GameModel.randomSeed())
         seedCache = store.loadWinnableSeeds()
 
         switch SessionController.launchDecision(options: options, hasSavedGame: store.hasSavedGame) {
@@ -298,7 +299,8 @@ final class GameModel: ObservableObject {
         if !animations.isIdle { settleAnimations(announce: true) }
         if highlight != nil { clearHighlight() }
         var next: PointerController = pointer
-        next.pointerChanged(start: BoardPoint(start), translation: BoardSize(translation), state: game.state, layout: layout)
+        next.pointerChanged(
+            start: BoardPoint(start), translation: BoardSize(translation), state: game.state, layout: layout)
         pointer = next
     }
 
@@ -357,7 +359,9 @@ final class GameModel: ObservableObject {
             if let saved: SavedSession = store.takeSavedGame() {
                 session.open(saved)
             } else {
-                schedule(Step.present(BoardAlert.info("The saved game could not be opened.")), after: 0.3, cancellable: false)
+                schedule(
+                    Step.present(BoardAlert.info("The saved game could not be opened.")), after: 0.3, cancellable: false
+                )
             }
             hasSavedGame = store.hasSavedGame
         }
@@ -410,8 +414,9 @@ final class GameModel: ObservableObject {
             startDeal(difficulty, seed: bundled)
         } else {
             startDeal(difficulty, seed: GameModel.randomSeed())
-            schedule(Step.present(BoardAlert.info("No winnable deal was found in time, so this is a random deal.")),
-                     after: 0.3, cancellable: false)
+            schedule(
+                Step.present(BoardAlert.info("No winnable deal was found in time, so this is a random deal.")),
+                after: 0.3, cancellable: false)
         }
         prefillWinnableSeeds(difficulty)
     }
@@ -433,7 +438,9 @@ final class GameModel: ObservableObject {
 
     /// Keeps `WinnableDeals.cacheTarget` seeds ready so the next winnable deal is instant.
     private func prefillWinnableSeeds(_ difficulty: Difficulty) {
-        guard prefillTask == nil, dealTask == nil, seedCache.count(difficulty) < WinnableDeals.cacheTarget else { return }
+        guard prefillTask == nil, dealTask == nil, seedCache.count(difficulty) < WinnableDeals.cacheTarget else {
+            return
+        }
         prefillGeneration += 1
         let generation: Int = prefillGeneration
         prefillTask = Task.detached(priority: TaskPriority.background) { [weak self] in
@@ -517,7 +524,8 @@ final class GameModel: ObservableObject {
         let delta: Double = min(now - lastTick, 2)
         lastTick = now
         guard NSApplication.shared.isActive, session.isClockRunning, dealingDifficulty == nil, celebration == nil,
-              alert == nil, !showStatisticsSheet else { return }
+            alert == nil, !showStatisticsSheet
+        else { return }
         session.addPlayTime(delta)
     }
 
@@ -570,7 +578,8 @@ final class GameModel: ObservableObject {
                 for (i, id) in outcome.dealtCardIDs.enumerated() {
                     schedule(Step.releaseDealt(id), after: BoardAnimations.dealStagger * Double(i))
                 }
-                flightsStart = BoardAnimations.dealStagger * Double(outcome.dealtCardIDs.count)
+                flightsStart =
+                    BoardAnimations.dealStagger * Double(outcome.dealtCardIDs.count)
                     + BoardAnimations.dealDuration
             }
         } else {
