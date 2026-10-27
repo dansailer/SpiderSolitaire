@@ -116,6 +116,12 @@ struct OptionsSheet: View {
 
             Toggle("Show animations", isOn: $draft.animationsEnabled)
             Toggle("Play sounds", isOn: $draft.soundsEnabled)
+            VStack(alignment: HorizontalAlignment.leading, spacing: 2) {
+                Toggle("Only deal winnable games", isOn: $draft.winnableDealsOnly)
+                Text("New games use deals a solver has proved can be won.")
+                    .font(Font.caption)
+                    .foregroundColor(Color.secondary)
+            }
 
             Text("Card faces")
             Picker("", selection: $draft.cardFaces) {

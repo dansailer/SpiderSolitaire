@@ -1,6 +1,6 @@
 /// Short system sounds (macOS built-ins only, no Microsoft assets). Off by default in Options.
 public enum SoundCue: String, CaseIterable, Sendable {
-    case deal, drop, cannotDeal, hint, noMoves, completedSuit, win
+    case deal, drop, cannotDeal, hint, noMoves, completedSuit, win, achievement
 
     /// Name of the macOS system sound (/System/Library/Sounds) played for this cue.
     public var systemSoundName: String {
@@ -12,6 +12,7 @@ public enum SoundCue: String, CaseIterable, Sendable {
         case .noMoves: return "Funk"
         case .completedSuit: return "Glass"
         case .win: return "Hero"
+        case .achievement: return "Purr"
         }
     }
 

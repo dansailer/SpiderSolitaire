@@ -125,7 +125,7 @@ case "find":
     }
     let sorted = times.sorted()
     print("suits=\(diff.rawValue) runs=\(count): avg " + fmt(times.reduce(0, +) / Double(count)) + " s, median "
-        + fmt(sorted[count / 2]) + " s, max " + fmt(sorted.last ?? 0) + " s, within 5 s \(times.filter { $0 <= 5 }.count)/\(count), avg seeds tried \(tries.reduce(0, +) / count)")
+        + fmt(sorted[count / 2]) + " s, max " + fmt(sorted.last ?? 0) + " s, within 5 s \(times.filter { $0 <= 5 }.count)/\(count), avg seeds tried " + fmt(Double(tries.reduce(0, +)) / Double(count)))
 case "bundled":
     // Nodes each bundled seed needs with the app's attempts (count is ignored).
     for seed in WinnableDeals.bundled[diff] ?? [] {

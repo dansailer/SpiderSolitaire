@@ -3,6 +3,7 @@ import Foundation
 import SpiderBoard
 import SpiderCore
 import SpiderPersistence
+import AppKit
 import SwiftUI
 
 /// The one dialog the board can show at a time (a single `.alert` drives all of them).
@@ -60,6 +61,10 @@ final class GameModel: ObservableObject {
     @Published var showOptionsSheet: Bool = false
     /// The running win animation (nil when none). The view samples it every frame.
     @Published private(set) var celebration: Celebration? = nil
+    /// Set while a winnable deal is being searched for (the board shows "Dealing a winnable game…").
+    @Published private(set) var dealingDifficulty: Difficulty? = nil
+    /// The achievement banner at the top of the board (nil when none).
+    @Published private(set) var toast: Achievement? = nil
 
     struct Celebration: Sendable {
         let suits: [Suit]
@@ -78,6 +83,19 @@ final class GameModel: ObservableObject {
     /// The win has been celebrated / announced for this game.
     private var winAnnounced: Bool = false
 
+    /// Winnable seeds found ahead of time (winnable.json) and the searches that fill it.
+    private var seedCache: WinnableSeedCache
+    private var dealTask: Task<Void, Never>? = nil
+    private var dealGeneration: Int = 0
+    private var prefillTask: Task<Void, Never>? = nil
+    private var prefillGeneration: Int = 0
+    /// Achievements waiting for their banner, and the banner on screen.
+    private var toastQueue: [Achievement] = []
+    private var toastID: Int = 0
+    /// Game clock: ticks once a second; play time only counts while the app is active.
+    private var clockTask: Task<Void, Never>? = nil
+    private var lastTick: Double = ProcessInfo.processInfo.systemUptime
+
     /// One timed step of an animation, hint flash or deferred request.
     private enum Step: Sendable {
         case releaseDealt(Int)
@@ -90,16 +108,23 @@ final class GameModel: ObservableObject {
         case request(AbandonReason)
         case present(BoardAlert)
         case endCelebration(Int)
+        case hideToast(Int)
+        case nextToast
     }
 
     init(store: SpiderStore = SpiderStore.standard()) {
         self.store = store
         let options: Options = store.loadOptions()
-        session = SessionController(options: options, statistics: store.loadStatistics(), seed: GameModel.randomSeed())
+        session = SessionController(options: options, statistics: store.loadStatistics(),
+                                    achievements: store.loadAchievements(), seed: GameModel.randomSeed())
+        seedCache = store.loadWinnableSeeds()
 
         switch SessionController.launchDecision(options: options, hasSavedGame: store.hasSavedGame) {
         case .newGame:
-            break
+            // The launch deal is random; with winnable deals on, replace it before it is played.
+            if options.winnableDealsOnly {
+                schedule(Step.newGame(options.difficulty), after: 0, cancellable: false)
+            }
         case .resumeSaved:
             if let saved: SavedSession = store.takeSavedGame() { session.open(saved) }
         case .discardSaved:
@@ -109,13 +134,16 @@ final class GameModel: ObservableObject {
         }
         hasSavedGame = store.hasSavedGame
         persistStatistics()
+        collectUnlocks()
+        startClock()
     }
 
-    static func randomSeed() -> UInt64 { UInt64.random(in: UInt64.min...UInt64.max) }
+    nonisolated static func randomSeed() -> UInt64 { UInt64.random(in: UInt64.min...UInt64.max) }
 
     var game: SpiderGame { session.game }
     var options: Options { session.options }
     var statistics: Statistics { session.statistics }
+    var achievements: AchievementBook { session.achievements }
     var canUndo: Bool { session.canUndo }
 
     // MARK: Game menu
@@ -158,6 +186,7 @@ final class GameModel: ObservableObject {
         session.options = options
         showOptionsSheet = false
         persistOptions()
+        if options.winnableDealsOnly { prefillWinnableSeeds(options.difficulty) }
     }
 
     func resetStatistics(_ difficulty: Difficulty) {
@@ -190,6 +219,7 @@ final class GameModel: ObservableObject {
         }
         hasSavedGame = store.hasSavedGame
         persistStatistics()
+        collectUnlocks()
     }
 
     func deal() {
@@ -223,6 +253,8 @@ final class GameModel: ObservableObject {
     func persistAll() {
         persistStatistics()
         persistOptions()
+        _ = session.commitUnlocks(at: Date().timeIntervalSince1970)
+        persistAchievements()
     }
 
     // MARK: Hints
@@ -240,6 +272,7 @@ final class GameModel: ObservableObject {
             return
         }
         play(SoundCue.hint)
+        session.noteHint()
         highlightGeneration += 1
         highlight = sequence[0]
         for i in 1..<(sequence.count + 1) {
@@ -297,6 +330,12 @@ final class GameModel: ObservableObject {
     }
 
     private func abandon(_ reason: AbandonReason) {
+        cancelWinnableSearch()
+        if case .newGame(let difficulty) = reason, session.options.winnableDealsOnly {
+            // The current game stays (and is counted) until the new deal is ready.
+            dealWinnableGame(difficulty)
+            return
+        }
         resetTransientState()
         switch reason {
         case .newGame(let difficulty):
@@ -313,6 +352,163 @@ final class GameModel: ObservableObject {
             hasSavedGame = store.hasSavedGame
         }
         persistStatistics()
+        collectUnlocks()
+    }
+
+    // MARK: Winnable deals
+
+    /// Cancel button on the "Dealing a winnable game…" panel: deal an unchecked game instead.
+    func cancelWinnableDeal() {
+        guard let difficulty = dealingDifficulty else { return }
+        cancelWinnableSearch()
+        startDeal(difficulty, seed: GameModel.randomSeed())
+    }
+
+    /// A cached seed starts at once; otherwise search in the background for up to
+    /// `WinnableDeals.searchSeconds`, then fall back to a bundled seed (or, if there is none, a
+    /// random deal with a notice).
+    private func dealWinnableGame(_ difficulty: Difficulty) {
+        if let seed: UInt64 = seedCache.takeReady(difficulty) {
+            persistSeedCache()
+            startDeal(difficulty, seed: seed)
+            prefillWinnableSeeds(difficulty)
+            return
+        }
+        stopPrefill()
+        dealGeneration += 1
+        let generation: Int = dealGeneration
+        dealingDifficulty = difficulty
+        let seconds: Double = WinnableDeals.searchSeconds
+        dealTask = Task.detached(priority: TaskPriority.userInitiated) { [weak self] in
+            let clock: ContinuousClock = ContinuousClock()
+            let deadline: ContinuousClock.Instant = clock.now.advanced(by: Duration.milliseconds(Int64(seconds * 1000)))
+            let seed: UInt64? = WinnableDeals.search(
+                difficulty: difficulty, nextSeed: { GameModel.randomSeed() },
+                shouldStop: { Task.isCancelled || clock.now >= deadline })
+            await self?.finishWinnableSearch(generation: generation, difficulty: difficulty, seed: seed)
+        }
+    }
+
+    private func finishWinnableSearch(generation: Int, difficulty: Difficulty, seed: UInt64?) {
+        guard generation == dealGeneration, dealingDifficulty != nil else { return }
+        dealTask = nil
+        dealingDifficulty = nil
+        if let seed {
+            startDeal(difficulty, seed: seed)
+        } else if let bundled: UInt64 = seedCache.takeBundled(difficulty) {
+            persistSeedCache()
+            startDeal(difficulty, seed: bundled)
+        } else {
+            startDeal(difficulty, seed: GameModel.randomSeed())
+            schedule(Step.present(BoardAlert.info("No winnable deal was found in time, so this is a random deal.")),
+                     after: 0.3, cancellable: false)
+        }
+        prefillWinnableSeeds(difficulty)
+    }
+
+    private func cancelWinnableSearch() {
+        dealGeneration += 1
+        dealTask?.cancel()
+        dealTask = nil
+        dealingDifficulty = nil
+    }
+
+    private func startDeal(_ difficulty: Difficulty, seed: UInt64) {
+        resetTransientState()
+        session.startNewGame(difficulty: difficulty, seed: seed)
+        persistOptions()
+        persistStatistics()
+        collectUnlocks()
+    }
+
+    /// Keeps `WinnableDeals.cacheTarget` seeds ready so the next winnable deal is instant.
+    private func prefillWinnableSeeds(_ difficulty: Difficulty) {
+        guard prefillTask == nil, dealTask == nil, seedCache.count(difficulty) < WinnableDeals.cacheTarget else { return }
+        prefillGeneration += 1
+        let generation: Int = prefillGeneration
+        prefillTask = Task.detached(priority: TaskPriority.background) { [weak self] in
+            let clock: ContinuousClock = ContinuousClock()
+            let deadline: ContinuousClock.Instant = clock.now.advanced(by: Duration.seconds(60))
+            let seed: UInt64? = WinnableDeals.search(
+                difficulty: difficulty, nextSeed: { GameModel.randomSeed() },
+                shouldStop: { Task.isCancelled || clock.now >= deadline })
+            await self?.finishPrefill(generation: generation, difficulty: difficulty, seed: seed)
+        }
+    }
+
+    private func finishPrefill(generation: Int, difficulty: Difficulty, seed: UInt64?) {
+        guard generation == prefillGeneration else { return }
+        prefillTask = nil
+        guard let seed else { return }
+        seedCache.add(seed, for: difficulty)
+        persistSeedCache()
+        if session.options.winnableDealsOnly { prefillWinnableSeeds(difficulty) }
+    }
+
+    private func stopPrefill() {
+        prefillGeneration += 1
+        prefillTask?.cancel()
+        prefillTask = nil
+    }
+
+    private func persistSeedCache() {
+        try? store.saveWinnableSeeds(seedCache)
+    }
+
+    // MARK: Achievements
+
+    /// Dates and stores new unlocks and queues their banners.
+    private func collectUnlocks() {
+        let unlocked: [AchievementID] = session.commitUnlocks(at: Date().timeIntervalSince1970)
+        guard !unlocked.isEmpty else { return }
+        persistAchievements()
+        toastQueue += unlocked.map { (id: AchievementID) -> Achievement in Achievement.with(id) }
+        if toast == nil { showNextToast() }
+    }
+
+    private func showNextToast() {
+        guard toast == nil, !toastQueue.isEmpty else { return }
+        let next: Achievement = toastQueue.removeFirst()
+        toastID += 1
+        animate(Animation.spring(response: 0.45, dampingFraction: 0.85)) {
+            toast = next
+        }
+        play(SoundCue.achievement)
+        schedule(Step.hideToast(toastID), after: 3.2, cancellable: false)
+    }
+
+    /// Click on the banner: dismiss it now.
+    func dismissToast() {
+        apply(Step.hideToast(toastID))
+    }
+
+    private func persistAchievements() {
+        try? store.saveAchievements(session.achievements)
+    }
+
+    // MARK: Game clock
+
+    /// Play time shown in the score box.
+    var elapsedSeconds: Int { Int(session.session.tracker.elapsedSeconds) }
+
+    private func startClock() {
+        lastTick = ProcessInfo.processInfo.systemUptime
+        clockTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let self else { return }
+                self.tick()
+            }
+        }
+    }
+
+    private func tick() {
+        let now: Double = ProcessInfo.processInfo.systemUptime
+        let delta: Double = min(now - lastTick, 2)
+        lastTick = now
+        guard NSApplication.shared.isActive, session.isClockRunning, dealingDifficulty == nil, celebration == nil,
+              alert == nil, !showOptionsSheet, !showDifficultySheet, !showStatisticsSheet else { return }
+        session.addPlayTime(delta)
     }
 
     private func resetTransientState() {
@@ -379,6 +575,7 @@ final class GameModel: ObservableObject {
         }
 
         guard let outcome else { return }
+        collectUnlocks()
         play(action == Action.deal ? SoundCue.deal : SoundCue.drop)
         if !outcome.completedRuns.isEmpty { play(SoundCue.completedSuit) }
         if outcome.didWin { persistStatistics() }
@@ -422,6 +619,14 @@ final class GameModel: ObservableObject {
             alert = next
         case .endCelebration(let id):
             if id == celebrationID, celebration != nil { finishCelebration() }
+        case .hideToast(let id):
+            guard id == toastID, toast != nil else { return }
+            animate(Animation.easeIn(duration: 0.3)) {
+                toast = nil
+            }
+            schedule(Step.nextToast, after: 0.45, cancellable: false)
+        case .nextToast:
+            showNextToast()
         }
     }
 

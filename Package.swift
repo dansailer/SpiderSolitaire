@@ -22,7 +22,7 @@ let package = Package(
         .executableTarget(name: "SpiderSolitaire", dependencies: ["SpiderCore", "SpiderBoard", "SpiderPersistence"],
                           resources: [.copy("Resources/Cards")]),
         // Renders the 1024 px app icon PNG (CoreGraphics); used by scripts/package.sh.
-        .executableTarget(name: "SpiderIcon", dependencies: ["SpiderBoard"]),
+        .executableTarget(name: "SpiderIcon", dependencies: ["SpiderBoard", "SpiderCore"]),
         // Developer tool (not shipped): solver benchmarks and the bundled winnable-seed list.
         .executableTarget(name: "SpiderTools", dependencies: ["SpiderCore"],
                           linkerSettings: [.linkedLibrary("m", .when(platforms: [.linux]))]),

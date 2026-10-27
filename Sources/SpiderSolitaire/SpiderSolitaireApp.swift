@@ -18,6 +18,11 @@ struct SpiderSolitaireApp: App {
         .commands {
             GameCommands(model: model)
         }
+
+        Window("Achievements", id: AchievementsView.windowID) {
+            AchievementsView(model: model)
+        }
+        .defaultSize(width: 720, height: 560)
     }
 }
 
@@ -53,6 +58,7 @@ struct GameCommands: Commands {
             Button("Statistics…") { model.showStatisticsSheet = true }
                 .keyboardShortcut("i", modifiers: EventModifiers.command)
             Button("Options…") { model.showOptionsSheet = true }
+            AchievementsMenuButton()
             Divider()
             Button("Save This Game") { model.saveGame() }
                 .keyboardShortcut("s", modifiers: EventModifiers.command)

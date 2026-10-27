@@ -179,3 +179,21 @@ Not done yet: `docs/QA.md`.
 - `codesign --verify --deep "build/Spider Solitaire.app"` passes.
 - The README documents the packaging step.
 - Optional: CI (GitHub Actions on a macOS runner) builds, tests and uploads the zip.
+
+### M9: Winnable deals and achievements 🟡 (implemented, waiting for a Mac check)
+**Scope:**
+- a deterministic best-first solver in SpiderCore with a transposition table, deals as moves, node and
+  time budgets, and verified solutions (SPEC.md §6)
+- Options → "Only deal winnable games": cached seeds, a 5 s background search with a Cancel button,
+  bundled verified seeds as the fallback
+- 14 achievements with a per-game tracker (play time, undos, hints), `achievements.json`, a banner and an
+  Achievements window (⇧⌘A) with code-drawn medals (SPEC.md §7)
+- Time in the score box
+
+**Acceptance:**
+- With the option on, a new 1- or 2-suit game appears almost at once; 4 suits within about 5 s or from
+  the cache or bundled list. Cancel deals a random game.
+- Winning a game unlocks First Win with a banner. The Achievements window shows it in gold with the date.
+- The clock pauses while the app is in the background.
+- Linux `swift test` passes (solver, achievements, persistence and badge tests).
+

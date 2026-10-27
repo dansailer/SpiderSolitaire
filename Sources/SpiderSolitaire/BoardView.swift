@@ -33,7 +33,7 @@ struct BoardView: View {
                         .zIndex(placement.zIndex)
                 }
 
-                ScoreBoxView(score: state.score, moves: state.moves, frame: layout.scoreBoxFrame)
+                ScoreBoxView(score: state.score, moves: state.moves, seconds: model.elapsedSeconds, frame: layout.scoreBoxFrame)
 
                 ForEach(layout.placements(for: state, drag: model.pointer.drag, animations: model.animations,
                                           highlightedIDs: highlightedIDs)) { (placement: CardPlacement) in
@@ -63,6 +63,20 @@ struct BoardView: View {
                         model.pointerEnded(start: value.startLocation, translation: value.translation, layout: layout)
                     }
             )
+            // Overlays sit outside the board's gesture, so they take their own clicks.
+            .overlay {
+                if model.dealingDifficulty != nil {
+                    DealingOverlay(onCancel: { model.cancelWinnableDeal() })
+                }
+            }
+            .overlay(alignment: Alignment.top) {
+                if let toast: Achievement = model.toast {
+                    AchievementToastView(achievement: toast)
+                        .padding(EdgeInsets(top: 12, leading: 0, bottom: 0, trailing: 0))
+                        .onTapGesture { model.dismissToast() }
+                        .transition(AnyTransition.move(edge: Edge.top).combined(with: AnyTransition.opacity))
+                }
+            }
         }
         .alert(Text(model.alert?.title ?? "Spider Solitaire"), isPresented: alertBinding, presenting: model.alert) {
             (current: BoardAlert) in
@@ -147,13 +161,16 @@ struct EmptySlotView: View {
 struct ScoreBoxView: View {
     let score: Int
     let moves: Int
+    let seconds: Int
     let frame: BoardRect
 
     var body: some View {
-        let fontSize: CGFloat = CGFloat(max(10, min(18, frame.height * 0.24)))
-        VStack(spacing: CGFloat(frame.height * 0.08)) {
+        let fontSize: CGFloat = CGFloat(max(9, min(16, frame.height * 0.2)))
+        VStack(spacing: CGFloat(frame.height * 0.04)) {
             Text("Score: \(score)")
             Text("Moves: \(moves)")
+            Text("Time: " + PlayClock.text(seconds))
+                .monospacedDigit()
         }
         .font(Font.system(size: fontSize, weight: Font.Weight.semibold))
         .foregroundColor(Color.white)

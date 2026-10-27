@@ -47,6 +47,7 @@ build folder.
 ```bash
 swift run SpiderIcon icon.svg                # app icon (on a Mac, icon.png renders with CoreGraphics)
 swift run SpiderIcon --card-back back.svg    # card back at 120 x 162 pt
+swift run SpiderIcon --badges badges/        # every achievement medal, locked and unlocked
 python3 scripts/cards/preview_faces.py faces.png
 ```
 The icon and card back are described once as data in `Sources/SpiderBoard/VectorArt.swift`. SwiftUI,
@@ -83,10 +84,22 @@ Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
 - **Options** (Game ▸ Options…) has a "Play sounds" switch (off by default; macOS system sounds) and
   **Card faces: Classic / Simple**. Classic (the default) uses traditional English-pattern art; Simple is
   the code-drawn set.
+- **Only deal winnable games** (Options): new games use deals a built-in solver has proved winnable.
+  Usually instant; otherwise "Dealing a winnable game…" appears for up to 5 s (Cancel deals a random game).
+- **Achievements** (Game ▸ Achievements…, ⇧⌘A): 14 medals, listed with their thresholds in SPEC.md §7.
+  A banner appears at the top of the board when one unlocks. The score box shows the game's play time.
 - After a win, click or press any key to skip the celebration.
 - **⌘Z** undoes a move. Game ▸ Classic XP Undo makes undo stop at deals and completed suits, like
   XP. **⌘N** starts a new game. File ▸ New Game With Difficulty chooses 1, 2 or 4
   suits.
+
+## Solver tool (developers)
+```bash
+swift build -c release --product SpiderTools
+.build/release/SpiderTools bench 2 50     # success rate and time per seed, as the app runs it
+.build/release/SpiderTools find 4 20      # time to find one winnable deal
+.build/release/SpiderTools seeds 1 24     # generate verified seeds for WinnableDeals.bundled
+```
 
 ## Linux (rules engine only)
 `SpiderCore` and `SpiderBoard` use only the Swift standard library, so they build and test anywhere Swift runs:
@@ -103,7 +116,8 @@ Sources/SpiderCore/        rules engine (Card, Deck, GameState, SpiderGame, Hint
 Sources/SpiderBoard/       pure-Swift board geometry and pointer handling (BoardLayout, PointerController)
 Sources/SpiderPersistence/ JSON files in Application Support (SpiderStore)
 Sources/SpiderSolitaire/   SwiftUI app (App and menus, GameModel, BoardView, CardView, WinCelebrationView)
-Sources/SpiderIcon/        renders VectorArt (app icon, card back) to PNG (CoreGraphics) or SVG (any platform)
+Sources/SpiderIcon/        renders VectorArt (app icon, card back, badges) to PNG (CoreGraphics) or SVG (any platform)
+Sources/SpiderTools/       dev-only solver tool: bench, find, seeds, bundled (not part of the app)
 Sources/SpiderSolitaire/Resources/Cards/  Classic card faces (52 PNGs, CC0/public domain, see CREDITS.md)
 scripts/cards/             build_classic_cards.py (download, licence check, pip fix, render), preview.py, preview_faces.py
 Packaging/Info.plist       app bundle Info.plist template

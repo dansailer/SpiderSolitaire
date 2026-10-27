@@ -149,6 +149,7 @@ The look is "XP-like", not a copy of the XP assets.
 | Game ▸ Difficulty… | n/a | ⌘D (sheet: Easy, Medium, Difficult) |
 | Game ▸ Statistics… | n/a | ⌘I |
 | Game ▸ Options… | n/a | ⌘, (Settings) |
+| Game ▸ Achievements… | n/a | ⇧⌘A (opens the Achievements window) |
 | Game ▸ Save This Game | Ctrl+S | ⌘S |
 | Game ▸ Open Last Saved Game | Ctrl+O | ⌘O |
 | Game ▸ Exit | Alt+F4 | ⌘Q |
@@ -179,10 +180,29 @@ The look is "XP-like", not a copy of the XP assets.
   shows a blue back and a white card with a large spade. Both come from `VectorArt.swift`. If
   an image can't be found, it falls back to the code-drawn face. Card backs are unchanged.
 
+### 3.6b Winnable deals and the game clock
+- Options → "Only deal winnable games" (off by default; older options.json files decode as off).
+- With it on, a new game uses a seed the solver (§6) has proved winnable:
+  1. a seed found earlier in the background (`winnable.json`), so the deal is instant;
+  2. otherwise a search of random seeds for up to 5 s, off the main thread, while the board shows
+     "Dealing a winnable game…" with a Cancel button (Cancel deals an unchecked random game);
+  3. if the search runs out of time, the next of 24 bundled, verified seeds for that difficulty;
+  4. only if none is available, a random deal with a notice.
+  After each winnable deal a background search refills the cache to 3 seeds per difficulty.
+  Restart replays the same seed. Statistics count these games like any other.
+- The score box shows **Time** (m:ss) under Score and Moves. The clock runs while the app is active,
+  the game is not won and no dialog, sheet, deal search or win animation is up. It is saved with the game.
+
+### 3.6c Achievements
+- 14 achievements (§7). When one unlocks, a banner slides in at the top of the board for about 3 s
+  (no slide with animations off; the "Purr" sound with sounds on). Click it to dismiss it.
+- Game ▸ Achievements… (⇧⌘A) opens a window with a grid of medals drawn in code (`BadgeArt`):
+  gold with the unlock date once earned, grey with the hint before. No spider motifs.
+
 ### 3.7 Sound (M7, optional)
 - The game plays short cues for deal, drop, cannot-deal, hint, no-hint and win.
 - The cues are built-in macOS system sounds played with `NSSound(named:)` (Pop, Tink, Basso, Ping, Funk,
-  Glass, Hero); no Microsoft or bundled audio. Options → "Play sounds" is off by default.
+  Glass, Hero, and Purr for an achievement); no Microsoft or bundled audio. Options → "Play sounds" is off by default.
 
 ## 4. Persistence and statistics
 - **Statistics** (`Statistics`, `DifficultyStatistics` in the core), kept per difficulty:
@@ -204,8 +224,15 @@ The look is "XP-like", not a copy of the XP assets.
   - animations
   - save on exit (always, never or prompt). "Never" means an unfinished game counts as a loss.
   - open on start (always, never or prompt)
+  - sounds, card faces, only deal winnable games
 
   Missing or unknown fields fall back to their defaults.
+- **Achievements** (`achievements.json`): `{"firstWin": <seconds since 1970>, ...}`. Unknown names are
+  skipped, so a newer file never breaks an older app.
+- **Winnable seeds** (`winnable.json`): seeds found ahead of time (hex strings, since JSON numbers above
+  2^53 are not safe everywhere) and how far through the bundled list each difficulty is.
+- The saved game carries a `tracker` (play time, undo count, hint count). Saves from before it existed
+  decode with an "unknown history" tracker, which can't earn Purist, No Peeking, Grandmaster or Speedster.
 - **Counting rule:** a game counts as played once the player makes a move or a deal.
   - It counts as **lost** when the player abandons it: a new game, a difficulty change, or quitting
     with "Never save".
@@ -222,6 +249,8 @@ SpiderSolitaire (Swift package)
 │   ├── GameState        (value type: columns, stock, completed, score, moves; rule queries)
 │   ├── SpiderGame       (engine: perform(Action) → ActionOutcome, undo, UndoPolicy, ScoringRules)
 │   ├── Hints            (GameState.hints(), hasLegalMove)
+│   ├── Solver, WinnableDeals  (best-first solver, bundled and cached winnable seeds)
+│   ├── Achievements     (list, GameTracker, AchievementBook, evaluator)
 │   └── Statistics
 ├── SpiderSolitaire     macOS app (SwiftUI; AppKit only where SwiftUI falls short)
 │   ├── SpiderSolitaireApp   App, Commands (menus and shortcuts), Settings scene
@@ -254,3 +283,80 @@ SpiderSolitaire (Swift package)
   - `Info.plist`: `com.dansailer.SpiderSolitaire`, "Spider Solitaire", category
     `public.app-category.card-games` (Apple's games subcategory), `LSMinimumSystemVersion` 14.0.
   - An Xcode project can be generated later if the app goes to the App Store or needs notarization.
+
+## 6. Solver (`SpiderCore/Solver.swift`)
+- Pure Swift, deterministic for a given budget. It sees the face-down cards, so "winnable" means a
+  solution exists for that seeded deal.
+- **Search:** best-first. Each open position gets a score and the best one is expanded next:
+  +1000 per finished suit, +40 per empty column, +12 per same-suit link, +3 per out-of-suit link
+  (+8 in the "tidy" weights), -6 per break inside a face-up pile (-20 tidy), -20 per face-down card
+  (-30 tidy), -2 per card over face-down cards, +2 per card dealt. So building in suit, revealing
+  cards and completing runs come first. Dealing from the stock is an ordinary move.
+- **Transposition table:** a 64-bit FNV-1a hash of the canonical position (exact columns with face-up
+  bits, stock size). The stock's order is fixed by the deal, so its size is enough.
+- **Pruning:** only whole same-suit runs move out of their pile unless the split lands in suit; a card
+  never moves between two equal out-of-suit parents; into an empty column only the first empty
+  column, only whole runs, and never a whole column.
+- **Budgets:** node and depth limits plus a `shouldStop` hook (deadline and cancel). Results are
+  `.solved([Action])`, `.unsolvable` (the whole space was searched) or `.gaveUp`.
+  `Solver.verify` replays a line on a fresh `SpiderGame`; every line the app relies on is verified.
+- **Per seed** (`SolverBudget.attempts`): solving time is heavy-tailed (most deals take a few
+  thousand positions, a few need a million), so each seed gets two modest attempts and the app moves
+  on to the next seed instead of digging:
+
+  | Difficulty | Attempts |
+  |---|---|
+  | 1 suit | 60k nodes balanced, then 60k tidy |
+  | 2 suits | 120k balanced, then 120k tidy |
+  | 4 suits | 300k tidy, then 200k balanced |
+
+- **Measured on the box** (Linux, release build, one core; `SpiderTools bench <suits> 50` and
+  `SpiderTools find <suits> 20`):
+
+  | Difficulty | Seeds solved (50) | Avg time per seed | Avg time when solved | Avg solution | Time to find a winnable deal (20 runs) |
+  |---|---|---|---|---|---|
+  | 1 suit | 33 (66 %) | 0.33 s | 0.12 s | 148 moves | median 0.12 s, avg 0.36 s, max 1.8 s; 20/20 within 5 s |
+  | 2 suits | 39 (78 %) | 0.47 s | 0.25 s | 250 moves | median 0.22 s, avg 0.60 s, max 3.4 s; 20/20 within 5 s |
+  | 4 suits | 13 (26 %) | 1.49 s | 0.70 s | 495 moves | median 3.5 s, avg 4.3 s, max 16.5 s; 13/20 within 5 s |
+
+  No seed was proved unsolvable: "not solved" means the budget ran out, not that the deal is lost.
+  With bigger budgets more seeds solve (1 suit: 86 % at 300k nodes, 91 % at 1M), but trying another seed
+  is cheaper. For 4 suits the 5 s search fails about a third of the time; then the cache or the
+  bundled list supplies the deal.
+
+- `SpiderTools` (dev only, not shipped): `bench`, `find`, `seeds` (generates the bundled lists) and
+  `bundled` (re-checks them). `W=key=value,...` tunes the weights.
+
+## 7. Achievements (`SpiderCore/Achievements.swift`)
+Data-driven: each entry has an id, title, hint, emblem and a rule. `AchievementEvaluator` checks the
+rules after every card move or deal (`played`) and after every result that goes into the statistics
+(`resultRecorded`: a win, or a loss from abandoning, quitting without saving or declining a save).
+
+| Achievement | Rule | Threshold |
+|---|---|---|
+| First Win | win a game | any difficulty |
+| Two Suits | win at 2 suits | |
+| Four Suits | win at 4 suits | |
+| Purist | win without using Undo | any difficulty |
+| No Peeking | win without asking for a hint | any difficulty |
+| Grandmaster | win at 4 suits without using Undo | |
+| Speedster | win within a play time | under 5 min (1 suit), 12 min (2 suits), 25 min (4 suits) |
+| Efficient | win with a low Moves counter (moves + deals + undos) | at most 150 (1 suit), 200 (2 suits), 300 (4 suits) |
+| Clean Sweep | complete a suit before the first deal | |
+| Empty Handed | empty a column before the first deal | |
+| Hat Trick | win streak at one difficulty | 3 |
+| On a Roll | win streak at one difficulty | 10 |
+| Seasoned | games won, all difficulties | 25 |
+| Century | games played, all difficulties | 100 |
+
+- **Left out as duplicates:** "Full House" is just a win. "High Roller" (a score threshold) would be the
+  same test as Efficient: a win scores 500 + 8 × 100 − card moves − undos, and the Moves counter is
+  card moves + undos + deals (5 in a game without undone deals), so a win's score is 1305 − Moves.
+  "Score at least 1155" and "at most 150 moves" are the same game.
+- Thresholds: the solver's own wins average about 150 moves (1 suit), 250 (2 suits) and 500 (4 suits),
+  so Efficient asks for a tidy human game; Speedster's times are a brisk but reachable pace.
+- "Before the first deal" means the stock still holds all 50 cards at that moment (an undone deal
+  doesn't count as dealt).
+- Unlocks are stored with their date in `achievements.json` and never re-locked; resetting statistics
+  leaves them alone.
+

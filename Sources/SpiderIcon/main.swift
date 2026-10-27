@@ -2,9 +2,11 @@
 //   SpiderIcon <out.png>              app icon, 1024 × 1024 PNG (CoreGraphics, macOS only)
 //   SpiderIcon <out.svg>              app icon as SVG (any platform; used for Linux previews)
 //   SpiderIcon --card-back <out.svg>  card back at the largest in-app size (120 × 162 pt)
+//   SpiderIcon --badges <dir>         every achievement badge, locked and unlocked, as SVG (previews)
 // scripts/package.sh turns the PNG into AppIcon.icns.
 import Foundation
 import SpiderBoard
+import SpiderCore
 #if canImport(CoreGraphics) && canImport(ImageIO)
 import CoreGraphics
 import ImageIO
@@ -16,6 +18,23 @@ func fail(_ message: String, code: Int32) -> Never {
 }
 
 var arguments: [String] = Array(CommandLine.arguments.dropFirst())
+if arguments.count == 2, arguments[0] == "--badges" {
+    let dir: URL = URL(fileURLWithPath: arguments[1], isDirectory: true)
+    do {
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        for achievement in Achievement.all {
+            for unlocked in [false, true] {
+                let svg: String = BadgeArt.scene(achievement.emblem, unlocked: unlocked, size: 256).svg()
+                let name: String = achievement.id.rawValue + (unlocked ? "-unlocked" : "-locked") + ".svg"
+                try Data(svg.utf8).write(to: dir.appendingPathComponent(name))
+            }
+        }
+        print(dir.path)
+        exit(0)
+    } catch {
+        fail("SpiderIcon: \(error)", code: 1)
+    }
+}
 var cardBack: Bool = false
 if arguments.first == "--card-back" {
     cardBack = true
