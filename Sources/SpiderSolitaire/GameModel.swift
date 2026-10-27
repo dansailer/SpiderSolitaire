@@ -95,6 +95,7 @@ extension BoardPoint {
 
 extension BoardSize {
     init(_ s: CGSize) { self.init(width: Double(s.width), height: Double(s.height)) }
+    var cgSize: CGSize { CGSize(width: CGFloat(width), height: CGFloat(height)) }
 }
 
 extension BoardRect {
