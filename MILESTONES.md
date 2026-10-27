@@ -3,7 +3,7 @@
 Each milestone is small enough to review on its own and ends in a state you can check. Milestones
 M2 to M8 need a Mac with Xcode 15 or later. M1 can also be checked on Linux.
 
-Status: **M1 is done.** M2 and M3 are implemented and unit-tested on Linux, and are waiting for a manual check on a Mac. M4 to M8 are not started.
+Status: **M1 is done.** M2 and M3 build and pass their tests on a Mac; the on-screen play test is still pending. M4 and M5 are implemented and unit-tested on Linux, and are waiting for a Mac check. M6 to M8 are not started.
 
 ---
 
@@ -86,7 +86,12 @@ Not done yet: `docs/QA.md`.
 - A legal drop updates the score and moves by −1 and +1, and the exposed card flips over.
 - A manual check script in `docs/QA.md` (10 steps) passes.
 
-### M4: Dealing, stock and completed-suit animation
+### M4: Dealing, stock and completed-suit animation 🟡 (implemented, waiting for a Mac check)
+**Implemented:**
+- `BoardAnimations` (pure Swift, tested), with a deal hold and flying cards
+- `ActionOutcome.dealtCardIDs`, and `CompletedRun.cards` and `foundationSlot`
+- `GameModel` steps through the animation with cancellable timed tasks. Any new action jumps running animations to their end state.
+
 **Scope:**
 - Clicking the stock or pressing D deals, with a staggered 10-card animation.
 - When a deal is blocked, an XP-style alert appears ("You are not allowed to deal a new row while
@@ -100,7 +105,14 @@ Not done yet: `docs/QA.md`.
 - Cards never get stuck mid-animation when the player clicks quickly (stress test: hold D and click
   rapidly).
 
-### M5: Scoring, undo and hints in the UI
+### M5: Scoring, undo and hints in the UI 🟡 (implemented, waiting for a Mac check)
+**Implemented:**
+- `HintCycler`, `HintHighlight` and `GameState.isStuck`, all tested
+- M, Game ▸ Show an Available Move, and clicking the score box all show a hint
+- The hint flash inverts the source run, then the target card or empty slot, then fades, about 0.55 s per step.
+- The "There are no more moves." dialog offers Undo, New Game and OK.
+- Game ▸ Classic XP Undo switches the undo mode and is remembered between launches.
+
 **Scope:**
 - the score box updates live
 - ⌘Z undo, which also animates

@@ -7,8 +7,18 @@ import SwiftUI
 struct CardView: View {
     let card: Card
     let size: CGSize
+    /// Hint flash: XP shows the card with inverted colours.
+    var isHighlighted: Bool = false
 
     var body: some View {
+        if isHighlighted {
+            content.colorInvert()
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
         Group {
             if card.isFaceUp {
                 CardFaceView(card: card, size: size)

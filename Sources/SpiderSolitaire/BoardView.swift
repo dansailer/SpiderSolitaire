@@ -13,29 +13,31 @@ struct BoardView: View {
         GeometryReader { (geo: GeometryProxy) in
             let layout: BoardLayout = BoardLayout(boardSize: BoardSize(geo.size))
             let state: GameState = model.game.state
+            let highlightedIDs: Set<Int> = model.highlight?.cardIDs(in: state) ?? Set<Int>()
+            let highlightedSlot: Int? = model.highlight?.highlightedSlot(in: state)
 
             ZStack(alignment: Alignment.topLeading) {
                 FeltBackground()
 
                 ForEach(0..<GameState.columnCount, id: \.self) { (column: Int) in
-                    EmptySlotView(size: layout.cardSize.cgSize)
+                    EmptySlotView(size: layout.cardSize.cgSize, highlighted: highlightedSlot == column)
                         .position(layout.slotFrame(column: column).cgCenter)
                 }
 
                 EmptySlotView(size: layout.foundationAreaFrame.cgSize, dashed: true)
                     .position(layout.foundationAreaFrame.cgCenter)
 
-                ForEach(Array(layout.foundationFrames(count: state.completed.count).enumerated()), id: \.offset) {
-                    (item: (offset: Int, element: BoardRect)) in
-                    CardView(card: Card(id: -1 - item.offset, suit: state.completed[item.offset], rank: Rank.king, isFaceUp: true),
-                             size: item.element.cgSize)
-                        .position(item.element.cgCenter)
+                ForEach(layout.foundationPlacements(for: state, animations: model.animations)) { (placement: CardPlacement) in
+                    CardView(card: placement.card, size: placement.frame.cgSize)
+                        .position(placement.frame.cgCenter)
+                        .zIndex(placement.zIndex)
                 }
 
                 ScoreBoxView(score: state.score, moves: state.moves, frame: layout.scoreBoxFrame)
 
-                ForEach(layout.placements(for: state, drag: model.pointer.drag)) { (placement: CardPlacement) in
-                    CardView(card: placement.card, size: placement.frame.cgSize)
+                ForEach(layout.placements(for: state, drag: model.pointer.drag, animations: model.animations,
+                                          highlightedIDs: highlightedIDs)) { (placement: CardPlacement) in
+                    CardView(card: placement.card, size: placement.frame.cgSize, isHighlighted: placement.isHighlighted)
                         .shadow(color: Color.black.opacity(placement.isLifted ? 0.45 : 0.0),
                                 radius: placement.isLifted ? 4 : 0, x: 2, y: 3)
                         .position(placement.frame.cgCenter)
@@ -59,6 +61,15 @@ struct BoardView: View {
             Button("OK", role: ButtonRole.cancel) { model.alertMessage = nil }
         } message: {
             Text(model.alertMessage ?? "")
+        }
+        .alert("Spider Solitaire", isPresented: $model.showNoMovesAlert) {
+            if model.game.canUndo {
+                Button("Undo") { model.undo() }
+            }
+            Button("New Game") { model.newGame(model.game.state.difficulty) }
+            Button("OK", role: ButtonRole.cancel) {}
+        } message: {
+            Text("There are no more moves.")
         }
         .alert("Congratulations, you won!", isPresented: $model.showWinAlert) {
             Button("New Game") { model.newGame(model.game.state.difficulty) }
@@ -91,12 +102,19 @@ struct FeltBackground: View {
 struct EmptySlotView: View {
     let size: CGSize
     var dashed: Bool = false
+    /// Hint target is this empty column: light it up (XP inverts the slot).
+    var highlighted: Bool = false
 
     var body: some View {
-        RoundedRectangle(cornerRadius: max(3, size.width * 0.06))
-            .stroke(Color.black.opacity(0.28),
-                    style: StrokeStyle(lineWidth: 1.5, dash: dashed ? [4, 3] : []))
-            .frame(width: size.width, height: size.height)
+        let radius: CGFloat = max(3, size.width * 0.06)
+        ZStack {
+            RoundedRectangle(cornerRadius: radius)
+                .fill(Color.white.opacity(highlighted ? 0.55 : 0.0))
+            RoundedRectangle(cornerRadius: radius)
+                .stroke(Color.black.opacity(0.28),
+                        style: StrokeStyle(lineWidth: 1.5, dash: dashed ? [4, 3] : []))
+        }
+        .frame(width: size.width, height: size.height)
     }
 }
 

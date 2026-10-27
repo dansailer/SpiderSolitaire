@@ -133,8 +133,8 @@ The look is "XP-like", not a copy of the XP assets.
 - **Click-to-move (M3, optional):** double-clicking a movable run sends it to the best legal target,
   using the same ordering as the hints.
 - **Animations:**
-  - dealing sweeps 10 cards from the stock, staggered by 40 ms,
-  - a completed run flies to the foundation one card at a time, from K down to A,
+  - dealing sweeps 10 cards from the stock, staggered by 45 ms. Each card stays face down on its pile until it leaves,
+  - a completed run flies to the foundation one card at a time, starting with the top card (A) and ending with the K, staggered by 40 ms, about 0.3 s per card. The foundation king appears once all 13 cards have landed,
   - an exposed card flips over.
   Options → "Show animations" turns all of these off.
 

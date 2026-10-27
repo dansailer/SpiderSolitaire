@@ -5,7 +5,8 @@ A native macOS clone of Windows XP Spider Solitaire, written in Swift and SwiftU
 - The rules and UI are described in [SPEC.md](SPEC.md).
 - The plan is in [MILESTONES.md](MILESTONES.md). Milestone **M1** (the rules engine) is done. **M2** (the
   board, with cards drawn in code) and **M3** (drag and drop, click the stock to deal, double-click to
-  auto-move) are implemented.
+  auto-move) build on a Mac. **M4** (deal and completed-suit animations) and **M5** (hints, undo modes,
+  the no-more-moves dialog) are implemented.
 
 ## Requirements
 - macOS 14 (Sonoma) or later
@@ -37,7 +38,9 @@ Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
   card one rank higher, or onto an empty column. An illegal drop slides the cards back.
 - **Double-click** a card to send its run to the best legal column.
 - **Click the stock** (bottom right) or press **D** to deal a row.
-- **⌘Z** undoes a move. **⌘N** starts a new game. File ▸ New Game With Difficulty chooses 1, 2 or 4
+- **M**, or a click on the score box, flashes the next available move. Press again to cycle through them.
+- **⌘Z** undoes a move. Game ▸ Classic XP Undo makes undo stop at deals and completed suits, like
+  XP. **⌘N** starts a new game. File ▸ New Game With Difficulty chooses 1, 2 or 4
   suits.
 
 ## Linux (rules engine only)

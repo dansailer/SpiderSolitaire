@@ -18,9 +18,17 @@ struct SpiderSolitaireApp: App {
     }
 }
 
-/// Minimal Game menu for M2/M3. The full XP menu (difficulty sheet, statistics, save/open) is M6.
+/// Game menu so far: new game, undo, deal, hint, undo mode. The full XP menu (difficulty sheet,
+/// statistics, save/open) is M6.
 struct GameCommands: Commands {
     @ObservedObject var model: GameModel
+
+    private var classicUndo: Binding<Bool> {
+        Binding<Bool>(
+            get: { model.undoPolicy == UndoPolicy.xpClassic },
+            set: { (on: Bool) in model.setUndoPolicy(on ? UndoPolicy.xpClassic : UndoPolicy.unlimited) }
+        )
+    }
 
     var body: some Commands {
         CommandGroup(replacing: CommandGroupPlacement.newItem) {
@@ -40,6 +48,10 @@ struct GameCommands: Commands {
         CommandMenu("Game") {
             Button("Deal Next Row") { model.deal() }
                 .keyboardShortcut("d", modifiers: [])
+            Button("Show an Available Move") { model.showHint() }
+                .keyboardShortcut("m", modifiers: [])
+            Divider()
+            Toggle("Classic XP Undo (Stops at Deals and Completed Suits)", isOn: classicUndo)
         }
     }
 }
