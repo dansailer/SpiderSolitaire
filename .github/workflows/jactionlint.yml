@@ -1,12 +1,10 @@
 name: jactionlint
 
 # Lints the workflows and dependabot.yml (https://jactionlint.jdx.dev) with the pedantic profile,
-# failing on any finding. Same triggers and guard as CI (owner and Dependabot pull requests); the
+# failing on any finding. Same triggers and guard as CI (owner and Dependabot pull requests, manual runs; not pushes to main); the
 # job name is a required status check.
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
   workflow_dispatch:
 

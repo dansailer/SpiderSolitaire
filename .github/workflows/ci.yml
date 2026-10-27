@@ -1,6 +1,7 @@
 name: CI
 
-# Checks every pull request into main, every push to main and manual runs. The job names are the
+# Checks every pull request into main and manual runs (not pushes to main: merges are already
+# checked on the up-to-date pull request, and macOS runner minutes are expensive). The job names are the
 # required status checks of the "protect-main" ruleset, so keep them stable.
 #
 # pull_request (never pull_request_target): runs get a read-only token and no secrets. Jobs run
@@ -8,8 +9,6 @@ name: CI
 # skipped and also need a maintainer's approval before any workflow runs (all external contributors).
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
   workflow_dispatch:
 

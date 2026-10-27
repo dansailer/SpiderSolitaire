@@ -140,7 +140,8 @@ Work happens on branches; `main` only changes through pull requests whose checks
 5. To release, tag the merged `main` (the tag is the version), which runs the Release workflow.
 
 Workflows only run in `dansailer/SpiderSolitaire`: for `dansailer`'s pull requests from branches of
-this repository, pushes to `main`, `v*` tags and manual dispatches, and for Dependabot's pull
+this repository, `v*` tags, Pages deploys and manual dispatches (CI does not rerun on `main` after a
+merge; the up-to-date pull request was already checked), and for Dependabot's pull
 requests (the required checks run on them too). They use `pull_request` (never
 `pull_request_target`), so pull request runs get a read-only token and no secrets; fork pull
 requests also need approval before anything runs. Every action is pinned to a commit SHA, each job
