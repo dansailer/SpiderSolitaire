@@ -150,6 +150,7 @@ a hint.
 | Menu | Item | Shortcut | XP equivalent |
 |---|---|---|---|
 | Spider Solitaire | About Spider Solitaire | | Help ▸ About |
+| | Check for Updates… | | |
 | | Settings… (XP's Options) | ⌘, | Game ▸ Options |
 | | Services ▸ | | |
 | | Hide Spider Solitaire | ⌘H | |
@@ -173,6 +174,7 @@ a hint.
 | | Enter Full Screen / Exit Full Screen | ⌃⌘F | |
 | | (window list, Bring All to Front, and the macOS 15 tiling items) | | |
 | Help | Spider Solitaire Help, and the menu search field | ⌘? | F1 / Help ▸ Contents |
+| | Visit Website | | |
 
 Why these keys:
 - **⌘D Deal Next Row:** the HIG's ⌘D is Duplicate, which has no meaning in a card game. It keeps XP's D.

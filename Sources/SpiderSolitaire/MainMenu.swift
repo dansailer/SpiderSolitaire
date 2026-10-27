@@ -2,6 +2,7 @@
 import AppKit
 import SpiderBoard
 import SpiderCore
+import SpiderUpdates
 
 /// Builds the menu bar from `MenuBarLayout` (SPEC.md §3.5), once, at launch. The app owns
 /// `NSApp.mainMenu` outright: there are no SwiftUI `Commands`, so nothing ever inserts File,
@@ -112,10 +113,12 @@ enum MainMenuBuilder {
 final class MenuController: NSObject, NSMenuItemValidation {
     private let model: GameModel
     private let windows: WindowController
+    private let updates: UpdateController
 
-    init(model: GameModel, windows: WindowController) {
+    init(model: GameModel, windows: WindowController, updates: UpdateController) {
         self.model = model
         self.windows = windows
+        self.updates = updates
     }
 
     @objc func performAppItem(_ sender: NSMenuItem) {
@@ -153,6 +156,8 @@ final class MenuController: NSObject, NSMenuItemValidation {
         case .closeWindow: NSApplication.shared.keyWindow?.performClose(nil)
         case .enterFullScreen: windows.showBoard() // normally AppKit's toggleFullScreen: (standardSelector)
         case .help: windows.showHelp()
+        case .visitWebsite: NSWorkspace.shared.open(ProjectLinks.website)
+        case .checkForUpdates: updates.check(userInitiated: true)
         }
     }
 

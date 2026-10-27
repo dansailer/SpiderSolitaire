@@ -35,7 +35,8 @@ public enum MenuCommand: String, CaseIterable, Sendable {
     case saveGame, openSavedGame
     case closeWindow
     case enterFullScreen
-    case help
+    case help, visitWebsite
+    case checkForUpdates
 
     public enum Menu: String, Sendable {
         case app = "Spider Solitaire", game = "Game", difficulty = "Difficulty", window = "Window", help = "Help"
@@ -59,6 +60,8 @@ public enum MenuCommand: String, CaseIterable, Sendable {
         case .closeWindow: return "Close Window"
         case .enterFullScreen: return "Enter Full Screen"
         case .help: return "Spider Solitaire Help"
+        case .visitWebsite: return "Visit Website"
+        case .checkForUpdates: return "Check for Updates…"
         }
     }
 
@@ -66,7 +69,8 @@ public enum MenuCommand: String, CaseIterable, Sendable {
         switch self {
         case .oneSuit, .twoSuits, .fourSuits: return .difficulty
         case .enterFullScreen: return .window
-        case .help: return .help
+        case .help, .visitWebsite: return .help
+        case .checkForUpdates: return .app
         default: return .game
         }
     }
@@ -95,6 +99,7 @@ public enum MenuCommand: String, CaseIterable, Sendable {
         case .enterFullScreen: return MenuShortcut("f", control: true)
         // The standard Help shortcut (⇧⌘/ on most keyboards).
         case .help: return MenuShortcut("?")
+        case .visitWebsite, .checkForUpdates: return nil
         }
     }
 

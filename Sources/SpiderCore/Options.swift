@@ -26,6 +26,8 @@ public struct Options: Codable, Sendable, Hashable {
     public var cardFaces: CardFaceStyle = .classic
     /// New games use deals the solver has proved winnable. Off by default.
     public var winnableDealsOnly: Bool = false
+    /// Look for a new release at launch, at most once a day; silent unless there is one. On by default.
+    public var checkForUpdatesAutomatically: Bool = true
 
     public init() {}
 
@@ -33,6 +35,7 @@ public struct Options: Codable, Sendable, Hashable {
     // later never throws away a user's settings file.
     private enum CodingKeys: String, CodingKey {
         case difficulty, undoPolicy, animationsEnabled, saveOnExit, openOnStart, soundsEnabled, cardFaces, winnableDealsOnly
+        case checkForUpdatesAutomatically
     }
 
     public init(from decoder: Decoder) throws {
@@ -46,5 +49,7 @@ public struct Options: Codable, Sendable, Hashable {
         soundsEnabled = (try? c.decode(Bool.self, forKey: .soundsEnabled)) ?? d.soundsEnabled
         cardFaces = (try? c.decode(CardFaceStyle.self, forKey: .cardFaces)) ?? d.cardFaces
         winnableDealsOnly = (try? c.decode(Bool.self, forKey: .winnableDealsOnly)) ?? d.winnableDealsOnly
+        checkForUpdatesAutomatically = (try? c.decode(Bool.self, forKey: .checkForUpdatesAutomatically))
+            ?? d.checkForUpdatesAutomatically
     }
 }

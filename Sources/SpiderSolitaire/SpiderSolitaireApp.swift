@@ -27,13 +27,15 @@ enum SpiderSolitaireMain {
 @MainActor
 final class WindowController: NSObject, NSWindowDelegate {
     private let model: GameModel
+    private let updates: UpdateController
     private var board: NSWindow?
     private var achievements: NSWindow?
     private var help: NSWindow?
     private var settings: NSWindow?
 
-    init(model: GameModel) {
+    init(model: GameModel, updates: UpdateController) {
         self.model = model
+        self.updates = updates
     }
 
     func showBoard() {
@@ -65,11 +67,21 @@ final class WindowController: NSObject, NSWindowDelegate {
     }
 
     func showSettings() {
-        let window: NSWindow = settings ?? makeWindow(
-            title: "Settings", autosave: "SpiderSolitaireSettings",
-            size: nil, resizable: false,
-            content: SettingsView(model: model))
-        window.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenNone)
+        let window: NSWindow = settings ?? {
+            let tabs: SettingsTabViewController = SettingsTabViewController(model: model, updates: updates)
+            let w: NSWindow = NSWindow(contentViewController: tabs)
+            w.styleMask = [NSWindow.StyleMask.titled, NSWindow.StyleMask.closable]
+            w.toolbarStyle = NSWindow.ToolbarStyle.preference
+            w.tabbingMode = NSWindow.TabbingMode.disallowed
+            w.isReleasedWhenClosed = false
+            w.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenNone)
+            if let first: NSView = tabs.tabViewItems.first?.viewController?.view {
+                w.setContentSize(first.fittingSize)
+            }
+            w.center()
+            w.setFrameAutosaveName("SpiderSolitaireSettingsWindow")
+            return w
+        }()
         settings = window
         window.makeKeyAndOrderFront(nil)
     }
@@ -107,9 +119,11 @@ final class WindowController: NSObject, NSWindowDelegate {
 /// status 0 only if the bar never changed, matches `MenuBarLayout`, and shows Full Screen once.
 @MainActor
 enum MenuProbe {
-    static func startIfRequested(menuController: MenuController) {
+    /// Returns whether the probe runs.
+    @discardableResult
+    static func startIfRequested(menuController: MenuController) -> Bool {
         let args: [String] = CommandLine.arguments
-        guard let i: Int = args.firstIndex(of: "--menu-probe") else { return }
+        guard let i: Int = args.firstIndex(of: "--menu-probe") else { return false }
         let seconds: Double = (i + 1 < args.count ? Double(args[i + 1]) : nil) ?? 10
         Task { @MainActor in
             var seen: [String: Int] = [:]
@@ -134,6 +148,7 @@ enum MenuProbe {
             fflush(stdout)
             exit(seen.count == 1 && tops == expected && fullScreen == 1 ? 0 : 1)
         }
+        return true
     }
 }
 
@@ -144,19 +159,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var model: GameModel?
     private var windows: WindowController?
     private var menuController: MenuController?
+    private var updates: UpdateController?
     private var keyMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let model: GameModel = GameModel()
-        let windows: WindowController = WindowController(model: model)
-        let menuController: MenuController = MenuController(model: model, windows: windows)
+        let updates: UpdateController = UpdateController()
+        let windows: WindowController = WindowController(model: model, updates: updates)
+        let menuController: MenuController = MenuController(model: model, windows: windows, updates: updates)
         self.model = model
+        self.updates = updates
         self.windows = windows
         self.menuController = menuController
         MainMenuBuilder.install(target: menuController)
         windows.showBoard()
         NSApplication.shared.activate()
-        MenuProbe.startIfRequested(menuController: menuController)
+        if !MenuProbe.startIfRequested(menuController: menuController) {
+            updates.checkAutomaticallyIfDue(enabled: model.options.checkForUpdatesAutomatically)
+        }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: NSEvent.EventTypeMask.keyDown) {
             [weak self] (event: NSEvent) -> NSEvent? in
             guard let model = self?.model, model.isCelebrating else { return event }

@@ -90,7 +90,7 @@ Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
 ### Menus and shortcuts
 | Menu | Item | Shortcut |
 |---|---|---|
-| Spider Solitaire | About Spider Solitaire, Settings… (⌘,), Services, Hide (⌘H), Hide Others (⌥⌘H), Show All, Quit (⌘Q) | |
+| Spider Solitaire | About Spider Solitaire, Check for Updates…, Settings… (⌘,), Services, Hide (⌘H), Hide Others (⌥⌘H), Show All, Quit (⌘Q) | |
 | Game | New Game | ⌘N |
 | | Restart Game | ⇧⌘N |
 | | Undo / Redo | ⌘Z / ⇧⌘Z |
@@ -103,8 +103,18 @@ Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
 | | Close Window | ⌘W |
 | Window | Minimize, Zoom, Enter Full Screen | ⌘M, –, ⌃⌘F |
 | Help | Spider Solitaire Help: rules, scoring, tips, achievements and every shortcut | ⌘? |
+| | Visit Website (https://dansailer.github.io/SpiderSolitaire/) | |
 
 There is no File, Edit or View menu and no window tabs. SPEC.md §3.5 explains each choice.
+
+### Updates
+Spider Solitaire ▸ Check for Updates… asks GitHub's public API for the latest release
+(no account, no token, nothing else is sent) and compares it with the running version. If there is
+a newer one, Download saves `SpiderSolitaire.zip` to your Downloads folder and shows it in Finder;
+you then replace the app yourself. With "Check for updates automatically" on (Settings ▸ General,
+the default) it checks at launch, at most once a day, and stays silent unless an update exists.
+The app does not replace itself: that would need Developer ID signing and notarization plus an
+updater such as Sparkle, which this project does not use yet.
 
 ## Solver tool (developers)
 ```bash

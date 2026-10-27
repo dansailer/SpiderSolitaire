@@ -132,4 +132,13 @@ final class SolverTests: XCTestCase {
         on.winnableDealsOnly = true
         XCTAssertTrue(try JSONDecoder().decode(Options.self, from: JSONEncoder().encode(on)).winnableDealsOnly)
     }
+
+    func testUpdateCheckOptionOnByDefaultAndOldFilesDecode() throws {
+        XCTAssertTrue(Options().checkForUpdatesAutomatically)
+        let old = #"{"difficulty":2,"winnableDealsOnly":true}"#
+        XCTAssertTrue(try JSONDecoder().decode(Options.self, from: Data(old.utf8)).checkForUpdatesAutomatically)
+        var off = Options()
+        off.checkForUpdatesAutomatically = false
+        XCTAssertFalse(try JSONDecoder().decode(Options.self, from: JSONEncoder().encode(off)).checkForUpdatesAutomatically)
+    }
 }

@@ -8,6 +8,7 @@ let package = Package(
         .library(name: "SpiderCore", targets: ["SpiderCore"]),
         .library(name: "SpiderBoard", targets: ["SpiderBoard"]),
         .library(name: "SpiderPersistence", targets: ["SpiderPersistence"]),
+        .library(name: "SpiderUpdates", targets: ["SpiderUpdates"]),
         .executable(name: "SpiderSolitaire", targets: ["SpiderSolitaire"]),
         .executable(name: "SpiderIcon", targets: ["SpiderIcon"]),
     ],
@@ -18,8 +19,10 @@ let package = Package(
                 linkerSettings: [.linkedLibrary("m", .when(platforms: [.linux]))]),
         // JSON files in Application Support (Foundation only, testable on Linux).
         .target(name: "SpiderPersistence", dependencies: ["SpiderCore"]),
+        // Update check logic: versions, GitHub release JSON, policy (Foundation only, testable on Linux).
+        .target(name: "SpiderUpdates"),
         // Resources/Cards: the Classic card faces (CC0 art, see Resources/Cards/CREDITS.md).
-        .executableTarget(name: "SpiderSolitaire", dependencies: ["SpiderCore", "SpiderBoard", "SpiderPersistence"],
+        .executableTarget(name: "SpiderSolitaire", dependencies: ["SpiderCore", "SpiderBoard", "SpiderPersistence", "SpiderUpdates"],
                           resources: [.copy("Resources/Cards")]),
         // Renders the 1024 px app icon PNG (CoreGraphics); used by scripts/package.sh.
         .executableTarget(name: "SpiderIcon", dependencies: ["SpiderBoard", "SpiderCore"]),
@@ -29,5 +32,6 @@ let package = Package(
         .testTarget(name: "SpiderCoreTests", dependencies: ["SpiderCore"]),
         .testTarget(name: "SpiderBoardTests", dependencies: ["SpiderBoard", "SpiderCore"]),
         .testTarget(name: "SpiderPersistenceTests", dependencies: ["SpiderPersistence", "SpiderCore"]),
+        .testTarget(name: "SpiderUpdatesTests", dependencies: ["SpiderUpdates"]),
     ]
 )

@@ -34,7 +34,7 @@ final class MenuCommandTests: XCTestCase {
                 XCTAssertEqual(word.first.map { String($0).uppercased() }, word.first.map(String.init), "\(title)")
             }
             XCTAssertFalse(title.hasSuffix("..."), "use the ellipsis character")
-            let opensDialog = [MenuCommand.statistics, .achievements].contains(command)
+            let opensDialog = [MenuCommand.statistics, .achievements, .checkForUpdates].contains(command)
             XCTAssertEqual(title.hasSuffix("…"), opensDialog, title)
         }
     }
@@ -42,6 +42,10 @@ final class MenuCommandTests: XCTestCase {
     func testMenusAndDisplay() {
         XCTAssertEqual(MenuCommand.items(in: .difficulty), [.oneSuit, .twoSuits, .fourSuits])
         XCTAssertEqual(MenuCommand.items(in: .window), [.enterFullScreen])
+        XCTAssertEqual(MenuCommand.items(in: .help), [.help, .visitWebsite])
+        XCTAssertEqual(MenuCommand.items(in: .app), [.checkForUpdates])
+        XCTAssertNil(MenuCommand.visitWebsite.shortcut)
+        XCTAssertNil(MenuCommand.checkForUpdates.shortcut)
         XCTAssertFalse(MenuCommand.items(in: .game).contains(.oneSuit))
         XCTAssertEqual(MenuCommand.redo.shortcut?.description, "⇧⌘Z")
         XCTAssertEqual(MenuCommand.enterFullScreen.shortcut?.description, "⌃⌘F")

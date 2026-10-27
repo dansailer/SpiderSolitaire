@@ -57,6 +57,11 @@ final class MenuBarLayoutTests: XCTestCase {
         ])
     }
 
+    func testAppAndHelpMenuOrder() {
+        XCTAssertEqual(Array(MenuBarLayout.menuBar[0].entries.prefix(3)), [.app(.about), .command(.checkForUpdates), .separator])
+        XCTAssertEqual(MenuBarLayout.menuBar[3].entries, [.command(.help), .separator, .command(.visitWebsite)])
+    }
+
     func testNoEmptyMenusOrDoubledSeparators() {
         for top in MenuBarLayout.menuBar {
             XCTAssertFalse(top.entries.isEmpty)

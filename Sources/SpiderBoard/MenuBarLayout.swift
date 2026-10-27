@@ -56,6 +56,7 @@ public enum MenuBarLayout {
     public static let menuBar: [TopMenu] = [
         TopMenu(title: MenuCommand.Menu.app.rawValue, role: .app, entries: [
             .app(.about),
+            .command(.checkForUpdates),
             .separator,
             .app(.settings),
             .separator,
@@ -94,6 +95,8 @@ public enum MenuBarLayout {
         ]),
         TopMenu(title: MenuCommand.Menu.help.rawValue, role: .help, entries: [
             .command(.help),
+            .separator,
+            .command(.visitWebsite),
         ]),
     ]
 
