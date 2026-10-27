@@ -1,7 +1,8 @@
 name: jactionlint
 
 # Lints the workflows and dependabot.yml (https://jactionlint.jdx.dev) with the pedantic profile,
-# failing on any finding. Same triggers and guard as CI; the job name is a required status check.
+# failing on any finding. Same triggers and guard as CI (owner and Dependabot pull requests); the
+# job name is a required status check.
 on:
   pull_request:
     branches: [main]
@@ -18,9 +19,14 @@ concurrency:
 jobs:
   jactionlint:
     name: jactionlint
+    # Pushes and manual runs: the owner only. Pull requests: branches of this repository opened or
+    # updated by the owner, or opened by Dependabot (its pull request author, which unlike the actor
+    # cannot be spoofed); read-only token, no secrets. Fork pull requests are skipped.
     if: >-
-      ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer'
-      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+      ${{ github.repository == 'dansailer/SpiderSolitaire'
+      && ((github.event_name != 'pull_request' && github.actor == 'dansailer')
+      || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      && (github.actor == 'dansailer' || github.event.pull_request.user.login == 'dependabot[bot]'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

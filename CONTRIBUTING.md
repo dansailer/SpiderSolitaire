@@ -23,6 +23,8 @@ date with `main`. No review approval is required (there is one maintainer).
    - `SwiftLint`: `scripts/lint.sh swiftlint` (`.swiftlint.yml`)
    - `swift-format`: `scripts/lint.sh swift-format` (`.swift-format`)
    - `jactionlint`: the workflows and `dependabot.yml`, pedantic profile
+   Dependabot's pull requests (GitHub Actions and Swift packages) run the same checks; review the
+   update and merge it like any other pull request once they pass.
 4. **Merge** once they are green (`gh pr merge --squash`, or a merge commit or rebase). If `main`
    moved on, update the branch first (`gh pr update-branch`) so the checks run against it.
 5. **Release** from `main`: the tag is the version, there is no version file to bump.
