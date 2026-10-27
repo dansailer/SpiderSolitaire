@@ -4,8 +4,8 @@ name: CI
 # required status checks of the "protect-main" ruleset, so keep them stable.
 #
 # pull_request (never pull_request_target): runs get a read-only token and no secrets. Jobs run
-# only for the owner's same-repository branches; fork pull requests also need a maintainer's
-# approval before any workflow runs (all external contributors).
+# only for same-repository branches pushed by the owner or Dependabot; fork pull requests are
+# skipped and also need a maintainer's approval before any workflow runs (all external contributors).
 on:
   pull_request:
     branches: [main]
@@ -27,9 +27,14 @@ concurrency:
 jobs:
   linux:
     name: Linux tests
+    # Pushes and manual runs: the owner only. Pull requests: branches of this repository opened or
+    # updated by the owner, or opened by Dependabot (its pull request author, which unlike the actor
+    # cannot be spoofed); read-only token, no secrets. Fork pull requests are skipped.
     if: >-
-      ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer'
-      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+      ${{ github.repository == 'dansailer/SpiderSolitaire'
+      && ((github.event_name != 'pull_request' && github.actor == 'dansailer')
+      || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      && (github.actor == 'dansailer' || github.event.pull_request.user.login == 'dependabot[bot]'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -45,9 +50,14 @@ jobs:
 
   macos:
     name: macOS build and tests
+    # Pushes and manual runs: the owner only. Pull requests: branches of this repository opened or
+    # updated by the owner, or opened by Dependabot (its pull request author, which unlike the actor
+    # cannot be spoofed); read-only token, no secrets. Fork pull requests are skipped.
     if: >-
-      ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer'
-      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+      ${{ github.repository == 'dansailer/SpiderSolitaire'
+      && ((github.event_name != 'pull_request' && github.actor == 'dansailer')
+      || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      && (github.actor == 'dansailer' || github.event.pull_request.user.login == 'dependabot[bot]'))) }}
     runs-on: macos-15
     timeout-minutes: 30
     permissions:
@@ -69,9 +79,14 @@ jobs:
 
   swiftlint:
     name: SwiftLint
+    # Pushes and manual runs: the owner only. Pull requests: branches of this repository opened or
+    # updated by the owner, or opened by Dependabot (its pull request author, which unlike the actor
+    # cannot be spoofed); read-only token, no secrets. Fork pull requests are skipped.
     if: >-
-      ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer'
-      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+      ${{ github.repository == 'dansailer/SpiderSolitaire'
+      && ((github.event_name != 'pull_request' && github.actor == 'dansailer')
+      || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      && (github.actor == 'dansailer' || github.event.pull_request.user.login == 'dependabot[bot]'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -85,9 +100,14 @@ jobs:
 
   swift-format:
     name: swift-format
+    # Pushes and manual runs: the owner only. Pull requests: branches of this repository opened or
+    # updated by the owner, or opened by Dependabot (its pull request author, which unlike the actor
+    # cannot be spoofed); read-only token, no secrets. Fork pull requests are skipped.
     if: >-
-      ${{ github.repository == 'dansailer/SpiderSolitaire' && github.actor == 'dansailer'
-      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+      ${{ github.repository == 'dansailer/SpiderSolitaire'
+      && ((github.event_name != 'pull_request' && github.actor == 'dansailer')
+      || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      && (github.actor == 'dansailer' || github.event.pull_request.user.login == 'dependabot[bot]'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
