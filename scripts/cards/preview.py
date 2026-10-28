@@ -2,6 +2,7 @@
 """Draws classic faces the way CardView does (white rounded card, art, 1 px border) on felt."""
 import os, sys
 from PIL import Image, ImageDraw
+from pdf_raster import render_pdf
 CARDS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "Sources", "SpiderSolitaire", "Resources", "Cards")
 names = sys.argv[2:] or ["spades_king", "spades_queen", "spades_jack", "spades_ace",
                          "hearts_king", "hearts_queen", "hearts_jack", "hearts_ace"]
@@ -15,10 +16,8 @@ for i, n in enumerate(names):
     mask = Image.new("L", (W, H), 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, W - 1, H - 1), R, fill=255)
     face = Image.new("RGBA", (W, H), (255, 255, 255, 255))
-    art = Image.open(os.path.join(CARDS, n + ".png")).convert("RGBA")
-    # Like .aspectRatio(contentMode: .fit): one uniform scale, centred.
-    scale = min(W / art.width, H / art.height)
-    art = art.resize((round(art.width * scale), round(art.height * scale)), Image.LANCZOS)
+    # Like the app: the vector art rendered straight at the card height (2:3, fits the 71:96 card), centred.
+    art = render_pdf(os.path.join(CARDS, n + ".pdf"), H)
     face.alpha_composite(art, ((W - art.width) // 2, (H - art.height) // 2))
     card.paste(face, (0, 0), mask)
     ImageDraw.Draw(card).rounded_rectangle((0, 0, W - 1, H - 1), R, outline=(31, 31, 31, 255), width=2)
