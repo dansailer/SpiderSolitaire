@@ -35,11 +35,13 @@ public struct BoardAnimations: Hashable, Sendable {
     public static let flyDuration: Double = 0.28
 
     public private(set) var dealHold: DealHold?
+    /// Dealt cards that have left the stock and are still flying to their column.
+    public private(set) var landingDealtIDs: Set<Int> = []
     public private(set) var flying: [FlyingCard] = []
 
     public init() {}
 
-    public var isIdle: Bool { dealHold == nil && flying.isEmpty }
+    public var isIdle: Bool { dealHold == nil && landingDealtIDs.isEmpty && flying.isEmpty }
 
     /// Start a deal animation: `outcome.dealtCardIDs` wait on the stock, minus cards that the deal
     /// completed into a run (those fly to the foundation instead).
@@ -47,6 +49,7 @@ public struct BoardAnimations: Hashable, Sendable {
         let flown = Set(outcome.completedRuns.flatMap { $0.cards.map(\.id) })
         let waiting = outcome.dealtCardIDs.filter { !flown.contains($0) }
         dealHold = waiting.isEmpty ? nil : DealHold(waitingIDs: waiting, dealsBefore: dealsBefore)
+        landingDealtIDs = []
     }
 
     /// Start the deal of a new game: every tableau card waits on the stock, then they are handed
@@ -54,18 +57,28 @@ public struct BoardAnimations: Hashable, Sendable {
     public mutating func beginInitialDeal(_ state: GameState) {
         let order = DealPacing.initialDealOrder(state.columns)
         dealHold = order.isEmpty ? nil : DealHold(waitingIDs: order, dealsBefore: max(1, state.dealsRemaining))
+        landingDealtIDs = []
     }
 
-    /// True while dealt cards are still waiting on the stock.
-    public var isDealing: Bool { dealHold != nil }
+    /// True from the start of a deal until its last card has landed: while cards still wait on
+    /// the stock and while released ones are still in the air.
+    public var isDealing: Bool { dealHold != nil || !landingDealtIDs.isEmpty }
 
-    /// Release one dealt card to its column. Returns false if it was not waiting.
+    /// Release one dealt card to its column; it is in the air until `landDealtCard`. Returns
+    /// false if it was not waiting.
     @discardableResult
     public mutating func releaseDealtCard(_ id: Int) -> Bool {
         guard var hold = dealHold, hold.waitingIDs.contains(id) else { return false }
         hold.release(id)
         dealHold = hold.waitingIDs.isEmpty ? nil : hold
+        landingDealtIDs.insert(id)
         return true
+    }
+
+    /// A released dealt card reached its column. Returns false if it was not in the air.
+    @discardableResult
+    public mutating func landDealtCard(_ id: Int) -> Bool {
+        landingDealtIDs.remove(id) != nil
     }
 
     /// Put the cards of each completed run in the air, still at their column positions.

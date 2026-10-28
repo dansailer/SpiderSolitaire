@@ -51,6 +51,25 @@ public enum DealPacing {
         }
     }
 
+    /// One card of a deal: when it leaves the stock, when it lands, and whether it clicks.
+    public struct CardStep: Hashable, Sendable {
+        public let id: Int
+        public let release: Double
+        public let landing: Double
+        public let sound: Bool
+    }
+
+    /// A timed step for every card of a deal, in deal order, `delay` seconds after now. A stock
+    /// card the deal completed into a run does not wait on the stock (it flies to the foundation),
+    /// but it keeps its step, so it still clicks at its place in the rhythm.
+    public static func steps(_ kind: Kind, ids: [Int], delay: Double = 0) -> [CardStep] {
+        ids.enumerated().map { i, id in
+            let release = delay + releaseTime(kind, index: i)
+            return CardStep(
+                id: id, release: release, landing: release + flightDuration, sound: playsSound(kind, index: i))
+        }
+    }
+
     /// Order the initial deal hands out cards: row by row, left to right, like dealing by hand
     /// (columns 1–4 get the sixth row). Ids of `columns`, each column bottom card first.
     public static func initialDealOrder(_ columns: [[Card]]) -> [Int] {

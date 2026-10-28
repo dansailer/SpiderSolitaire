@@ -76,7 +76,7 @@ final class GameModel: ObservableObject {
     private var animationGeneration: Int = 0
     /// A click that skipped a running deal: the rest of that gesture is ignored, so it cannot
     /// also pick up or move a card that was still in the air.
-    private var swallowingGesture: Bool = false
+    private var suppressedGesture: GestureSuppression = GestureSuppression()
     /// Bumped to cancel a running hint flash.
     private var highlightGeneration: Int = 0
     /// Identifies the current celebration so a stale end step does nothing.
@@ -101,6 +101,8 @@ final class GameModel: ObservableObject {
     private enum Step: Sendable {
         /// A dealt card leaves the stock; `sound` plays the deal cue with it.
         case releaseDealt(Int, sound: Bool)
+        /// A dealt card reached its column (the deal is over once the last one has).
+        case landDealt(Int)
         case land(Int)
         case finishSlot(Int)
         case afterAnimations
@@ -238,6 +240,7 @@ final class GameModel: ObservableObject {
                 session.open(saved)
             } else {
                 session.discard(saved)
+                animateInitialDeal()
             }
         }
         hasSavedGame = store.hasSavedGame
@@ -313,11 +316,13 @@ final class GameModel: ObservableObject {
     // MARK: Pointer (one DragGesture with minimumDistance 0 drives everything)
 
     func pointerChanged(start: CGPoint, translation: CGSize, layout: BoardLayout) {
-        guard celebration == nil, !swallowingGesture else { return }
+        guard celebration == nil else { return }
+        if suppressedGesture.ignoresChange(start: BoardPoint(start)) { return }
         if animations.isDealing {
-            // First click during a deal finishes it at once and does nothing else.
+            // First click during a deal (until its last card has landed) finishes it at once
+            // and does nothing else.
             skipDeal()
-            swallowingGesture = true
+            suppressedGesture.suppress(start: BoardPoint(start))
             return
         }
         if !animations.isIdle { settleAnimations(announce: true) }
@@ -333,10 +338,7 @@ final class GameModel: ObservableObject {
             skipCelebration()
             return
         }
-        if swallowingGesture {
-            swallowingGesture = false
-            return
-        }
+        if suppressedGesture.ignoresEnd(start: BoardPoint(start)) { return }
         var next: PointerController = pointer
         let result: PointerController.Result = next.pointerEnded(
             start: BoardPoint(start), translation: BoardSize(translation),
@@ -473,11 +475,14 @@ final class GameModel: ObservableObject {
     private func animateInitialDeal(delay: Double = 0) {
         guard dealsAnimate else { return }
         animations.beginInitialDeal(game.state)
-        let order: [Int] = animations.dealHold?.waitingIDs ?? []
-        for (i, id) in order.enumerated() {
-            schedule(
-                Step.releaseDealt(id, sound: DealPacing.playsSound(DealPacing.Kind.initial, index: i)),
-                after: delay + DealPacing.releaseTime(DealPacing.Kind.initial, index: i))
+        scheduleDeal(DealPacing.Kind.initial, ids: animations.dealHold?.waitingIDs ?? [], delay: delay)
+    }
+
+    /// Every card of a deal leaves the stock (with its click) and later lands, at its own time.
+    private func scheduleDeal(_ kind: DealPacing.Kind, ids: [Int], delay: Double = 0) {
+        for step in DealPacing.steps(kind, ids: ids, delay: delay) {
+            schedule(Step.releaseDealt(step.id, sound: step.sound), after: step.release)
+            schedule(Step.landDealt(step.id), after: step.landing)
         }
     }
 
@@ -585,6 +590,7 @@ final class GameModel: ObservableObject {
         celebrationID += 1
         winAnnounced = false
         settleAnimations(announce: false)
+        suppressedGesture.reset()
         clearHighlight()
         pointer.reset()
         hintCycler.reset()
@@ -626,14 +632,10 @@ final class GameModel: ObservableObject {
             if let outcome, animated {
                 animations.beginDeal(outcome, dealsBefore: dealsBefore)
                 animations.beginFlights(outcome.completedRuns, columns: game.state.columns)
-                // Released in column order; a card the deal completed into a run is not waiting
-                // (it flies to the foundation) but keeps its slot in the rhythm.
-                let waiting: Set<Int> = Set(animations.dealHold?.waitingIDs ?? [])
-                for (i, id) in outcome.dealtCardIDs.enumerated() where waiting.contains(id) {
-                    schedule(
-                        Step.releaseDealt(id, sound: DealPacing.playsSound(DealPacing.Kind.stock, index: i)),
-                        after: DealPacing.releaseTime(DealPacing.Kind.stock, index: i))
-                }
+                // Released in column order. A card the deal completed into a run is not waiting
+                // (it flies to the foundation; releasing it does nothing) but keeps its step, so
+                // all ten cards click in rhythm.
+                scheduleDeal(DealPacing.Kind.stock, ids: outcome.dealtCardIDs)
                 flightsStart = DealPacing.totalDuration(DealPacing.Kind.stock, cards: outcome.dealtCardIDs.count)
             }
         } else {
@@ -680,6 +682,8 @@ final class GameModel: ObservableObject {
                 _ = animations.releaseDealtCard(id)
             }
             if sound { play(SoundCue.deal) }
+        case .landDealt(let id):
+            _ = animations.landDealtCard(id)
         case .land(let id):
             withAnimation(Animation.easeIn(duration: BoardAnimations.flyDuration)) {
                 animations.land(id)

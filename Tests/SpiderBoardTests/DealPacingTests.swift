@@ -84,8 +84,81 @@ final class DealPacingTests: XCTestCase {
         XCTAssertEqual(byID[order[0]]!.frame, layout.cardFrames(in: game.state)[0][0])
 
         for id in order.dropFirst() { anim.releaseDealtCard(id) }
+        XCTAssertEqual(layout.placements(for: game.state, animations: anim), layout.placements(for: game.state))
+        XCTAssertTrue(anim.isDealing, "the last card is still in the air")
+        for id in order.dropLast() { anim.landDealtCard(id) }
+        XCTAssertTrue(anim.isDealing)
+        anim.landDealtCard(order.last!)
         XCTAssertFalse(anim.isDealing)
         XCTAssertTrue(anim.isIdle)
-        XCTAssertEqual(layout.placements(for: game.state, animations: anim), layout.placements(for: game.state))
+    }
+
+    /// Each card lands one flight after it leaves; the deal ends when the last one lands.
+    func testEveryCardHasAStepFromReleaseToLanding() {
+        for (kind, count) in [(DealPacing.Kind.stock, 10), (.initial, 54)] {
+            let ids = Array(100..<(100 + count))
+            let steps = DealPacing.steps(kind, ids: ids, delay: 0.35)
+            XCTAssertEqual(steps.map(\.id), ids)
+            for (i, step) in steps.enumerated() {
+                XCTAssertEqual(step.release, 0.35 + DealPacing.releaseTime(kind, index: i), accuracy: 1e-9)
+                XCTAssertEqual(step.landing, step.release + DealPacing.flightDuration, accuracy: 1e-9)
+                XCTAssertEqual(step.sound, DealPacing.playsSound(kind, index: i))
+            }
+            XCTAssertEqual(steps.last!.landing, 0.35 + DealPacing.totalDuration(kind, cards: count), accuracy: 1e-9)
+        }
+        XCTAssertTrue(DealPacing.steps(.stock, ids: []).isEmpty)
+    }
+
+    /// A new deal starts clean, even if the previous one was cut short mid-flight.
+    func testANewDealForgetsCardsStillInTheAirFromTheLastOne() {
+        let game = SpiderGame(difficulty: .oneSuit, seed: 2)
+        var anim = BoardAnimations()
+        anim.beginInitialDeal(game.state)
+        let order = DealPacing.initialDealOrder(game.state.columns)
+        for id in order { anim.releaseDealtCard(id) }
+        XCTAssertTrue(anim.isDealing)
+        anim.beginInitialDeal(game.state)
+        XCTAssertTrue(anim.landingDealtIDs.isEmpty)
+        XCTAssertEqual(anim.dealHold?.waitingIDs, order)
+    }
+}
+
+/// The click that skips a deal must not act, and must not swallow the next gesture either.
+final class GestureSuppressionTests: XCTestCase {
+    let a = BoardPoint(x: 10, y: 20)
+    let b = BoardPoint(x: 300, y: 40)
+
+    func testTheSkippingGestureIsIgnoredUntilItEnds() {
+        var s = GestureSuppression()
+        XCTAssertFalse(s.ignoresChange(start: a))
+        s.suppress(start: a)
+        XCTAssertTrue(s.ignoresChange(start: a))
+        XCTAssertTrue(s.ignoresChange(start: a))
+        XCTAssertTrue(s.ignoresEnd(start: a))
+        XCTAssertNil(s.start)
+        XCTAssertFalse(s.ignoresChange(start: a), "the next click at the same spot acts")
+        XCTAssertFalse(s.ignoresEnd(start: a))
+    }
+
+    /// The skipping gesture was cancelled without an end event: the next gesture still works.
+    func testACancelledSkipDoesNotSwallowTheNextGesture() {
+        var s = GestureSuppression()
+        s.suppress(start: a)
+        XCTAssertFalse(s.ignoresChange(start: b))
+        XCTAssertNil(s.start)
+        XCTAssertFalse(s.ignoresChange(start: b))
+        XCTAssertFalse(s.ignoresEnd(start: b))
+
+        s.suppress(start: a)
+        XCTAssertFalse(s.ignoresEnd(start: b), "an end of another gesture is not swallowed")
+        XCTAssertNil(s.start)
+    }
+
+    func testResetDropsTheSuppression() {
+        var s = GestureSuppression()
+        s.suppress(start: a)
+        s.reset()
+        XCTAssertFalse(s.ignoresChange(start: a))
+        XCTAssertFalse(s.ignoresEnd(start: a))
     }
 }
