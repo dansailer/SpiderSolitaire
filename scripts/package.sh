@@ -9,6 +9,8 @@
 #                                       # Developer ID: hardened runtime and secure timestamp, ready
 #                                       # for notarization (the Release workflow notarizes and staples)
 #   SIGN_KEYCHAIN=/path/x.keychain-db   # look the identity up in this keychain only (CI)
+#   CONFIG=debug scripts/package.sh     # debug build (default release); only for testing, e.g. the
+#                                       # DEBUG-only local update feed (SPEC.md §3.6d)
 #
 # Works with macOS's stock bash 3.2 (no bash 4 features).
 set -euo pipefail
@@ -30,6 +32,11 @@ BUILD_DIR="$ROOT/build"
 APP="$BUILD_DIR/$APP_NAME.app"
 ZIP="$BUILD_DIR/SpiderSolitaire.zip"
 VERSION="${VERSION:-1.0.0}"
+CONFIG="${CONFIG:-release}"
+case "$CONFIG" in
+    release | debug) ;;
+    *) echo "error: CONFIG must be release or debug, not '$CONFIG'." >&2; exit 1 ;;
+esac
 BUILD_NUMBER="${BUILD_NUMBER:-$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || echo 1)}"
 
 ARCH_FLAGS=()
@@ -37,10 +44,10 @@ if [[ "${UNIVERSAL:-0}" == "1" ]]; then
     ARCH_FLAGS=(--arch arm64 --arch x86_64)
 fi
 
-echo "==> swift build -c release"
-swift build -c release ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} --product "$EXECUTABLE"
-swift build -c release ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} --product SpiderIcon
-BIN_DIR="$(swift build -c release ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} --show-bin-path)"
+echo "==> swift build -c $CONFIG"
+swift build -c "$CONFIG" ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} --product "$EXECUTABLE"
+swift build -c "$CONFIG" ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} --product SpiderIcon
+BIN_DIR="$(swift build -c "$CONFIG" ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} --show-bin-path)"
 
 mkdir -p "$BUILD_DIR"
 

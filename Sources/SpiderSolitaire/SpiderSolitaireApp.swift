@@ -247,7 +247,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let snapshotDirectory: URL? = SnapshotMode.outputDirectory
-        let model: GameModel = snapshotDirectory != nil ? SnapshotMode.makeModel() : GameModel()
+        // The DEBUG update test feed also gets a throwaway store, so tests never touch real games.
+        let model: GameModel =
+            snapshotDirectory != nil || DebugUpdateTesting.isActive ? SnapshotMode.makeModel() : GameModel()
         let updates: UpdateController = UpdateController()
         let windows: WindowController = WindowController(model: model, updates: updates)
         let menuController: MenuController = MenuController(model: model, windows: windows, updates: updates)
@@ -261,6 +263,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let snapshotDirectory {
             SnapshotMode.run(model: model, windows: windows, into: snapshotDirectory)
         } else if !MenuProbe.startIfRequested(menuController: menuController) {
+            if !DebugUpdateTesting.isActive { MoveToApplications.offerIfNeeded() }
             updates.checkAutomaticallyIfDue(enabled: model.options.checkForUpdatesAutomatically)
         }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: NSEvent.EventTypeMask.keyDown) {
@@ -269,6 +272,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             model.skipCelebration()
             return nil
         }
+    }
+
+    /// "Restart to Update" starts its helper here, once quitting can no longer be cancelled.
+    func applicationWillTerminate(_ notification: Notification) {
+        updates?.appWillTerminate()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -303,6 +311,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } else if response == NSApplication.ModalResponse.alertSecondButtonReturn {
                 model.discardForQuit()
             } else {
+                updates?.quitWasCancelled()
                 return NSApplication.TerminateReply.terminateCancel
             }
         }

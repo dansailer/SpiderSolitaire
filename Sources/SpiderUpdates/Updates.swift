@@ -12,6 +12,13 @@ public enum ProjectLinks {
         string: "https://api.github.com/repos/dansailer/SpiderSolitaire/releases/latest")!
     /// The release asset the app downloads (scripts/package.sh and .github/workflows/release.yml).
     public static let assetName: String = "SpiderSolitaire.zip"
+    /// `shasum -a 256 SpiderSolitaire.zip` output, published next to the zip by the Release workflow.
+    public static let checksumAssetName: String = "SpiderSolitaire.zip.sha256"
+    /// Where release assets are downloaded from (GitHub redirects these to its asset CDN).
+    public static let releaseDownloadPrefix: String = "https://github.com/dansailer/SpiderSolitaire/releases/download/"
+    public static let bundleIdentifier: String = "com.dansailer.SpiderSolitaire"
+    /// The Apple Developer team that signs releases ("Developer ID Application: Daniel Sailer").
+    public static let teamIdentifier: String = "595TEE9LSF"
 }
 
 /// A semantic version (MAJOR.MINOR.PATCH, optional -prerelease), compared per semver.org §11.
@@ -122,6 +129,9 @@ public struct ReleaseInfo: Decodable, Hashable, Sendable {
 
     /// The app zip, if the release has one.
     public var appAsset: Asset? { assets.first { $0.name == ProjectLinks.assetName } }
+
+    /// The zip's SHA-256 file, if the release has one.
+    public var checksumAsset: Asset? { assets.first { $0.name == ProjectLinks.checksumAssetName } }
 }
 
 /// The result of comparing the running version with the latest release.

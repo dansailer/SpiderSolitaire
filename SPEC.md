@@ -262,10 +262,35 @@ Why these keys:
   check), Gameplay (winnable deals, undo rules; difficulty stays in Game ▸ Difficulty), Appearance (live
   previews of the Classic and Simple faces and the card back, animations) and Credits (links to every art source, the repo and the website).
 - Check for Updates… (app menu) reads `releases/latest` from GitHub's public API, compares semver with
-  CFBundleShortVersionString (`SpiderUpdates`) and offers Download (zip to ~/Downloads, shown in
-  Finder) or Later. The automatic check runs at launch at most once a day and is silent unless a newer
-  release exists. Drafts, prereleases and non version tags are ignored. No self replacement (that needs
-  Developer ID signing and Sparkle).
+  CFBundleShortVersionString (`SpiderUpdates`) and offers Install or Later. The automatic check runs at
+  launch at most once a day and is silent unless a newer release exists. Drafts, prereleases and non
+  version tags are ignored.
+- Install (Apple APIs only, no updater framework): download `SpiderSolitaire.zip` and
+  `SpiderSolitaire.zip.sha256` (release builds only accept https URLs under
+  `github.com/dansailer/SpiderSolitaire/releases/download/`) into a temporary folder on the app's
+  volume, with a progress bar; check the SHA-256 (CryptoKit); unpack with `ditto -x -k`; check the
+  new app with `SecStaticCodeCheckValidity` (all architectures, strict, nested code) against
+  `UpdateTrust.requirement()`: Apple anchor, Developer ID Application certificate, team 595TEE9LSF,
+  identifier com.dansailer.SpiderSolitaire; its Info.plist must have the same bundle id and a
+  strictly newer CFBundleShortVersionString. Any failure deletes the download and changes nothing.
+- Then "Restart to Update" or "Later". Later deletes the download (the next check offers it again);
+  installing at quit was rejected because a logout or shutdown could interrupt the swap. Restart to
+  Update quits normally (Cancel in the save prompt keeps the update ready); in
+  `applicationWillTerminate` a `/bin/sh` helper (`InstallScript`, arguments passed positionally)
+  waits for the process to exit, renames the old bundle aside, renames the new one into place (on
+  failure renames the old one back), removes the quarantine flag, relaunches with `open` and deletes
+  the temporary folder. Failures are logged to `install.log` in that folder.
+- Fallback to the zip in ~/Downloads (shown in Finder), with the reason in the window, when the app
+  is translocated, its folder isn't writable, it isn't an .app, or the release has no checksum file.
+  An ad hoc signed release never installs in place.
+- At launch, when running from ~/Downloads or translocated and no copy exists in /Applications: a
+  one-time "Move to Applications" offer (Move to Applications / Not Now, "Don't ask again" stored as
+  `SpiderSolitaireDontOfferMoveToApplications`). It copies (never overwrites), removes quarantine,
+  trashes the original unless translocated, opens the copy and quits.
+- DEBUG builds only (`CONFIG=debug scripts/package.sh`): `SPIDER_UPDATE_TEST_FEED=<release.json>`
+  reads the release from a file (file:// asset URLs allowed) and uses a throwaway store;
+  `SPIDER_UPDATE_TEST_AUTO=1` presses Install and Restart to Update; `SPIDER_UPDATE_TEST_RELAUNCH`
+  replaces `open`. Release builds compile this out.
 - Help ▸ Visit Website opens https://dansailer.github.io/SpiderSolitaire/ (source in `docs/`).
 
 ### 3.7 Sound
