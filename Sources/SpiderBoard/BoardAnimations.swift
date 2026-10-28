@@ -31,8 +31,6 @@ public struct DealHold: Hashable, Sendable {
 /// Transient animation state on top of `GameState`. Pure data: the app schedules the steps
 /// (with delays) and each step is a small mutation done inside `withAnimation`.
 public struct BoardAnimations: Hashable, Sendable {
-    public static let dealStagger: Double = 0.045
-    public static let dealDuration: Double = 0.22
     public static let flyStagger: Double = 0.04
     public static let flyDuration: Double = 0.28
 
@@ -50,6 +48,16 @@ public struct BoardAnimations: Hashable, Sendable {
         let waiting = outcome.dealtCardIDs.filter { !flown.contains($0) }
         dealHold = waiting.isEmpty ? nil : DealHold(waitingIDs: waiting, dealsBefore: dealsBefore)
     }
+
+    /// Start the deal of a new game: every tableau card waits on the stock, then they are handed
+    /// out in `DealPacing.initialDealOrder` (row by row). They wait on the stock's top pile.
+    public mutating func beginInitialDeal(_ state: GameState) {
+        let order = DealPacing.initialDealOrder(state.columns)
+        dealHold = order.isEmpty ? nil : DealHold(waitingIDs: order, dealsBefore: max(1, state.dealsRemaining))
+    }
+
+    /// True while dealt cards are still waiting on the stock.
+    public var isDealing: Bool { dealHold != nil }
 
     /// Release one dealt card to its column. Returns false if it was not waiting.
     @discardableResult
