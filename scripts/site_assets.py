@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Builds docs/assets and docs/fonts for the website (run on the box or any machine with Pillow,
-rsvg-convert and pngquant). Everything the page loads is a file in docs/: no CDN.
+rsvg-convert, pngquant and pdftocairo (poppler) or macOS sips). Everything the page loads is a file in
+docs/: no CDN.
 
     python3 scripts/site_assets.py <snapshots-dir> <icon.svg> <card-back.svg> <fonts-dir> <phosphor-dir>
 
@@ -55,8 +56,12 @@ svg_png(icon_svg, "favicon-32.png", 32, 32)
 svg_png(back_svg, "card-back.png", 240)
 shutil.copy(icon_svg, os.path.join(ASSETS, "favicon.svg"))
 
+sys.path.insert(0, os.path.join(ROOT, "scripts", "cards"))
+from pdf_raster import render_pdf  # noqa: E402
 for name in ["spades_king", "hearts_queen", "spades_jack", "spades_ace", "hearts_king", "hearts_ace"]:
-    shutil.copy(os.path.join(CARDS, name + ".png"), os.path.join(ASSETS, name.replace("_", "-") + ".png"))
+    dst = os.path.join(ASSETS, name.replace("_", "-") + ".png")
+    render_pdf(os.path.join(CARDS, name + ".pdf"), 360).save(dst, optimize=True)  # 240 x 360, as before
+    subprocess.run(["pngquant", "--force", "--skip-if-larger", "--ext", ".png", "--quality", "70-95", dst], check=False)
 
 # Fonts (SIL OFL 1.1), Latin subsets as published by Fontsource, each with its licence.
 for folder, files, lic in [

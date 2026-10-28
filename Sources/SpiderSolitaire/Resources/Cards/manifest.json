@@ -2,8 +2,8 @@
   "comment": "Written by scripts/cards/build_classic_cards.py; checked by ClassicCardArtTests.",
   "sourceWidth": 360,
   "sourceHeight": 540,
-  "imageWidth": 240,
-  "imageHeight": 360,
+  "format": "pdf",
+  "ornateSpadeWidth": 0.66,
   "pipScale": {
     "hearts": {
       "x": 1.15,

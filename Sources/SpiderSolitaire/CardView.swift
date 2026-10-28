@@ -10,10 +10,22 @@ private struct CardFaceStyleKey: EnvironmentKey {
     static let defaultValue: CardFaceStyle = CardFaceStyle.classic
 }
 
+/// How the Classic face bitmaps are drawn. They are rendered at the card's exact pixel size, so the
+/// board copies pixels 1:1 (`.none`, no blur). Views that rotate cards (the Settings previews) set
+/// `.high` so the turned edges stay smooth.
+private struct CardArtInterpolationKey: EnvironmentKey {
+    static let defaultValue: Image.Interpolation = Image.Interpolation.none
+}
+
 extension EnvironmentValues {
     var cardFaceStyle: CardFaceStyle {
         get { self[CardFaceStyleKey.self] }
         set { self[CardFaceStyleKey.self] = newValue }
+    }
+
+    var cardArtInterpolation: Image.Interpolation {
+        get { self[CardArtInterpolationKey.self] }
+        set { self[CardArtInterpolationKey.self] = newValue }
     }
 }
 
@@ -25,6 +37,8 @@ struct CardView: View {
     /// Hint flash: XP shows the card with inverted colours; we add a bright outline too.
     var isHighlighted: Bool = false
     @Environment(\.cardFaceStyle) private var faceStyle: CardFaceStyle
+    /// Pixels per point of the window's display; changes when the window moves to another screen.
+    @Environment(\.displayScale) private var displayScale: CGFloat
 
     var body: some View {
         if isHighlighted {
@@ -43,8 +57,11 @@ struct CardView: View {
     private var content: some View {
         Group {
             if card.isFaceUp {
-                if faceStyle == CardFaceStyle.classic, let image: NSImage = ClassicCardImages.shared.image(for: card) {
-                    ClassicCardFaceView(image: image, size: size)
+                if faceStyle == CardFaceStyle.classic,
+                    let bitmap: ClassicCardBitmap = ClassicCardImages.shared.bitmap(
+                        for: card, size: size, scale: displayScale)
+                {
+                    ClassicCardFaceView(bitmap: bitmap, size: size)
                 } else {
                     CardFaceView(card: card, size: size)
                 }
@@ -70,24 +87,23 @@ enum CardStyle {
     static func color(_ suit: Suit) -> Color { suit.isRed ? red : black }
 }
 
-/// Classic face: the bitmap (transparent outside the art), fitted without distortion onto the white card, clipped to the
-/// card's rounded rect, with the same 1 pt border as the simple face.
+/// Classic face: the card-sized bitmap (art centred at its own 2:3 proportions, transparent around
+/// it) on the white card, clipped to the card's rounded rect, with the same 1 pt border as the simple
+/// face. The bitmap already has the card's pixel size, so it is drawn 1:1, not scaled.
 struct ClassicCardFaceView: View {
-    let image: NSImage
+    let bitmap: ClassicCardBitmap
     let size: CGSize
+    @Environment(\.cardArtInterpolation) private var interpolation: Image.Interpolation
 
     var body: some View {
         let radius: CGFloat = CardStyle.cornerRadius(size)
         ZStack {
             RoundedRectangle(cornerRadius: radius)
                 .fill(Color.white)
-            // The art keeps its own 2:3 proportions (one uniform scale), centred on the 71:96 card.
-            Image(nsImage: image)
+            Image(decorative: bitmap.image, scale: bitmap.scale)
                 .resizable()
-                .interpolation(Image.Interpolation.high)
-                .antialiased(true)
-                .scaledToFit()
-                .frame(width: size.width, height: size.height)
+                .interpolation(interpolation)
+                .frame(width: bitmap.pointSize.width, height: bitmap.pointSize.height)
             RoundedRectangle(cornerRadius: radius)
                 .strokeBorder(CardStyle.border, lineWidth: 1)
         }
