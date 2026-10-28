@@ -273,24 +273,35 @@ Why these keys:
   `UpdateTrust.requirement()`: Apple anchor, Developer ID Application certificate, team 595TEE9LSF,
   identifier com.dansailer.SpiderSolitaire; its Info.plist must have the same bundle id and a
   strictly newer CFBundleShortVersionString. Any failure deletes the download and changes nothing.
-- Then "Restart to Update" or "Later". Later deletes the download (the next check offers it again);
+- Then "Restart to Update" or "Later". Later deletes the download and returns to idle (the next check
+  offers it again);
   installing at quit was rejected because a logout or shutdown could interrupt the swap. Restart to
   Update quits normally (Cancel in the save prompt keeps the update ready); in
   `applicationWillTerminate` a `/bin/sh` helper (`InstallScript`, arguments passed positionally)
   waits for the process to exit, renames the old bundle aside, renames the new one into place (on
-  failure renames the old one back), removes the quarantine flag, relaunches with `open` and deletes
-  the temporary folder. Failures are logged to `install.log` in that folder.
+  failure renames the old one back), removes the quarantine flag and relaunches with `open`. Only when
+  `open` succeeds is the temporary folder (with the backup) deleted; if it fails, the new app is moved
+  aside as `rejected.app`, the old one is put back and opened, and the folder and its `install.log` stay.
 - Fallback to the zip in ~/Downloads (shown in Finder), with the reason in the window, when the app
   is translocated, its folder isn't writable, it isn't an .app, or the release has no checksum file.
   An ad hoc signed release never installs in place.
 - At launch, when running from ~/Downloads or translocated and no copy exists in /Applications: a
   one-time "Move to Applications" offer (Move to Applications / Not Now, "Don't ask again" stored as
-  `SpiderSolitaireDontOfferMoveToApplications`). It copies (never overwrites), removes quarantine,
-  trashes the original unless translocated, opens the copy and quits.
+  `SpiderSolitaireDontOfferMoveToApplications`). It copies (never overwrites), removes quarantine and
+  checks the copy (valid signature for our identifier, our Info.plist), then quits normally. Only after
+  this process has exited does a helper (`MoveScript`) open the copy with `--moved-from <original>`;
+  the running copy then puts the original in the Trash (only another, non-translocated .app with our
+  bundle id). If the quit is cancelled, nothing is opened and an alert says the copy is in
+  Applications. If the copy won't open, the helper reopens the original with `--move-failed`, which
+  says so and keeps running; the copy is left in Applications. A copy that fails the check goes to
+  the Trash and the app keeps running.
 - DEBUG builds only (`CONFIG=debug scripts/package.sh`): `SPIDER_UPDATE_TEST_FEED=<release.json>`
   reads the release from a file (file:// asset URLs allowed) and uses a throwaway store;
   `SPIDER_UPDATE_TEST_AUTO=1` presses Install and Restart to Update; `SPIDER_UPDATE_TEST_RELAUNCH`
-  replaces `open`. Release builds compile this out.
+  replaces `open`; `SPIDER_UPDATE_TEST_AUTO=later` presses Later first, then checks again.
+  `SPIDER_MOVE_TEST_APPLICATIONS=<dir>` stands in for /Applications and accepts the move offer
+  (alerts go to stderr), `SPIDER_MOVE_TEST_RELAUNCH` replaces `open` in the move helper. Release
+  builds compile this out.
 - Help ▸ Visit Website opens https://dansailer.github.io/SpiderSolitaire/ (source in `docs/`).
 
 ### 3.7 Sound

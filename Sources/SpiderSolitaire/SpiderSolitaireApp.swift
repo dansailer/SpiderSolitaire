@@ -249,7 +249,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let snapshotDirectory: URL? = SnapshotMode.outputDirectory
         // The DEBUG update test feed also gets a throwaway store, so tests never touch real games.
         let model: GameModel =
-            snapshotDirectory != nil || DebugUpdateTesting.isActive ? SnapshotMode.makeModel() : GameModel()
+            snapshotDirectory != nil || DebugUpdateTesting.isActive || DebugMoveTesting.isActive
+            ? SnapshotMode.makeModel() : GameModel()
         let updates: UpdateController = UpdateController()
         let windows: WindowController = WindowController(model: model, updates: updates)
         let menuController: MenuController = MenuController(model: model, windows: windows, updates: updates)
@@ -260,11 +261,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainMenuBuilder.install(target: menuController)
         windows.showBoard()
         NSApplication.shared.activate()
+        MoveToApplications.handleLaunchNote()
         if let snapshotDirectory {
             SnapshotMode.run(model: model, windows: windows, into: snapshotDirectory)
         } else if !MenuProbe.startIfRequested(menuController: menuController) {
             if !DebugUpdateTesting.isActive { MoveToApplications.offerIfNeeded() }
-            updates.checkAutomaticallyIfDue(enabled: model.options.checkForUpdatesAutomatically)
+            if !DebugMoveTesting.isActive {
+                updates.checkAutomaticallyIfDue(enabled: model.options.checkForUpdatesAutomatically)
+            }
         }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: NSEvent.EventTypeMask.keyDown) {
             [weak self] (event: NSEvent) -> NSEvent? in
@@ -277,6 +281,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// "Restart to Update" starts its helper here, once quitting can no longer be cancelled.
     func applicationWillTerminate(_ notification: Notification) {
         updates?.appWillTerminate()
+        MoveToApplications.appWillTerminate()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -312,6 +317,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 model.discardForQuit()
             } else {
                 updates?.quitWasCancelled()
+                MoveToApplications.quitWasCancelled()
                 return NSApplication.TerminateReply.terminateCancel
             }
         }

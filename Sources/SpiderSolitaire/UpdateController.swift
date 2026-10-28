@@ -13,6 +13,8 @@ import SwiftUI
 @MainActor
 final class UpdateController: ObservableObject {
     enum Phase: Equatable {
+        /// Nothing in progress: before the first check, after Later, or after a cancelled download.
+        case idle
         case checking
         case upToDate(version: String)
         case available(current: String, latest: String, notes: String, release: ReleaseInfo)
@@ -25,9 +27,25 @@ final class UpdateController: ObservableObject {
         case downloaded(file: URL, reason: String?)
         case failed(message: String)
         case installFailed(message: String, release: ReleaseInfo)
+
+        var step: UpdateStep {
+            switch self {
+            case .idle: return .idle
+            case .checking: return .checking
+            case .upToDate: return .upToDate
+            case .available: return .available
+            case .downloading: return .downloading
+            case .verifying: return .verifying
+            case .ready: return .ready
+            case .installing: return .installing
+            case .downloaded: return .downloaded
+            case .failed: return .failed
+            case .installFailed: return .installFailed
+            }
+        }
     }
 
-    @Published private(set) var phase: Phase = .checking {
+    @Published private(set) var phase: Phase = .idle {
         didSet {
             // Progress steps are not worth a log line each.
             if case .downloading(_, let fraction?) = phase, fraction < 1 { return }
@@ -99,12 +117,7 @@ final class UpdateController: ObservableObject {
     }
 
     /// While a checked update waits or installs, a new check would only throw it away.
-    private var isBusyInstalling: Bool {
-        switch phase {
-        case .downloading, .verifying, .ready, .installing: return true
-        default: return false
-        }
-    }
+    private var isBusyInstalling: Bool { phase.step.keepsCurrentUpdate }
 
     struct UpdateFailure: Error {
         let statusCode: Int?
@@ -206,7 +219,14 @@ final class UpdateController: ObservableObject {
                     version: latest, workFolder: folder, newApp: newApp, target: target)
                 self.phase = .ready(latest: latest)
                 self.showWindow()
-                if DebugUpdateTesting.autoInstall { self.restartToUpdate() }
+                if DebugUpdateTesting.autoInstall {
+                    if DebugUpdateTesting.takeLater() {
+                        self.later()
+                        self.check(userInitiated: true)
+                    } else {
+                        self.restartToUpdate()
+                    }
+                }
             } catch {
                 if let work { try? FileManager.default.removeItem(at: work) }
                 guard let self, !(error is CancellationError), !Task.isCancelled else { return }
@@ -291,6 +311,7 @@ final class UpdateController: ObservableObject {
     /// "Later": the checked update is thrown away; the next check offers it again.
     func later() {
         discardPrepared()
+        phase = .idle
         close()
     }
 
@@ -345,7 +366,7 @@ final class UpdateController: ObservableObject {
     func close() {
         task?.cancel()
         switch phase {
-        case .downloading, .verifying: phase = .checking
+        case .downloading, .verifying: phase = .idle
         default: break
         }
         window?.close()
@@ -383,7 +404,13 @@ enum DebugUpdateTesting {
     #if DEBUG
     private static let environment: [String: String] = ProcessInfo.processInfo.environment
     static let feed: URL? = environment["SPIDER_UPDATE_TEST_FEED"].map { URL(fileURLWithPath: $0) }
-    static let autoInstall: Bool = feed != nil && environment["SPIDER_UPDATE_TEST_AUTO"] == "1"
+    /// "1": Install, then Restart to Update. "later": Install, Later, a new check, then the same.
+    static let autoInstall: Bool = feed != nil && ["1", "later"].contains(environment["SPIDER_UPDATE_TEST_AUTO"] ?? "")
+    private static var laterPending: Bool = feed != nil && environment["SPIDER_UPDATE_TEST_AUTO"] == "later"
+    static func takeLater() -> Bool {
+        defer { laterPending = false }
+        return laterPending
+    }
     static let relaunchCommand: String =
         (feed != nil ? environment["SPIDER_UPDATE_TEST_RELAUNCH"] : nil) ?? "/usr/bin/open"
     static func log(_ value: Any) {
@@ -393,6 +420,7 @@ enum DebugUpdateTesting {
     #else
     static let feed: URL? = nil
     static let autoInstall: Bool = false
+    static func takeLater() -> Bool { false }
     static let relaunchCommand: String = "/usr/bin/open"
     static func log(_ value: Any) {}
     #endif
@@ -420,6 +448,9 @@ struct UpdateView: View {
 
     @ViewBuilder private var content: some View {
         switch controller.phase {
+        case .idle:
+            Text("No update in progress").font(Font.headline)
+            buttons(primary: ("OK", { controller.close() }), secondary: nil)
         case .checking:
             Text("Checking for updates…").font(Font.headline)
             ProgressView().progressViewStyle(LinearProgressViewStyle())

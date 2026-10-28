@@ -84,12 +84,28 @@ enum UpdateInstaller {
     }
 
     static func verifySignature(app: URL, bundleIdentifier: String) throws {
+        try checkSignature(
+            app, requirement: UpdateTrust.requirement(bundleIdentifier: bundleIdentifier),
+            failure: "The downloaded app is not signed by Spider Solitaire's developer")
+    }
+
+    /// A copy of this app (Move to Applications) is complete: its signature is valid for our
+    /// identifier (any signer, so development builds pass too) and its Info.plist says it is us.
+    static func verifyIntact(app: URL, bundleIdentifier: String) throws {
+        try checkSignature(
+            app, requirement: "identifier \"\(bundleIdentifier)\"", failure: "The copy is incomplete or damaged")
+        let info: NSDictionary? = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist"))
+        guard info?["CFBundleIdentifier"] as? String == bundleIdentifier else {
+            throw Failure(description: "The copy is not Spider Solitaire.")
+        }
+    }
+
+    private static func checkSignature(_ app: URL, requirement text: String, failure: String) throws {
         var code: SecStaticCode?
         guard SecStaticCodeCreateWithPath(app as CFURL, SecCSFlags(), &code) == errSecSuccess, let code else {
-            throw Failure(description: "The downloaded app could not be checked.")
+            throw Failure(description: "\(app.lastPathComponent) could not be checked.")
         }
         var requirement: SecRequirement?
-        let text: String = UpdateTrust.requirement(bundleIdentifier: bundleIdentifier)
         guard SecRequirementCreateWithString(text as CFString, SecCSFlags(), &requirement) == errSecSuccess,
             let requirement
         else { throw Failure(description: "The signature requirement is invalid.") }
@@ -98,7 +114,7 @@ enum UpdateInstaller {
         let status: OSStatus = SecStaticCodeCheckValidity(code, flags, requirement)
         guard status == errSecSuccess else {
             let reason: String = (SecCopyErrorMessageString(status, nil) as String?) ?? "error \(status)"
-            throw Failure(description: "The downloaded app is not signed by Spider Solitaire's developer (\(reason)).")
+            throw Failure(description: "\(failure) (\(reason)).")
         }
     }
 

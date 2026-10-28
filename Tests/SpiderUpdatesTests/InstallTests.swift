@@ -181,14 +181,18 @@ final class InstallScriptTests: XCTestCase {
     }
 
     /// A relaunch command that records what it was asked to open.
-    private func relaunchRecorder(_ marker: URL) throws -> String {
+    /// With `failingNew`, opening an app whose `version` file says "new" fails (like `open` on an app
+    /// that won't launch).
+    private func relaunchRecorder(_ marker: URL, failingNew: Bool = false) throws -> String {
         let script: URL = root.appendingPathComponent("relaunch.sh")
-        try "#!/bin/sh\necho \"$1\" >> \"\(marker.path)\"\n".write(to: script, atomically: true, encoding: .utf8)
+        let fail: String = failingNew ? "[ \"$(cat \"$1/version\" 2>/dev/null)\" = new ] && exit 1\n" : ""
+        try "#!/bin/sh\necho \"$1\" >> \"\(marker.path)\"\n\(fail)exit 0\n".write(
+            to: script, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
         return script.path
     }
 
-    private func run(_ layout: Layout, pid: Int32, path: String? = nil) throws -> Int32 {
+    private func run(_ layout: Layout, pid: Int32, path: String? = nil, failingNew: Bool = false) throws -> Int32 {
         let script: URL = root.appendingPathComponent("install.sh")
         try InstallScript.text.write(to: script, atomically: true, encoding: .utf8)
         let process: Process = Process()
@@ -197,7 +201,7 @@ final class InstallScriptTests: XCTestCase {
             [script.path]
             + InstallScript.arguments(
                 pid: pid, target: layout.target.path, newApp: layout.new.path, backup: layout.backup.path,
-                workFolder: layout.work.path, relaunch: try relaunchRecorder(layout.marker))
+                workFolder: layout.work.path, relaunch: try relaunchRecorder(layout.marker, failingNew: failingNew))
         if let path {
             var environment: [String: String] = ProcessInfo.processInfo.environment
             environment["PATH"] = path + ":" + (environment["PATH"] ?? "/usr/bin:/bin")
@@ -273,11 +277,130 @@ final class InstallScriptTests: XCTestCase {
         XCTAssertEqual(relaunched(layout), [layout.target.path])
     }
 
+    func testRollsBackWhenTheNewAppDoesNotOpen() throws {
+        let layout: Layout = try makeLayout()
+        XCTAssertEqual(try run(layout, pid: try exitedPID(), failingNew: true), 1)
+        XCTAssertEqual(content(layout.target), "old", "old app restored")
+        XCTAssertEqual(relaunched(layout), [layout.target.path, layout.target.path], "new tried, then old")
+        let manager: FileManager = FileManager.default
+        XCTAssertFalse(manager.fileExists(atPath: layout.backup.path), "backup moved back into place")
+        XCTAssertEqual(content(layout.work.appendingPathComponent("rejected.app")), "new", "new app kept aside")
+        let log: String =
+            (try? String(contentsOf: layout.work.appendingPathComponent("install.log"), encoding: .utf8)) ?? ""
+        XCTAssertTrue(log.contains("the new app did not open, rolling back"), log)
+    }
+
     func testArgumentsArePositional() {
         XCTAssertEqual(
             InstallScript.arguments(
                 pid: 42, target: "/A/X.app", newApp: "/w/n/X.app", backup: "/w/b.app", workFolder: "/w"),
             ["42", "/A/X.app", "/w/n/X.app", "/w/b.app", "/w", "/usr/bin/open"])
         XCTAssertFalse(InstallScript.text.contains("\\("), "no interpolation into the script")
+    }
+}
+
+/// Runs the real Move to Applications helper with /bin/sh (Linux and macOS).
+final class MoveScriptTests: XCTestCase {
+    private var root: URL!
+
+    override func setUpWithError() throws {
+        root = FileManager.default.temporaryDirectory.appendingPathComponent("move-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: root.appendingPathComponent("work"), withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: root)
+    }
+
+    /// Records every call's arguments; fails for the copy when `copyFails`.
+    private func run(copyFails: Bool, pid: Int32) throws -> (status: Int32, calls: [String]) {
+        let marker: URL = root.appendingPathComponent("calls")
+        let opener: URL = root.appendingPathComponent("open.sh")
+        let fail: String = copyFails ? "[ \"$1\" = /Apps/X.app ] && exit 1\n" : ""
+        try "#!/bin/sh\necho \"$*\" >> \"\(marker.path)\"\n\(fail)exit 0\n".write(
+            to: opener, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: opener.path)
+        let script: URL = root.appendingPathComponent("move.sh")
+        try MoveScript.text.write(to: script, atomically: true, encoding: .utf8)
+        let process: Process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments =
+            [script.path]
+            + MoveScript.arguments(
+                pid: pid, copy: "/Apps/X.app", original: "/Users/me/Downloads/X.app",
+                workFolder: root.appendingPathComponent("work").path, relaunch: opener.path)
+        try process.run()
+        process.waitUntilExit()
+        let calls: [String] = ((try? String(contentsOf: marker, encoding: .utf8)) ?? "")
+            .split(separator: "\n").map(String.init)
+        return (process.terminationStatus, calls)
+    }
+
+    func testOpensTheCopyOnlyAfterTheAppHasQuit() throws {
+        let app: Process = Process()
+        app.executableURL = URL(fileURLWithPath: "/bin/sh")
+        app.arguments = ["-c", "sleep 0.5"]
+        try app.run()
+        let start: Date = Date()
+        let result: (status: Int32, calls: [String]) = try run(copyFails: false, pid: app.processIdentifier)
+        XCTAssertGreaterThan(Date().timeIntervalSince(start), 0.3, "did not wait for the app")
+        app.waitUntilExit()
+        XCTAssertEqual(result.status, 0)
+        XCTAssertEqual(result.calls, ["/Apps/X.app --args --moved-from /Users/me/Downloads/X.app"])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("work").path))
+    }
+
+    func testReopensTheOriginalWhenTheCopyWontOpen() throws {
+        let done: Process = Process()
+        done.executableURL = URL(fileURLWithPath: "/bin/sh")
+        done.arguments = ["-c", "exit 0"]
+        try done.run()
+        done.waitUntilExit()
+        let result: (status: Int32, calls: [String]) = try run(copyFails: true, pid: done.processIdentifier)
+        XCTAssertEqual(result.status, 1)
+        XCTAssertEqual(
+            result.calls,
+            [
+                "/Apps/X.app --args --moved-from /Users/me/Downloads/X.app",
+                "/Users/me/Downloads/X.app --args --move-failed",
+            ])
+        let log: String =
+            (try? String(contentsOf: root.appendingPathComponent("work/move.log"), encoding: .utf8)) ?? ""
+        XCTAssertTrue(log.contains("the copy did not open"), log)
+    }
+
+    func testLaunchNotes() {
+        XCTAssertEqual(
+            MoveScript.launchNote(["/x/SpiderSolitaire", "--moved-from", "/D/X.app"]), .movedFrom(original: "/D/X.app"))
+        XCTAssertEqual(MoveScript.launchNote(["/x/SpiderSolitaire", "--move-failed"]), .moveFailed)
+        XCTAssertNil(MoveScript.launchNote(["/x/SpiderSolitaire"]))
+        XCTAssertNil(MoveScript.launchNote(["/x/SpiderSolitaire", "--moved-from"]))
+    }
+
+    func testOnlyTrashesAnotherCopyOfThisApp() {
+        let id: String = ProjectLinks.bundleIdentifier
+        let original: String = "/Users/me/Downloads/Spider Solitaire.app"
+        let running: String = "/Applications/Spider Solitaire.app"
+        XCTAssertTrue(MoveScript.mayTrashOriginal(original, runningApp: running, originalBundleIdentifier: id))
+        XCTAssertFalse(MoveScript.mayTrashOriginal(running, runningApp: running, originalBundleIdentifier: id))
+        XCTAssertFalse(MoveScript.mayTrashOriginal(original, runningApp: running, originalBundleIdentifier: "x.y"))
+        XCTAssertFalse(MoveScript.mayTrashOriginal(original, runningApp: running, originalBundleIdentifier: nil))
+        XCTAssertFalse(
+            MoveScript.mayTrashOriginal("/Users/me/Documents", runningApp: running, originalBundleIdentifier: id))
+        XCTAssertFalse(
+            MoveScript.mayTrashOriginal(
+                "/private/var/folders/a/AppTranslocation/U/d/Spider Solitaire.app", runningApp: running,
+                originalBundleIdentifier: id))
+    }
+}
+
+final class UpdateStepTests: XCTestCase {
+    /// After Later the window is idle, and idle must let Check for Updates start a new check
+    /// (it used to stay on a stale "ready" screen).
+    func testOnlyWorkInProgressKeepsTheCurrentUpdate() {
+        let keeping: Set<UpdateStep> = Set(UpdateStep.allCases.filter(\.keepsCurrentUpdate))
+        XCTAssertEqual(keeping, [.downloading, .verifying, .ready, .installing])
+        XCTAssertFalse(UpdateStep.idle.keepsCurrentUpdate)
     }
 }

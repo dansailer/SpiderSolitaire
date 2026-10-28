@@ -149,9 +149,19 @@ public enum InstallScript {
             "$relaunch" "$target"; exit 1
         fi
         xattr -dr com.apple.quarantine "$target" 2>/dev/null || true
-        "$relaunch" "$target"
-        rm -rf "$work"
-        exit 0
+        if "$relaunch" "$target" 2>> "$log"; then
+            rm -rf "$work"
+            exit 0
+        fi
+        # The new version would not open: put the old one back and open that. The work folder
+        # (log, and the new app as rejected.app) stays for diagnosis.
+        echo "the new app did not open, rolling back" >> "$log"
+        if mv "$target" "$work/rejected.app" 2>> "$log" && mv "$backup" "$target" 2>> "$log"; then
+            "$relaunch" "$target" 2>> "$log"
+        else
+            echo "rollback failed; the previous app is at $backup" >> "$log"
+        fi
+        exit 1
 
         """
 
@@ -160,5 +170,82 @@ public enum InstallScript {
         relaunch: String = "/usr/bin/open"
     ) -> [String] {
         [String(pid), target, newApp, backup, workFolder, relaunch]
+    }
+}
+
+/// "Move to Applications" without two instances at once: after the original has quit (its save
+/// handling done), a helper opens the copy, passing `--moved-from <original>` so the copy can put
+/// the original in the Trash once it is running. If the copy won't open, the original is opened
+/// again with `--move-failed`, so it can say so, and the work folder (with its log) is kept.
+public enum MoveScript {
+    public static let movedFromArgument: String = "--moved-from"
+    public static let moveFailedArgument: String = "--move-failed"
+
+    public static let text: String = """
+        #!/bin/sh
+        # Spider Solitaire move helper: $1 pid to wait for, $2 the copy in Applications, $3 the
+        # original app, $4 work folder (removed on success), $5 open command (normally /usr/bin/open).
+        pid="$1"; copy="$2"; original="$3"; work="$4"; relaunch="$5"
+        log="$work/move.log"
+        n=0
+        while kill -0 "$pid" 2>/dev/null; do
+            n=$((n + 1))
+            if [ "$n" -gt 600 ]; then echo "app did not quit" >> "$log"; exit 1; fi
+            sleep 0.1
+        done
+        if "$relaunch" "$copy" --args \(movedFromArgument) "$original" 2>> "$log"; then
+            rm -rf "$work"
+            exit 0
+        fi
+        echo "the copy did not open, reopening the original" >> "$log"
+        "$relaunch" "$original" --args \(moveFailedArgument) 2>> "$log"
+        exit 1
+
+        """
+
+    public static func arguments(
+        pid: Int32, copy: String, original: String, workFolder: String, relaunch: String = "/usr/bin/open"
+    ) -> [String] {
+        [String(pid), copy, original, workFolder, relaunch]
+    }
+
+    /// What a launch was told by the move helper.
+    public enum LaunchNote: Hashable, Sendable {
+        /// Running as the new copy; `original` may go to the Trash.
+        case movedFrom(original: String)
+        /// Running as the original again because the copy would not open.
+        case moveFailed
+    }
+
+    public static func launchNote(_ arguments: [String]) -> LaunchNote? {
+        if let i: Int = arguments.firstIndex(of: movedFromArgument), i + 1 < arguments.count {
+            return .movedFrom(original: arguments[i + 1])
+        }
+        return arguments.contains(moveFailedArgument) ? .moveFailed : nil
+    }
+
+    /// The copy only trashes what it was told about if that is another, non-translocated .app
+    /// with our bundle identifier (checked by the caller from its Info.plist).
+    public static func mayTrashOriginal(
+        _ original: String, runningApp: String, originalBundleIdentifier: String?,
+        bundleIdentifier: String = ProjectLinks.bundleIdentifier
+    ) -> Bool {
+        original.hasSuffix(".app") && original != runningApp && !AppLocation.isTranslocated(original)
+            && originalBundleIdentifier == bundleIdentifier
+    }
+}
+
+/// The update window's state without its payload, so its rules are testable on Linux.
+public enum UpdateStep: Hashable, Sendable, CaseIterable {
+    case idle, checking, upToDate, available, downloading, verifying, ready, installing, downloaded, failed
+    case installFailed
+
+    /// While an update downloads, waits or installs, Check for Updates only shows the window again
+    /// instead of starting over. Every other step (including idle, after Later) allows a new check.
+    public var keepsCurrentUpdate: Bool {
+        switch self {
+        case .downloading, .verifying, .ready, .installing: return true
+        default: return false
+        }
     }
 }
