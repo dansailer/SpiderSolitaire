@@ -307,6 +307,8 @@ struct FaceStyleTile: View {
                 }
                 .frame(width: 200, height: 112)
                 .environment(\.cardFaceStyle, style)
+                // The fanned cards are rotated, so their bitmaps are resampled smoothly.
+                .environment(\.cardArtInterpolation, Image.Interpolation.high)
                 VStack(spacing: 2) {
                     Text(title).font(Font.headline)
                     Text(detail).font(Font.caption).foregroundColor(Color.secondary)

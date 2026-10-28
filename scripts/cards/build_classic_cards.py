@@ -6,22 +6,24 @@ Sources (checked on every run, the build aborts if a licence changes):
   * Byron Knoll, vector-playing-cards ace of spades (Wikimedia Commons, public domain): only the
     ornate centre spade, composited onto Fomin's ace of spades.
 
-Output: 240 x 324 px PNGs (2x the largest on-screen card, 120 x 162 pt), the art fitted to the
-card height and centred on a transparent background (the app draws the white card and border),
-plus CREDITS.md with the source URL, author, licence and SHA-1 of every file.
+Output: one single-page vector PDF per card (paths only, no embedded images), the source's own
+360 x 540 pt page (2:3), on a transparent background (the app draws the white card and border).
+The app renders each PDF once into a bitmap at the exact pixel size of the card on screen (see
+ClassicCardImages.swift), so faces stay sharp at every card size and display scale.
+Also writes manifest.json and CREDITS.md (source URL, author, licence and SHA-1 of every file).
 
-Needs: python3 with Pillow, rsvg-convert (librsvg), pngquant and optipng (optional).
+Needs: python3 with svgelements (pip install svgelements) and rsvg-convert (librsvg, e.g.
+`brew install librsvg`). Every PDF is checked to contain no raster image.
 Usage: python3 scripts/cards/build_classic_cards.py [--cache DIR]
 """
-import argparse, hashlib, io, json, os, re, shutil, subprocess, sys, time, urllib.parse, urllib.request
-from PIL import Image
+import argparse, hashlib, json, os, re, subprocess, sys, time, urllib.error, urllib.parse, urllib.request, zlib
 
 API = "https://commons.wikimedia.org/w/api.php"
 UA = {"User-Agent": "SpiderSolitaire-asset-build/1.0 (https://github.com/dansailer; card art licence check)"}
 RANKS = ["ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "jack", "queen", "king"]
 SUITS = ["spades", "hearts", "diamonds", "clubs"]
-OUT_W, OUT_H = 240, 360  # the source's own 2:3 aspect (360 x 540 SVG); CardView fits it into 71:96
-SOURCE_W, SOURCE_H = 360, 540
+SOURCE_W, SOURCE_H = 360, 540  # every Fomin SVG; the PDF page keeps this 2:3 size (in points)
+ORNATE_WIDTH = 0.66  # Knoll's spade on the ace of spades, as a fraction of the card width
 # Fomin draws every suit pip into a 2:3 box (60 x 90 centre pips, 30 x 45 index pips), so hearts,
 # spades and clubs come out ~1.5x taller than usual. Each pip is rescaled about its centre to the
 # usual playing-card proportions (width / height): heart ~0.96, spade ~0.86, club ~0.91, diamond ~0.78.
@@ -29,6 +31,10 @@ PIP_SCALE = {"hearts": (1.15, 0.80), "spades": (1.10, 0.85), "clubs": (1.12, 0.8
 PIP_BOXES = [(60.0, 90.0), (30.0, 45.0)]
 SUIT_FILL = {"hearts": "#ff5555", "diamonds": "#ff5555", "spades": "#000000", "clubs": "#000000"}
 ORNATE_ACE = "File:Ace of spades.svg"  # Byron Knoll, PD-author
+# Author names written to CREDITS.md. The Commons "Artist" field is free text that anyone can edit,
+# so it is only checked to still name the author, never copied verbatim.
+FOMIN = "Дмитрий Фомин (Dmitry Fomin)"
+KNOLL = "Byron Knoll"
 ALLOWED = [r"\{\{\s*self\s*\|\s*cc-zero\s*\}\}", r"\{\{\s*cc-zero\s*\}\}", r"\{\{\s*PD-author\s*\|[^}]*\}\}"]
 FORBIDDEN = r"(?i)gpl|by-sa|cc-by|attribution|nc-|non-?commercial|fair use"
 
@@ -72,6 +78,13 @@ def file_info(titles):
     return info
 
 
+def author(f):
+    expected = KNOLL if f["title"] == ORNATE_ACE else FOMIN
+    if expected.split(" (")[0] not in f["artist"] and expected not in f["artist"]:
+        sys.exit(f"unexpected author for {f['title']}: {f['artist']!r}")
+    return expected
+
+
 def check_licence(f):
     lic = f["lic_wikitext"]
     template_lines = [l for l in lic.splitlines() if l.strip().startswith("{{")]
@@ -83,18 +96,19 @@ def check_licence(f):
 def download(f, cache):
     path = os.path.join(cache, f["url"].rsplit("/", 1)[1])
     if not os.path.exists(path) or hashlib.sha1(open(path, "rb").read()).hexdigest() != f["sha1"]:
-        data = urllib.request.urlopen(urllib.request.Request(f["url"], headers=UA)).read()
+        for attempt in range(6):
+            try:
+                data = urllib.request.urlopen(urllib.request.Request(f["url"], headers=UA)).read()
+                break
+            except urllib.error.HTTPError as e:  # Wikimedia rate-limits bursts (429): back off
+                if e.code != 429 or attempt == 5:
+                    raise
+                time.sleep(5 * 2 ** attempt)
         open(path, "wb").write(data)
-        time.sleep(0.2)
+        time.sleep(1.0)
     if hashlib.sha1(open(path, "rb").read()).hexdigest() != f["sha1"]:
         sys.exit(f"sha1 mismatch for {path}")
     return path
-
-
-def render(svg_bytes, height):
-    png = subprocess.run(["rsvg-convert", "-h", str(height), "-f", "png"], input=svg_bytes,
-                         capture_output=True, check=True).stdout
-    return Image.open(io.BytesIO(png)).convert("RGBA")
 
 
 def strip_outline(svg):
@@ -141,91 +155,84 @@ def prepared_svg(path, suit):
     return svg, pips
 
 
-def fit(art):
-    """Uniform downscale to the output size (the art is already 2:3, so nothing is distorted)."""
-    if abs(art.width / art.height - OUT_W / OUT_H) > 0.002:
-        sys.exit(f"art is {art.width} x {art.height}, not 2:3")
-    return art.resize((OUT_W, OUT_H), Image.LANCZOS)
-    return canvas
+def svg_root_size(svg):
+    """User-space size of an SVG: its viewBox, else its width and height."""
+    root = re.search(rb"<svg\b[^>]*>", svg, re.S).group(0)
+    box = re.search(rb'\sviewBox="\s*[-0-9.]+[\s,]+[-0-9.]+[\s,]+([0-9.]+)[\s,]+([0-9.]+)\s*"', root)
+    if not box:
+        box = re.search(rb'\swidth="([0-9.]+)(?:px)?"[^>]*?\sheight="([0-9.]+)(?:px)?"', root, re.S)
+    return float(box.group(1)), float(box.group(2))
 
 
-def largest_dark_component(img):
-    """Bounding box of the dark blobs around the centre (the big spade is several blobs split by its
-    white filigree); blobs centred near the left/right edge are corner pips and are ignored."""
-    small = img.convert("L").resize((img.width // 4, img.height // 4))
-    w, h = small.size
-    px = small.load()
-    seen = [[False] * w for _ in range(h)]
-    boxes = []
-    for sy in range(h):
-        for sx in range(w):
-            if seen[sy][sx] or px[sx, sy] >= 128:
-                continue
-            stack, count, box = [(sx, sy)], 0, [sx, sy, sx, sy]
-            seen[sy][sx] = True
-            while stack:
-                x, y = stack.pop()
-                count += 1
-                box = [min(box[0], x), min(box[1], y), max(box[2], x), max(box[3], y)]
-                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-                    if 0 <= nx < w and 0 <= ny < h and not seen[ny][nx] and px[nx, ny] < 128:
-                        seen[ny][nx] = True
-                        stack.append((nx, ny))
-            centre_x = (box[0] + box[2]) / 2
-            if count >= 4 and 0.25 * w <= centre_x <= 0.75 * w:
-                boxes.append(box)
-    x0, y0 = min(b[0] for b in boxes), min(b[1] for b in boxes)
-    x1, y1 = max(b[2] for b in boxes), max(b[3] for b in boxes)
-    return (max(0, x0 * 4 - 4), max(0, y0 * 4 - 4), min(img.width, x1 * 4 + 8), min(img.height, y1 * 4 + 8))
+def remove_centre_pip(svg):
+    """Drops Fomin's plain centre spade (the one reshaped pip drawn in the 60 x 90 box) from the ace
+    of spades, so Knoll's ornate spade can take its place. The corner indices stay untouched."""
+    from svgelements import Path
+    found = []
+    for m in re.finditer(rb'<g transform="matrix\([^"]*\)"><path\b[^>]*?/></g>', svg, re.S):
+        d = re.search(rb'\sd="([^"]*)"', m.group(0))
+        x0, y0, x1, y1 = Path(d.group(1).decode()).bbox()
+        if abs((x1 - x0) - 60.0) < 0.6 and abs((y1 - y0) - 90.0) < 0.6:
+            found.append(m)
+    if len(found) != 1:
+        sys.exit(f"ace of spades: expected one 60 x 90 centre pip, found {len(found)}")
+    return svg[:found[0].start()] + svg[found[0].end():]
 
 
-def ornate_spade(svg_path):
-    """Crops the big filigree spade out of Byron Knoll's ace of spades (white inside, black outside)."""
-    img = render(open(svg_path, "rb").read(), 1600)
-    w, h = img.size
-    box = (int(w * 0.17), int(h * 0.17), int(w * 0.83), int(h * 0.83))
-    region = img.crop(box)
-    bbox = largest_dark_component(region)
-    spade = region.crop(bbox)
-    # Keep the filigree's white but make the surrounding card white transparent: flood-fill
-    # from the crop's edges through near-white pixels.
-    px = spade.load()
-    sw, sh = spade.size
-    seen = set()
-    stack = [(x, y) for x in range(sw) for y in (0, sh - 1)] + [(x, y) for y in range(sh) for x in (0, sw - 1)]
-    while stack:
-        x, y = stack.pop()
-        if (x, y) in seen or not (0 <= x < sw and 0 <= y < sh):
-            continue
-        seen.add((x, y))
-        r, g, b, a = px[x, y]
-        if min(r, g, b) < 200:
-            continue
-        px[x, y] = (255, 255, 255, 0)
-        stack.extend([(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)])
-    return spade
+def ornate_spade_element(knoll_svg, card_w, card_h):
+    """Byron Knoll's big filigree spade (one black path whose holes are the filigree), as a
+    <path> placed in Fomin's 360 x 540 card space: centred, 66 % of the card width, as before."""
+    from svgelements import Path
+    paths = re.findall(rb"<path\b[^>]*?/>", knoll_svg, re.S)
+    best = None
+    for el in paths:
+        d = re.search(rb'\sd="([^"]*)"', el)
+        x0, y0, x1, y1 = Path(d.group(1).decode()).bbox()
+        if b"fill:#000000" in el and (best is None or (x1 - x0) * (y1 - y0) > best[1]):
+            best = (d.group(1), (x1 - x0) * (y1 - y0), (x0, y0, x1, y1))
+    d, _, (x0, y0, x1, y1) = best
+    kw, kh = svg_root_size(knoll_svg)
+    if not (0.25 * kw < (x0 + x1) / 2 < 0.75 * kw and (x1 - x0) > 0.5 * kw):
+        sys.exit("unexpected layout in Knoll's ace of spades: the big centre spade was not found")
+    scale = ORNATE_WIDTH * card_w / (x1 - x0)
+    tx = card_w / 2 - scale * (x0 + x1) / 2
+    ty = card_h / 2 - scale * (y0 + y1) / 2
+    return (f'<path transform="matrix({scale:.6f},0,0,{scale:.6f},{tx:.4f},{ty:.4f})" '
+            f'style="fill:#000000;stroke:none" d="').encode() + d + b'"/>'
 
 
-def ornate_ace(fomin_svg, knoll_svg):
-    big = 1620
-    art = render(prepared_svg(fomin_svg, "spades")[0], big)
-    w, h = art.size
-    # Clear Fomin's plain centre pip (corner indices stay untouched).
-    clear = Image.new("RGBA", (int(w * 0.5), int(h * 0.4)), (0, 0, 0, 0))
-    art.paste(clear, (int(w * 0.25), int(h * 0.3)))
-    spade = ornate_spade(knoll_svg)
-    target_w = int(w * 0.66)
-    spade = spade.resize((target_w, round(spade.height * target_w / spade.width)), Image.LANCZOS)
-    art.alpha_composite(spade, ((w - spade.width) // 2, (h - spade.height) // 2))
-    return art
+def ornate_ace_svg(fomin_svg, knoll_svg):
+    svg, pips = prepared_svg(fomin_svg, "spades")
+    svg = remove_centre_pip(svg)
+    w, h = svg_root_size(svg)
+    spade = ornate_spade_element(open(knoll_svg, "rb").read(), w, h)
+    close = svg.rindex(b"</svg>")
+    return svg[:close] + spade + b"\n" + svg[close:], pips
 
 
-def optimise(path):
-    if shutil.which("pngquant"):
-        subprocess.run(["pngquant", "--force", "--skip-if-larger", "--quality", "80-98", "--speed", "1",
-                        "--output", path, path], check=False)
-    if shutil.which("optipng"):
-        subprocess.run(["optipng", "-quiet", "-o5", "-strip", "all", path], check=False)
+def to_pdf(svg, out):
+    """librsvg + cairo: paths stay paths. Page size = the SVG's 360 x 540 user units (at 72 dpi)."""
+    # SOURCE_DATE_EPOCH pins cairo's CreationDate, so rebuilding unchanged sources gives identical files.
+    env = dict(os.environ, SOURCE_DATE_EPOCH="1500000000")
+    subprocess.run(["rsvg-convert", "-f", "pdf", "--dpi-x", "72", "--dpi-y", "72", "-o", out],
+                   input=svg, check=True, env=env)
+    check_vector_pdf(out)
+
+
+def check_vector_pdf(path):
+    """Fails if the PDF holds any raster: an image XObject, an inline image, or a smask image."""
+    data = open(path, "rb").read()
+    if not data.startswith(b"%PDF-"):
+        sys.exit(f"{path}: not a PDF")
+    chunks = [data]
+    for m in re.finditer(rb"stream\r?\n", data):
+        try:
+            chunks.append(zlib.decompressobj().decompress(data[m.end():]))
+        except zlib.error:
+            pass
+    for c in chunks:
+        if re.search(rb"/Subtype\s*/Image|/ImageMask|\bBI\b[^\n]*\bID\b", c):
+            sys.exit(f"{path}: contains a raster image, expected vector paths only")
 
 
 def main():
@@ -242,25 +249,28 @@ def main():
         f["path"] = download(f, args.cache)
 
     rows = []
-    pip_counts = {"spades_ace": prepared_svg(info[titles[("ace", "spades")]]["path"], "spades")[1]}
+    pip_counts = {}
+    for name in os.listdir(OUT_DIR):  # stale outputs (the PNGs of earlier builds)
+        if name.endswith((".png", ".pdf")):
+            os.remove(os.path.join(OUT_DIR, name))
     for (rank, suit), title in titles.items():
         f = info[title]
-        name = asset_name(rank, suit) + ".png"
+        name = asset_name(rank, suit) + ".pdf"
         if (rank, suit) == ("ace", "spades"):
-            art = ornate_ace(f["path"], info[ORNATE_ACE]["path"])
+            svg, pips = ornate_ace_svg(f["path"], info[ORNATE_ACE]["path"])
         else:
-            art = render(prepared_svg(f["path"], suit)[0], OUT_H * 5)
-        pip_counts[asset_name(rank, suit)] = prepared_svg(f["path"], suit)[1]
+            svg, pips = prepared_svg(f["path"], suit)
+        pip_counts[asset_name(rank, suit)] = pips
         out = os.path.join(OUT_DIR, name)
-        fit(art).save(out)
-        optimise(out)
+        to_pdf(svg, out)
         sources = [f] + ([info[ORNATE_ACE]] if (rank, suit) == ("ace", "spades") else [])
         rows.append((name, sources))
         print(name, os.path.getsize(out))
 
     manifest = {
         "comment": "Written by scripts/cards/build_classic_cards.py; checked by ClassicCardArtTests.",
-        "sourceWidth": SOURCE_W, "sourceHeight": SOURCE_H, "imageWidth": OUT_W, "imageHeight": OUT_H,
+        "sourceWidth": SOURCE_W, "sourceHeight": SOURCE_H, "format": "pdf",
+        "ornateSpadeWidth": ORNATE_WIDTH,
         "pipScale": {k: {"x": v[0], "y": v[1]} for k, v in PIP_SCALE.items()},
         "reshapedPips": dict(sorted(pip_counts.items())),
     }
@@ -275,14 +285,17 @@ def main():
                   "refuses to build if it is not CC0 or public domain. Changes made: the SVG card outline is\n"
                   "made transparent (the app draws its own card and border); every suit pip, which the\n"
                   "source draws into a tall 2:3 box, is rescaled about its centre to the usual proportions\n"
-                  "(see `PIP_SCALE` in the script and `manifest.json`); the art is rendered with librsvg at\n"
-                  f"its own 2:3 aspect, {OUT_W} x {OUT_H} px, and colours are quantised with pngquant.\n\n"
+                  "(see `PIP_SCALE` in the script and `manifest.json`); on the ace of spades the plain centre\n"
+                  "pip is replaced by Byron Knoll's ornate spade path, centred at 66 % of the card width; each\n"
+                  "card is then converted with librsvg to a vector PDF (paths only, no raster images) at the\n"
+                  f"source's own 2:3 page size, {SOURCE_W} x {SOURCE_H} pt. The app rasterises each PDF at the\n"
+                  "exact pixel size of the card on screen.\n\n"
                   "* **Dmitry Fomin, \"English pattern\" playing cards** (2017), CC0 1.0 Universal Public\n"
                   "  Domain Dedication (`{{self|cc-zero}}`): <https://creativecommons.org/publicdomain/zero/1.0/>.\n"
                   "  Category: <https://commons.wikimedia.org/wiki/Category:SVG_English_pattern_playing_cards>\n"
                   "* **Byron Knoll, vector-playing-cards ace of spades**, released into the public domain by\n"
                   "  its author (`{{PD-author|Byron Knoll}}`). Only its ornate centre spade is used, on\n"
-                  "  `spades_ace.png`.\n\n"
+                  "  `spades_ace.pdf`.\n\n"
                   "Neither licence requires attribution; it is listed here so the provenance is clear.\n"
                   "Rejected: the Cburnett set (CC BY-SA 3.0) and \"English pattern playing cards deck PLUS\" (LGPL 2.1).\n\n"
                   "| Image | Source file page | Author | Licence | SHA-1 of source SVG |\n"
@@ -290,8 +303,8 @@ def main():
         for name, sources in sorted(rows):
             for s in sources:
                 lic = "CC0 1.0" if s["licence"] == "CC0" else "Public domain"
-                out.write(f"| `{name}` | [{s['title'][5:]}]({s['page']}) | {s['artist']} | {lic} | `{s['sha1']}` |\n")
-    print("wrote", len(rows), "images to", OUT_DIR)
+                out.write(f"| `{name}` | [{s['title'][5:]}]({s['page']}) | {author(s)} | {lic} | `{s['sha1']}` |\n")
+    print("wrote", len(rows), "PDFs to", OUT_DIR)
 
 
 if __name__ == "__main__":
