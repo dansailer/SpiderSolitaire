@@ -15,6 +15,7 @@ Also writes manifest.json and CREDITS.md (source URL, author, licence and SHA-1 
 Needs: python3 with svgelements (pip install svgelements) and rsvg-convert (librsvg, e.g.
 `brew install librsvg`). Every PDF is checked to contain no raster image.
 Usage: python3 scripts/cards/build_classic_cards.py [--cache DIR]
+       python3 scripts/cards/build_classic_cards.py --check   (self-test, then check the committed PDFs)
 """
 import argparse, hashlib, json, os, re, subprocess, sys, time, urllib.error, urllib.parse, urllib.request, zlib
 
@@ -220,25 +221,92 @@ def to_pdf(svg, out):
 
 
 def check_vector_pdf(path):
-    """Fails if the PDF holds any raster: an image XObject, an inline image, or a smask image."""
-    data = open(path, "rb").read()
+    """Fails if the PDF holds any raster: an image XObject, an image mask, or an inline image."""
+    problem = raster_problem(open(path, "rb").read())
+    if problem:
+        sys.exit(f"{path}: {problem}, expected vector paths only")
+
+
+WS = rb"\x00\t\n\x0c\r "  # PDF white-space characters
+DELIM = rb"()<>\[\]{}/%"
+# Inline image: the operators BI ... ID ... EI as separate tokens, across any white-space and lines.
+# Fails closed: the same words inside a text string would also be rejected (cairo never writes that).
+INLINE_IMAGE = re.compile(rb"(?<![^" + WS + DELIM + rb"])BI(?=[" + WS + rb"/])"
+                          rb".*?[" + WS + DELIM + rb"]ID[" + WS + rb"]"
+                          rb".*?(?<=[" + WS + rb"])EI(?![^" + WS + DELIM + rb"])", re.S)
+IMAGE_KEYS = re.compile(rb"/Subtype\s*/Image\b|/ImageMask\b")
+
+
+def pdf_streams(data):
+    """(dictionary, decoded bytes) of every stream in `data`; FlateDecode streams are inflated."""
+    for m in re.finditer(rb"stream(?:\r\n|\n|\r)", data):
+        if data[max(0, m.start() - 3):m.start()] == b"end":
+            continue
+        head = data[data.rfind(b"obj", 0, m.start()) + 3:m.start()]
+        end = data.find(b"endstream", m.end())
+        if end < 0:
+            sys.exit("PDF stream without endstream")
+        length = re.search(rb"/Length\s+(\d+)(?!\s+\d+\s+R)", head)
+        raw = data[m.end():m.end() + int(length.group(1))] if length else data[m.end():end]
+        filters = re.findall(rb"/Filter\s*(\[[^\]]*\]|/\w+)", head)
+        names = re.findall(rb"/(\w+)", filters[0]) if filters else []
+        for name in names:
+            if name not in (b"FlateDecode", b"Fl"):
+                sys.exit(f"PDF stream with unsupported filter /{name.decode()}: cannot check it for images")
+            raw = zlib.decompressobj().decompress(raw)
+        yield head, raw
+
+
+def raster_problem(data):
+    """Why `data` (a whole PDF file) is not vector-only, or None. Searches the uncompressed PDF
+    dictionaries and every decoded stream (content streams and object streams), never the raw
+    compressed bytes."""
     if not data.startswith(b"%PDF-"):
-        sys.exit(f"{path}: not a PDF")
-    chunks = [data]
-    for m in re.finditer(rb"stream\r?\n", data):
-        try:
-            chunks.append(zlib.decompressobj().decompress(data[m.end():]))
-        except zlib.error:
-            pass
-    for c in chunks:
-        if re.search(rb"/Subtype\s*/Image|/ImageMask|\bBI\b[^\n]*\bID\b", c):
-            sys.exit(f"{path}: contains a raster image, expected vector paths only")
+        return "not a PDF"
+    outside = re.sub(rb"stream(?:\r\n|\n|\r).*?endstream", b"", data, flags=re.S)
+    if IMAGE_KEYS.search(outside):
+        return "contains an image XObject"
+    for _, decoded in pdf_streams(data):
+        if IMAGE_KEYS.search(decoded):
+            return "contains an image XObject"
+        if INLINE_IMAGE.search(decoded):
+            return "contains an inline image"
+    return None
+
+
+def self_test():
+    """Synthetic PDFs: multiline inline images (raw and Flate) must be rejected, vectors accepted."""
+    def pdf(content, flate):
+        body = zlib.compress(content) if flate else content
+        filt = b"   /Filter /FlateDecode\n" if flate else b""
+        return (b"%PDF-1.5\n4 0 obj\n<< /Length " + str(len(body)).encode() + b"\n" + filt + b">>\nstream\n" +
+                body + b"\nendstream\nendobj\n%%EOF\n")
+    vector = b"q\n0 0 m\n10 0 l\n10 10 l\nh\n/BIg gs /SIDE gs\n0 0 1 rg\nf\nBT /F1 9 Tf <0142> Tj ET\nQ\n"
+    inline = [b"q\nBI\n/W 2 /H 1\n/BPC 8 /CS /G\nID\n\xff\x00\nEI\nQ\n",
+              b"q BI\r\n/W 1\t/H 1 /BPC 1 /IM true\x0cID \x80\rEI Q",
+              b"BI/W 1/H 1/BPC 8/CS/G ID \x00EI\n", b"BI /W 0 /H 0 ID\nEI"]
+    cases = [(pdf(vector, flate), None) for flate in (False, True)]
+    cases += [(pdf(c, flate), "contains an inline image") for c in inline for flate in (False, True)]
+    cases.append((b"%PDF-1.5\n5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 >>\nendobj\n",
+                  "contains an image XObject"))
+    for data, want in cases:
+        if raster_problem(data) != want:
+            sys.exit(f"raster check self-test failed: wanted {want!r} for {data!r}")
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cache", default=os.path.join(ROOT, ".build", "card-sources"))
+    ap.add_argument("--check", action="store_true",
+                    help="only check the committed PDFs for raster images (no download, no rebuild)")
     args = ap.parse_args()
+    self_test()
+    if args.check:
+        pdfs = sorted(n for n in os.listdir(OUT_DIR) if n.endswith(".pdf"))
+        for name in pdfs:
+            check_vector_pdf(os.path.join(OUT_DIR, name))
+        print(f"{len(pdfs)} PDFs in {OUT_DIR}: vector only")
+        return
     os.makedirs(args.cache, exist_ok=True)
     os.makedirs(OUT_DIR, exist_ok=True)
 

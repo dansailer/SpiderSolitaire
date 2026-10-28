@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Builds docs/assets and docs/fonts for the website (run on the box or any machine with Pillow,
-rsvg-convert, pngquant and pdftoppm (poppler) or macOS sips). Everything the page loads is a file in
+rsvg-convert, pngquant and pdftocairo (poppler) or macOS sips). Everything the page loads is a file in
 docs/: no CDN.
 
     python3 scripts/site_assets.py <snapshots-dir> <icon.svg> <card-back.svg> <fonts-dir> <phosphor-dir>
