@@ -5,71 +5,74 @@ Wikimedia Commons files below. The script reads each file page's licence section
 refuses to build if it is not CC0 or public domain. Changes made: the SVG card outline is
 made transparent (the app draws its own card and border); every suit pip, which the
 source draws into a tall 2:3 box, is rescaled about its centre to the usual proportions
-(see `PIP_SCALE` in the script and `manifest.json`); the art is rendered with librsvg at
-its own 2:3 aspect, 240 x 360 px, and colours are quantised with pngquant.
+(see `PIP_SCALE` in the script and `manifest.json`); on the ace of spades the plain centre
+pip is replaced by Byron Knoll's ornate spade path, centred at 66 % of the card width; each
+card is then converted with librsvg to a vector PDF (paths only, no raster images) at the
+source's own 2:3 page size, 360 x 540 pt. The app rasterises each PDF at the
+exact pixel size of the card on screen.
 
 * **Dmitry Fomin, "English pattern" playing cards** (2017), CC0 1.0 Universal Public
   Domain Dedication (`{{self|cc-zero}}`): <https://creativecommons.org/publicdomain/zero/1.0/>.
   Category: <https://commons.wikimedia.org/wiki/Category:SVG_English_pattern_playing_cards>
 * **Byron Knoll, vector-playing-cards ace of spades**, released into the public domain by
   its author (`{{PD-author|Byron Knoll}}`). Only its ornate centre spade is used, on
-  `spades_ace.png`.
+  `spades_ace.pdf`.
 
 Neither licence requires attribution; it is listed here so the provenance is clear.
 Rejected: the Cburnett set (CC BY-SA 3.0) and "English pattern playing cards deck PLUS" (LGPL 2.1).
 
 | Image | Source file page | Author | Licence | SHA-1 of source SVG |
 |---|---|---|---|---|
-| `clubs_10.png` | [English pattern 10 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_10_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `e84e32f7e89f64c95b69b12ee59ed0a6a158a8d7` |
-| `clubs_2.png` | [English pattern 2 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_2_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `9bebe4ae6c376ca525dee52f08c1cf76ce4411df` |
-| `clubs_3.png` | [English pattern 3 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_3_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `9b7a6d4e222e324e1ae018f5fb76c747a8429d60` |
-| `clubs_4.png` | [English pattern 4 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_4_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `21b8044f85cf8464532c91c2aaca21b76a54a657` |
-| `clubs_5.png` | [English pattern 5 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_5_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `0aa0a7508efd5a3011a9f72da0174e5135ec3774` |
-| `clubs_6.png` | [English pattern 6 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_6_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `8ea7dcc6b26e06673e5914d170556131f4884bea` |
-| `clubs_7.png` | [English pattern 7 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_7_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `e0c6b712c34197af9e83403735170f1ca26118c8` |
-| `clubs_8.png` | [English pattern 8 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_8_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `9d2943c63e79e214bb1e30752eb215eb8998a3fe` |
-| `clubs_9.png` | [English pattern 9 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_9_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `2fa16b4e245a172c5cb99d091654e30a1082f953` |
-| `clubs_ace.png` | [English pattern ace of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_ace_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `11a99f17796ae962baeb842e920ab81140ec5f69` |
-| `clubs_jack.png` | [English pattern jack of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_jack_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `128300e71730a491215145c9ebc0b0493e775a42` |
-| `clubs_king.png` | [English pattern king of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_king_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `c31c3bcbb46382c80754201bc75029f3397d10f5` |
-| `clubs_queen.png` | [English pattern queen of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_queen_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `1557f58ced0d1276aa3527913bce1e41e7d3b377` |
-| `diamonds_10.png` | [English pattern 10 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_10_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `03e4f1be8b9b230864c5d68706b423c6060a3a7a` |
-| `diamonds_2.png` | [English pattern 2 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_2_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `be583f981a8914d28f75af42fc7ec27b83113136` |
-| `diamonds_3.png` | [English pattern 3 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_3_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `4e0a33090a310cf173cde6a61d9f99a599af1e7f` |
-| `diamonds_4.png` | [English pattern 4 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_4_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `55cf701695df323db5356a18c4cb3aa9689a7000` |
-| `diamonds_5.png` | [English pattern 5 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_5_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `32ce61ea437d610309faf48bb36b955cec3c5233` |
-| `diamonds_6.png` | [English pattern 6 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_6_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `1bd1a6f4763ee65493b5e7de5d700c7075393f38` |
-| `diamonds_7.png` | [English pattern 7 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_7_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `6b5e51fc7c90116868526636271f0c5f23eb40a4` |
-| `diamonds_8.png` | [English pattern 8 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_8_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `7fae5b24e07d8e2bae4ba7e7621cba8c0ad07a40` |
-| `diamonds_9.png` | [English pattern 9 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_9_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `75d9c71f13e39b860c720f7805b9d31c8934b601` |
-| `diamonds_ace.png` | [English pattern ace of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_ace_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `9ca00cb92539e081fab1979d54f43966ab8717e8` |
-| `diamonds_jack.png` | [English pattern jack of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_jack_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `3c3863caf9740be3b3e922dffd9cdf1ae2fde0b3` |
-| `diamonds_king.png` | [English pattern king of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_king_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `742ec97e535381a34710865eb19bcd84732cb9b2` |
-| `diamonds_queen.png` | [English pattern queen of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_queen_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `837c80a400421add43ed7152235be65224b3a49d` |
-| `hearts_10.png` | [English pattern 10 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_10_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `ab29bebeb54bb0cb272fe0099ba3c5c5218acace` |
-| `hearts_2.png` | [English pattern 2 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_2_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `2afca436466f4603b3350bbc380ac56625f5c4d2` |
-| `hearts_3.png` | [English pattern 3 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_3_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `8e4fde5936be012b4a6d0c1233f92ff9e1a6e7cb` |
-| `hearts_4.png` | [English pattern 4 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_4_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `4fd0b402fdad266206f95e449d0d84744ce49f5a` |
-| `hearts_5.png` | [English pattern 5 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_5_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `ec53dc690125786cc719f24cdef3d1d7699e3ed3` |
-| `hearts_6.png` | [English pattern 6 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_6_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `49d7f8f4f23cc17a4bdcfe687db5ba709dde611c` |
-| `hearts_7.png` | [English pattern 7 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_7_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `c935fdcdd14559e87cd4e8c18734a40917494007` |
-| `hearts_8.png` | [English pattern 8 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_8_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `7b2e01460ca59dd08b513a2c2cb98786208d8cc7` |
-| `hearts_9.png` | [English pattern 9 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_9_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `22dd0ca145dd72ca691db813d179b05f5bfce4c2` |
-| `hearts_ace.png` | [English pattern ace of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_ace_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `378ddc4506e9f2bcf3b0540016628ceaf737d33a` |
-| `hearts_jack.png` | [English pattern jack of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_jack_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `922d2a9e56aea084c72d0009b48839533c129d37` |
-| `hearts_king.png` | [English pattern king of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_king_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `7d0ff92fc97dd050952a084772d6a3e29b9fb667` |
-| `hearts_queen.png` | [English pattern queen of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_queen_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `14a295b2888296db7066c85e06304f05e156ed5c` |
-| `spades_10.png` | [English pattern 10 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_10_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `9c8bd83c03f0c2b39b63217d8ffb4dff689102e4` |
-| `spades_2.png` | [English pattern 2 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_2_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `580785f83cbf6c04c17ec6d98c924ea9658f8651` |
-| `spades_3.png` | [English pattern 3 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_3_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `93bded82cc31f87f4c01ee184e8e61cd5051a3ac` |
-| `spades_4.png` | [English pattern 4 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_4_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `52a0343c180251999a28eec25b1d490bb7ddcb2d` |
-| `spades_5.png` | [English pattern 5 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_5_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `c87004eca2974f7e65bfa84e89eb5aa5491b3542` |
-| `spades_6.png` | [English pattern 6 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_6_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `88bae01c3307a949b09c9316ebd3926f97393d41` |
-| `spades_7.png` | [English pattern 7 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_7_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `4c8d60541fb4338ec9dd2f56286836576eb8fd88` |
-| `spades_8.png` | [English pattern 8 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_8_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `f7251a99cd31a48505fcd98662c8f6c1344ec898` |
-| `spades_9.png` | [English pattern 9 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_9_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `958d677f0f3a2698b2ed479a0249e1495abf2e3f` |
-| `spades_ace.png` | [English pattern ace of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_ace_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `299ed37a83c45a039515eafed95be8f25b2f6844` |
-| `spades_ace.png` | [Ace of spades.svg](https://commons.wikimedia.org/wiki/File:Ace_of_spades.svg) | Byron Knoll | Public domain | `ae151e44036ab508684dc387d2979a2ddaef4777` |
-| `spades_jack.png` | [English pattern jack of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_jack_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `38650cf0b1b814ef57f64c90de64b78375c77490` |
-| `spades_king.png` | [English pattern king of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_king_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `a3ac0a3635c88f8d9c5b3a62116164a479599fdd` |
-| `spades_queen.png` | [English pattern queen of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_queen_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `43c2f5a8c2a99e4badd65e0b3680a3662d568bd1` |
+| `clubs_10.pdf` | [English pattern 10 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_10_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `e84e32f7e89f64c95b69b12ee59ed0a6a158a8d7` |
+| `clubs_2.pdf` | [English pattern 2 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_2_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `9bebe4ae6c376ca525dee52f08c1cf76ce4411df` |
+| `clubs_3.pdf` | [English pattern 3 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_3_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `9b7a6d4e222e324e1ae018f5fb76c747a8429d60` |
+| `clubs_4.pdf` | [English pattern 4 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_4_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `21b8044f85cf8464532c91c2aaca21b76a54a657` |
+| `clubs_5.pdf` | [English pattern 5 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_5_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `0aa0a7508efd5a3011a9f72da0174e5135ec3774` |
+| `clubs_6.pdf` | [English pattern 6 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_6_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `8ea7dcc6b26e06673e5914d170556131f4884bea` |
+| `clubs_7.pdf` | [English pattern 7 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_7_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `e0c6b712c34197af9e83403735170f1ca26118c8` |
+| `clubs_8.pdf` | [English pattern 8 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_8_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `9d2943c63e79e214bb1e30752eb215eb8998a3fe` |
+| `clubs_9.pdf` | [English pattern 9 of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_9_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `2fa16b4e245a172c5cb99d091654e30a1082f953` |
+| `clubs_ace.pdf` | [English pattern ace of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_ace_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `11a99f17796ae962baeb842e920ab81140ec5f69` |
+| `clubs_jack.pdf` | [English pattern jack of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_jack_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `128300e71730a491215145c9ebc0b0493e775a42` |
+| `clubs_king.pdf` | [English pattern king of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_king_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `c31c3bcbb46382c80754201bc75029f3397d10f5` |
+| `clubs_queen.pdf` | [English pattern queen of clubs.svg](https://commons.wikimedia.org/wiki/File:English_pattern_queen_of_clubs.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `1557f58ced0d1276aa3527913bce1e41e7d3b377` |
+| `diamonds_10.pdf` | [English pattern 10 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_10_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `03e4f1be8b9b230864c5d68706b423c6060a3a7a` |
+| `diamonds_2.pdf` | [English pattern 2 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_2_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `be583f981a8914d28f75af42fc7ec27b83113136` |
+| `diamonds_3.pdf` | [English pattern 3 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_3_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `4e0a33090a310cf173cde6a61d9f99a599af1e7f` |
+| `diamonds_4.pdf` | [English pattern 4 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_4_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `55cf701695df323db5356a18c4cb3aa9689a7000` |
+| `diamonds_5.pdf` | [English pattern 5 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_5_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `32ce61ea437d610309faf48bb36b955cec3c5233` |
+| `diamonds_6.pdf` | [English pattern 6 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_6_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `1bd1a6f4763ee65493b5e7de5d700c7075393f38` |
+| `diamonds_7.pdf` | [English pattern 7 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_7_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `6b5e51fc7c90116868526636271f0c5f23eb40a4` |
+| `diamonds_8.pdf` | [English pattern 8 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_8_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `7fae5b24e07d8e2bae4ba7e7621cba8c0ad07a40` |
+| `diamonds_9.pdf` | [English pattern 9 of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_9_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `75d9c71f13e39b860c720f7805b9d31c8934b601` |
+| `diamonds_ace.pdf` | [English pattern ace of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_ace_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `9ca00cb92539e081fab1979d54f43966ab8717e8` |
+| `diamonds_jack.pdf` | [English pattern jack of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_jack_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `3c3863caf9740be3b3e922dffd9cdf1ae2fde0b3` |
+| `diamonds_king.pdf` | [English pattern king of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_king_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `742ec97e535381a34710865eb19bcd84732cb9b2` |
+| `diamonds_queen.pdf` | [English pattern queen of diamonds.svg](https://commons.wikimedia.org/wiki/File:English_pattern_queen_of_diamonds.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `837c80a400421add43ed7152235be65224b3a49d` |
+| `hearts_10.pdf` | [English pattern 10 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_10_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `ab29bebeb54bb0cb272fe0099ba3c5c5218acace` |
+| `hearts_2.pdf` | [English pattern 2 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_2_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `2afca436466f4603b3350bbc380ac56625f5c4d2` |
+| `hearts_3.pdf` | [English pattern 3 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_3_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `8e4fde5936be012b4a6d0c1233f92ff9e1a6e7cb` |
+| `hearts_4.pdf` | [English pattern 4 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_4_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `4fd0b402fdad266206f95e449d0d84744ce49f5a` |
+| `hearts_5.pdf` | [English pattern 5 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_5_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `ec53dc690125786cc719f24cdef3d1d7699e3ed3` |
+| `hearts_6.pdf` | [English pattern 6 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_6_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `49d7f8f4f23cc17a4bdcfe687db5ba709dde611c` |
+| `hearts_7.pdf` | [English pattern 7 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_7_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `c935fdcdd14559e87cd4e8c18734a40917494007` |
+| `hearts_8.pdf` | [English pattern 8 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_8_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `7b2e01460ca59dd08b513a2c2cb98786208d8cc7` |
+| `hearts_9.pdf` | [English pattern 9 of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_9_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `22dd0ca145dd72ca691db813d179b05f5bfce4c2` |
+| `hearts_ace.pdf` | [English pattern ace of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_ace_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `378ddc4506e9f2bcf3b0540016628ceaf737d33a` |
+| `hearts_jack.pdf` | [English pattern jack of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_jack_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `922d2a9e56aea084c72d0009b48839533c129d37` |
+| `hearts_king.pdf` | [English pattern king of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_king_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `7d0ff92fc97dd050952a084772d6a3e29b9fb667` |
+| `hearts_queen.pdf` | [English pattern queen of hearts.svg](https://commons.wikimedia.org/wiki/File:English_pattern_queen_of_hearts.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `14a295b2888296db7066c85e06304f05e156ed5c` |
+| `spades_10.pdf` | [English pattern 10 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_10_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `9c8bd83c03f0c2b39b63217d8ffb4dff689102e4` |
+| `spades_2.pdf` | [English pattern 2 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_2_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `580785f83cbf6c04c17ec6d98c924ea9658f8651` |
+| `spades_3.pdf` | [English pattern 3 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_3_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `93bded82cc31f87f4c01ee184e8e61cd5051a3ac` |
+| `spades_4.pdf` | [English pattern 4 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_4_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `52a0343c180251999a28eec25b1d490bb7ddcb2d` |
+| `spades_5.pdf` | [English pattern 5 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_5_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `c87004eca2974f7e65bfa84e89eb5aa5491b3542` |
+| `spades_6.pdf` | [English pattern 6 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_6_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `88bae01c3307a949b09c9316ebd3926f97393d41` |
+| `spades_7.pdf` | [English pattern 7 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_7_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `4c8d60541fb4338ec9dd2f56286836576eb8fd88` |
+| `spades_8.pdf` | [English pattern 8 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_8_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `f7251a99cd31a48505fcd98662c8f6c1344ec898` |
+| `spades_9.pdf` | [English pattern 9 of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_9_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `958d677f0f3a2698b2ed479a0249e1495abf2e3f` |
+| `spades_ace.pdf` | [English pattern ace of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_ace_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `299ed37a83c45a039515eafed95be8f25b2f6844` |
+| `spades_ace.pdf` | [Ace of spades.svg](https://commons.wikimedia.org/wiki/File:Ace_of_spades.svg) | Byron Knoll | Public domain | `ae151e44036ab508684dc387d2979a2ddaef4777` |
+| `spades_jack.pdf` | [English pattern jack of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_jack_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `38650cf0b1b814ef57f64c90de64b78375c77490` |
+| `spades_king.pdf` | [English pattern king of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_king_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `a3ac0a3635c88f8d9c5b3a62116164a479599fdd` |
+| `spades_queen.pdf` | [English pattern queen of spades.svg](https://commons.wikimedia.org/wiki/File:English_pattern_queen_of_spades.svg) | Дмитрий Фомин (Dmitry Fomin) | CC0 1.0 | `43c2f5a8c2a99e4badd65e0b3680a3662d568bd1` |

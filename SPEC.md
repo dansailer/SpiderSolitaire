@@ -133,7 +133,13 @@ The look is "XP-like", not a copy of the XP assets.
 - **Click-to-move:** double-clicking a movable run sends it to the best legal target,
   using the same ordering as the hints.
 - **Animations:**
-  - dealing sweeps 10 cards from the stock, staggered by 45 ms. Each card stays face down on its pile until it leaves,
+  - dealing, XP style, one card after another so each landing can be followed (`DealPacing`): a stock deal
+    sends its 10 cards 80 ms apart, each flying 240 ms with ease-out (about 1 s); a new game or restart deals
+    its 54 cards row by row from the stock, 50 ms apart (about 3 s). Each card stays face down on the pile
+    until it leaves. The game state is complete at once; only the drawing lags. A click or plain key press
+    finishes the deal instantly and does nothing else; any menu action (undo, hint, deal…) settles it first.
+    The deal sound plays per stock card and once per row of the new-game deal. macOS Reduce Motion makes
+    deals instant too,
   - a completed run flies to the foundation one card at a time, starting with the top card (A) and ending with the K, staggered by 40 ms, about 0.3 s per card. The foundation king appears once all 13 cards have landed,
   - an exposed card flips over.
   Settings → "Show animations" turns all of these off.
@@ -228,12 +234,15 @@ Why these keys:
 ### 3.6a Card faces
 - Settings → Card faces: **Classic** (default) or **Simple**. It is saved in options.json; older files
   without the key decode as Classic.
-- Classic: 240 × 360 px PNGs, the source's own 2:3 aspect, drawn with `.aspectRatio(contentMode: .fit)` (uniform
-  scale, white side margins). The source deck's pips are drawn 2:3 (too tall); the build rescales them to normal
+- Classic: one vector PDF per card (paths only), the source's own 2:3 page (360 × 540 pt). The app renders each
+  PDF once into a bitmap of the card's exact pixel size (points × the window's backing scale) with the art fitted
+  at one uniform scale (white side margins), caches it per (card, pixel size) and draws it 1:1 without
+  interpolation; a new card size or display scale renders that size once, and old sizes age out. The source
+  deck's pips are drawn 2:3 (too tall); the build rescales them to normal
   proportions from Dmitry Fomin's CC0 English-pattern deck. The ace
   of spades has Byron Knoll's public-domain ornate spade. The images live in the app target's resources
   (`.copy("Resources/Cards")`), and sources and licences are listed in `Resources/Cards/CREDITS.md`.
-- CardView draws the image on the white card, clipped to the rounded rect, with the usual border.
+- CardView draws the bitmap on the white card, clipped to the rounded rect, with the usual border.
 - Card back: blue gradient, white lattice, gold frame and a gold rosette in a lozenge (no spider). The icon
   shows a blue back and a white card with a large spade. Both come from `VectorArt.swift`. If
   an image can't be found, it falls back to the code-drawn face. Card backs are unchanged.

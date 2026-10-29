@@ -112,7 +112,7 @@ cat > "$DEST_BUNDLE/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
-CARD_COUNT="$(find "$DEST_BUNDLE/Contents/Resources/Cards" -name '*.png' | wc -l | tr -d ' ')"
+CARD_COUNT="$(find "$DEST_BUNDLE/Contents/Resources/Cards" -name '*.pdf' | wc -l | tr -d ' ')"
 if [[ "$CARD_COUNT" != "52" ]]; then
     echo "error: expected 52 card images in $DEST_BUNDLE, found $CARD_COUNT" >&2
     exit 1

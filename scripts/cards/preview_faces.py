@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Preview of both face sets at the in-app card aspect (71:96), 2x of a 120 pt card.
 
-Row 1, Classic: the shipped PNGs placed exactly as CardView does (aspect fit, centred).
+Row 1, Classic: the shipped PDFs rendered at the card height and centred, as the app does.
 Row 2, Simple: an approximation of the code-drawn SwiftUI faces with the same metrics
 (DejaVu instead of SF, simplified court panel); suit glyphs are font glyphs, uniformly scaled.
 Usage: python3 scripts/cards/preview_faces.py out.png
 """
 import os, sys
 from PIL import Image, ImageDraw, ImageFont
+from pdf_raster import render_pdf
 HERE = os.path.dirname(os.path.abspath(__file__))
 CARDS = os.path.join(HERE, "..", "..", "Sources", "SpiderSolitaire", "Resources", "Cards")
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
@@ -65,9 +66,7 @@ def finish(card):
 
 def classic(rank, suit):
     card = card_base()
-    art = Image.open(os.path.join(CARDS, f"{suit}_{rank}.png")).convert("RGBA")
-    scale = min(W / art.width, H / art.height)  # .aspectRatio(contentMode: .fit)
-    art = art.resize((round(art.width * scale), round(art.height * scale)), Image.LANCZOS)
+    art = render_pdf(os.path.join(CARDS, f"{suit}_{rank}.pdf"), H)  # 2:3 art at the card height
     card.alpha_composite(art, ((W - art.width) // 2, (H - art.height) // 2))
     return finish(card)
 

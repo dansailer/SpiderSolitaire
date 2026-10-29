@@ -37,8 +37,15 @@ final class DealAnimationTests: XCTestCase {
         XCTAssertGreaterThan(byID[outcome.dealtCardIDs[1]]!.zIndex, byID[outcome.dealtCardIDs[9]]!.zIndex)
 
         for id in outcome.dealtCardIDs.dropFirst() { anim.releaseDealtCard(id) }
-        XCTAssertTrue(anim.isIdle)
+        XCTAssertNil(anim.dealHold)
         XCTAssertEqual(layout.placements(for: game.state, animations: anim), layout.placements(for: game.state))
+        // The last cards are still in the air: the deal is not over until they have landed.
+        XCTAssertTrue(anim.isDealing)
+        XCTAssertFalse(anim.isIdle)
+        for id in outcome.dealtCardIDs { XCTAssertTrue(anim.landDealtCard(id)) }
+        XCTAssertFalse(anim.landDealtCard(first), "only once")
+        XCTAssertFalse(anim.isDealing)
+        XCTAssertTrue(anim.isIdle)
     }
 
     func testCardsCompletedByTheDealFlyInsteadOfWaiting() throws {
@@ -56,6 +63,20 @@ final class DealAnimationTests: XCTestCase {
         XCTAssertEqual(anim.dealHold?.waitingIDs.count, 9)
         XCTAssertFalse(anim.dealHold!.waitingIDs.contains(stock[9].id))
         XCTAssertEqual(anim.flying.count, 13)
+
+        // Every stock card keeps its timed step and click, the one that completed the run too;
+        // releasing and landing that one does nothing.
+        let steps = DealPacing.steps(.stock, ids: outcome.dealtCardIDs)
+        XCTAssertEqual(steps.map(\.id), outcome.dealtCardIDs)
+        XCTAssertEqual(steps.filter(\.sound).count, 10)
+        let completing = try XCTUnwrap(steps.firstIndex { $0.id == stock[9].id })
+        XCTAssertTrue(steps[completing].sound)
+        XCTAssertEqual(steps[completing].release, DealPacing.releaseTime(.stock, index: completing), accuracy: 1e-9)
+        XCTAssertFalse(anim.releaseDealtCard(stock[9].id))
+        for step in steps { anim.releaseDealtCard(step.id) }
+        for step in steps { anim.landDealtCard(step.id) }
+        XCTAssertFalse(anim.isDealing)
+        XCTAssertEqual(anim.flying.count, 13, "the run still flies to the foundation")
     }
 }
 

@@ -161,7 +161,15 @@ enum SnapshotMode {
         return GameModel(store: store)
     }
 
+    /// `--snapshot <dir> --deal-frames`: instead of the website set, board frames taken while a
+    /// new game is dealt and then while the stock deals a row (checks `DealPacing` by eye).
+    static var dealFrames: Bool { CommandLine.arguments.contains("--deal-frames") }
+
     static func run(model: GameModel, windows: WindowController, into directory: URL) {
+        if dealFrames {
+            runDealFrames(model: model, windows: windows, into: directory)
+            return
+        }
         Task { @MainActor in
             try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             model.prepareSnapshot(difficulty: Difficulty.twoSuits, moves: 38)
@@ -179,6 +187,26 @@ enum SnapshotMode {
                 (settings.contentViewController as? SettingsTabViewController)?.selectedTabViewItemIndex = index
                 try? await Task.sleep(nanoseconds: 900_000_000)
                 save(settings, "settings-" + tab.rawValue, directory)
+            }
+            exit(0)
+        }
+    }
+
+    private static func runDealFrames(model: GameModel, windows: WindowController, into directory: URL) {
+        Task { @MainActor in
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            model.prepareSnapshot(difficulty: Difficulty.twoSuits, moves: 0)
+            let board: NSWindow = windows.showBoard()
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            for (name, times) in [("initial", [0.3, 0.8, 1.3, 1.9, 2.5, 3.6]), ("stock", [0.1, 0.3, 0.5, 0.7, 1.3])] {
+                if name == "initial" { model.requestRestart() } else { model.deal() }
+                let start: Double = ProcessInfo.processInfo.systemUptime
+                for t in times {
+                    let wait: Double = max(0, start + t - ProcessInfo.processInfo.systemUptime)
+                    try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+                    let ms: Int = Int((ProcessInfo.processInfo.systemUptime - start) * 1000)
+                    save(board, String(format: "deal-%@-%04dms", name, ms), directory)
+                }
             }
             exit(0)
         }
@@ -272,9 +300,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: NSEvent.EventTypeMask.keyDown) {
             [weak self] (event: NSEvent) -> NSEvent? in
-            guard let model = self?.model, model.isCelebrating else { return event }
-            model.skipCelebration()
-            return nil
+            guard let model = self?.model else { return event }
+            if model.isCelebrating {
+                model.skipCelebration()
+                return nil
+            }
+            // Any plain key finishes a running deal. ⌘ shortcuts still reach the menu, and every
+            // game action settles the deal itself before it runs.
+            if model.isDealing, !event.modifierFlags.contains(NSEvent.ModifierFlags.command) {
+                model.skipDeal()
+                return nil
+            }
+            return event
         }
     }
 

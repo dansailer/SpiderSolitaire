@@ -65,10 +65,14 @@ spade card; there are no spider motifs anywhere.
 ## Classic card art
 The Classic faces come from Dmitry Fomin's "English pattern" deck on Wikimedia Commons (CC0). That deck
 draws every suit pip into a tall 2:3 box, so the build script rescales each pip about its centre to the
-usual proportions (hearts about 1:1). The PNGs keep the source's 2:3 aspect (240 x 360), and CardView fits
-them onto the 71:96 card with one uniform scale. The ace of
-spades also uses the ornate centre spade from Byron Knoll's public-domain deck. To regenerate them, you need
-Pillow, `rsvg-convert`, `pngquant` and `optipng`; run `python3 scripts/cards/build_classic_cards.py`. It checks
+usual proportions (hearts about 1:1). The faces ship as vector PDFs at the source's 2:3 page size
+(360 x 540 pt). The app renders each PDF once into a bitmap of the card's exact pixel size (card size in
+points times the display's backing scale), fits the art onto the 71:96 card with one uniform scale, and
+draws that bitmap 1:1, so the faces stay sharp at every window size and on every display. The bitmaps are
+cached per card and pixel size (`CardBitmapCache`), so dragging and the win animation only copy pixels. The ace
+of spades also uses the ornate centre spade from Byron Knoll's public-domain deck, kept as a vector path.
+To regenerate the PDFs you need `rsvg-convert` (`brew install librsvg`) and the Python package
+`svgelements`; run `python3 scripts/cards/build_classic_cards.py`. It checks
 each file page's licence and writes `Resources/Cards/CREDITS.md`.
 
 CI: `.github/workflows/ci.yml` runs the tests on Linux and macOS 14 and uploads the zip.
@@ -217,8 +221,8 @@ Sources/SpiderPersistence/ JSON files in Application Support (SpiderStore)
 Sources/SpiderSolitaire/   SwiftUI views in an AppKit app (app delegate, windows and menu bar, GameModel, BoardView, CardView, WinCelebrationView)
 Sources/SpiderIcon/        renders VectorArt (app icon, card back, badges) to PNG (CoreGraphics) or SVG (any platform)
 Sources/SpiderTools/       dev-only solver tool: bench, find, seeds, bundled (not part of the app)
-Sources/SpiderSolitaire/Resources/Cards/  Classic card faces (52 PNGs, CC0/public domain, see CREDITS.md)
-scripts/cards/             build_classic_cards.py (download, licence check, pip fix, render), preview.py, preview_faces.py
+Sources/SpiderSolitaire/Resources/Cards/  Classic card faces (52 vector PDFs, CC0/public domain, see CREDITS.md)
+scripts/cards/             build_classic_cards.py (download, licence check, pip fix, PDF), preview.py, preview_faces.py
 Packaging/Info.plist       app bundle Info.plist template
 scripts/package.sh         builds, signs and zips build/Spider Solitaire.app
 scripts/lint.sh            swift-format and SwiftLint (.swift-format, .swiftlint.yml), as in CI
