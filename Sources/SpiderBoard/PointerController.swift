@@ -3,6 +3,34 @@ import SpiderCore
 /// Turns raw pointer input (press, drag, release, with timestamps) into game actions.
 /// The SwiftUI view forwards one DragGesture(minimumDistance: 0) here; all decisions live here so
 /// they are unit-tested on Linux.
+/// The one gesture whose click skipped a running deal: the rest of it is ignored, so it cannot
+/// also pick up or move a card that was still in the air. Gestures are told apart by their
+/// start point, like `PointerController` does: a different start means the suppressed gesture
+/// was cancelled without an end event, and the stale suppression is dropped.
+public struct GestureSuppression: Hashable, Sendable {
+    public private(set) var start: BoardPoint?
+
+    public init() {}
+
+    public mutating func suppress(start: BoardPoint) { self.start = start }
+
+    /// Whether a change of the gesture that began at `start` is ignored.
+    public mutating func ignoresChange(start: BoardPoint) -> Bool {
+        guard let suppressed = self.start else { return false }
+        if suppressed == start { return true }
+        self.start = nil
+        return false
+    }
+
+    /// Whether the end of the gesture that began at `start` is ignored. Ends the suppression.
+    public mutating func ignoresEnd(start: BoardPoint) -> Bool {
+        defer { self.start = nil }
+        return self.start == start
+    }
+
+    public mutating func reset() { start = nil }
+}
+
 public struct PointerController: Sendable {
     /// Pointer travel (points) before a press becomes a drag.
     public static let dragThreshold: Double = 3
