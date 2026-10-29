@@ -55,7 +55,9 @@ final class PackagingTests: XCTestCase {
         let script: String = try String(contentsOf: url, encoding: .utf8)
         XCTAssertTrue(script.hasPrefix("#!/usr/bin/env bash"))
         XCTAssertTrue(script.contains("set -euo pipefail"))
-        XCTAssertTrue(script.contains("swift build -c release"))
+        // Release by default; CONFIG=debug only for local update testing.
+        XCTAssertTrue(script.contains("CONFIG=\"${CONFIG:-release}\""))
+        XCTAssertTrue(script.contains("swift build -c \"$CONFIG\""))
         // Ad hoc by default; a Developer ID gets the hardened runtime and a secure timestamp
         // (both required for notarization).
         XCTAssertTrue(script.contains("SIGN_IDENTITY=\"${SIGN_IDENTITY:--}\""))

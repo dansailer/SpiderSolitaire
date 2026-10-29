@@ -125,11 +125,16 @@ There is no File, Edit or View menu and no window tabs. SPEC.md §3.5 explains e
 ### Updates
 Spider Solitaire ▸ Check for Updates… asks GitHub's public API for the latest release
 (no account, no token, nothing else is sent) and compares it with the running version. If there is
-a newer one, Download saves `SpiderSolitaire.zip` to your Downloads folder and shows it in Finder;
-you then replace the app yourself. With "Check for updates automatically" on (Settings ▸ General,
-the default) it checks at launch, at most once a day, and stays silent unless an update exists.
-The app does not replace itself: that would need an updater such as Sparkle, which this project
-does not use yet.
+a newer one, Install downloads it with a progress bar and checks it: the zip's SHA-256 against the
+release's `.sha256` file, and the app's signature (it must be signed with this project's Developer ID
+and be a newer version). Then choose Restart to Update, which quits, swaps in the new version (keeping
+the old one until the new one is in place) and reopens it, or Later, which keeps your version and
+deletes the download until the next check. If the app can't replace itself (for example it runs
+from Downloads, where macOS opens it from a temporary read-only location, or its folder isn't
+writable), Install saves `SpiderSolitaire.zip` to Downloads and shows it in Finder instead. When you
+open it from Downloads, it offers once to move itself to Applications. With "Check for updates
+automatically" on (Settings ▸ General, the default) it checks at launch, at most once a day, and
+stays silent unless an update exists.
 
 ## Releases, CI and the website
 Work happens on branches; `main` only changes through pull requests whose checks passed. The cycle

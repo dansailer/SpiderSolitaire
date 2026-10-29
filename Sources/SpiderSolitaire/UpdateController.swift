@@ -6,21 +6,58 @@ import SwiftUI
 
 /// Spider Solitaire ▸ Check for Updates… and the once-a-day check at launch. Asks GitHub's public
 /// "latest release" API (no account, no token), compares versions with `SpiderUpdates`, and shows
-/// `UpdateView`. It never replaces the app itself: that needs Developer ID signing and Sparkle.
+/// `UpdateView`. "Install" downloads the release zip and its SHA-256 file, checks the checksum,
+/// unpacks it and checks the new app's Developer ID signature (`UpdateInstaller`), then offers
+/// "Restart to Update": a small helper script swaps the bundle after the app has quit and relaunches
+/// it. Where the app can't replace itself it falls back to saving the zip in Downloads.
 @MainActor
 final class UpdateController: ObservableObject {
     enum Phase: Equatable {
+        /// Nothing in progress: before the first check, after Later, or after a cancelled download.
+        case idle
         case checking
         case upToDate(version: String)
         case available(current: String, latest: String, notes: String, release: ReleaseInfo)
-        case downloading(latest: String)
-        case downloaded(file: URL)
+        /// `fraction` is nil until the size is known.
+        case downloading(latest: String, fraction: Double?)
+        case verifying(latest: String)
+        case ready(latest: String)
+        case installing(latest: String)
+        /// The manual flow: the zip is in Downloads; `reason` says why it didn't install itself.
+        case downloaded(file: URL, reason: String?)
         case failed(message: String)
+        case installFailed(message: String, release: ReleaseInfo)
+
+        var step: UpdateStep {
+            switch self {
+            case .idle: return .idle
+            case .checking: return .checking
+            case .upToDate: return .upToDate
+            case .available: return .available
+            case .downloading: return .downloading
+            case .verifying: return .verifying
+            case .ready: return .ready
+            case .installing: return .installing
+            case .downloaded: return .downloaded
+            case .failed: return .failed
+            case .installFailed: return .installFailed
+            }
+        }
     }
 
-    @Published private(set) var phase: Phase = .checking
+    @Published private(set) var phase: Phase = .idle {
+        didSet {
+            // Progress steps are not worth a log line each.
+            if case .downloading(_, let fraction?) = phase, fraction < 1 { return }
+            DebugUpdateTesting.log(phase)
+        }
+    }
     private var window: NSWindow?
     private var task: Task<Void, Never>?
+    /// A checked update waiting for "Restart to Update" (its folder is removed by Later or at quit).
+    private var prepared: UpdateInstaller.Prepared?
+    /// Set by "Restart to Update"; the helper starts in `applicationWillTerminate`.
+    private var installOnQuit: Bool = false
     private static let lastCheckKey: String = "SpiderSolitaireLastUpdateCheck"
 
     static var currentVersion: String? {
@@ -29,12 +66,20 @@ final class UpdateController: ObservableObject {
 
     /// At launch: at most once a day, and only shows a window when there is a new version.
     func checkAutomaticallyIfDue(enabled: Bool) {
+        if DebugUpdateTesting.isActive {
+            check(userInitiated: true)
+            return
+        }
         let last: Date? = UserDefaults.standard.object(forKey: UpdateController.lastCheckKey) as? Date
         guard UpdateCheckPolicy.shouldCheckAutomatically(enabled: enabled, lastCheck: last, now: Date()) else { return }
         check(userInitiated: false)
     }
 
     func check(userInitiated: Bool) {
+        guard !isBusyInstalling else {
+            showWindow()
+            return
+        }
         task?.cancel()
         if userInitiated {
             phase = .checking
@@ -45,13 +90,16 @@ final class UpdateController: ObservableObject {
             guard let self, !Task.isCancelled else { return }
             switch result {
             case .success(let release):
-                UserDefaults.standard.set(Date(), forKey: UpdateController.lastCheckKey)
+                if !DebugUpdateTesting.isActive {
+                    UserDefaults.standard.set(Date(), forKey: UpdateController.lastCheckKey)
+                }
                 switch UpdateStatus.evaluate(currentVersion: UpdateController.currentVersion, release: release) {
                 case .available(let current, let latest, let release)?:
                     self.phase = .available(
                         current: current.description, latest: latest.description,
                         notes: ReleaseNotes.excerpt(release.body), release: release)
                     self.showWindow()
+                    if DebugUpdateTesting.autoInstall { self.install(release) }
                 case .unknownCurrent(let latest, let release)?:
                     self.phase = .available(
                         current: "development build", latest: latest.description,
@@ -68,11 +116,21 @@ final class UpdateController: ObservableObject {
         }
     }
 
+    /// While a checked update waits or installs, a new check would only throw it away.
+    private var isBusyInstalling: Bool { phase.step.keepsCurrentUpdate }
+
     struct UpdateFailure: Error {
         let statusCode: Int?
     }
 
     nonisolated static func fetchLatest() async -> Result<ReleaseInfo, UpdateFailure> {
+        if let feed: URL = DebugUpdateTesting.feed {
+            do {
+                return .success(try ReleaseInfo.decode(try Data(contentsOf: feed)))
+            } catch {
+                return .failure(UpdateFailure(statusCode: 0))
+            }
+        }
         var request: URLRequest = URLRequest(
             url: ProjectLinks.latestReleaseAPI,
             cachePolicy: URLRequest.CachePolicy.reloadIgnoringLocalCacheData,
@@ -96,30 +154,192 @@ final class UpdateController: ObservableObject {
         }
     }
 
-    /// Download: the zip into ~/Downloads, then show it in Finder. Without a zip asset, the release page.
-    func download(_ release: ReleaseInfo) {
-        guard let asset: ReleaseInfo.Asset = release.appAsset else {
+    /// Release builds only fetch assets from this repository's GitHub releases.
+    private static func isAllowedAssetURL(_ url: URL) -> Bool {
+        UpdateTrust.isTrustedAssetURL(url) || (DebugUpdateTesting.isActive && url.isFileURL)
+    }
+
+    /// "Install": in place when the app can replace itself and the release is checkable,
+    /// otherwise the manual Downloads flow with the reason. Without a zip asset, the release page.
+    func install(_ release: ReleaseInfo) {
+        guard let asset: ReleaseInfo.Asset = release.appAsset,
+            UpdateController.isAllowedAssetURL(asset.browserDownloadURL)
+        else {
             NSWorkspace.shared.open(release.htmlURL)
             return
         }
+        let app: URL = Bundle.main.bundleURL
+        switch UpdateInstaller.installPlan(for: app) {
+        case .manual(let reason):
+            downloadToDownloads(release, asset: asset, reason: reason)
+        case .inPlace(let target):
+            guard let checksum: ReleaseInfo.Asset = release.checksumAsset,
+                UpdateController.isAllowedAssetURL(checksum.browserDownloadURL)
+            else {
+                downloadToDownloads(
+                    release, asset: asset,
+                    reason: "This release has no checksum file, so it can't be installed automatically.")
+                return
+            }
+            prepare(release, asset: asset, checksum: checksum, target: URL(fileURLWithPath: target))
+        }
+    }
+
+    private func prepare(_ release: ReleaseInfo, asset: ReleaseInfo.Asset, checksum: ReleaseInfo.Asset, target: URL) {
         let latest: String = release.version?.description ?? release.tagName
-        phase = .downloading(latest: latest)
+        discardPrepared()
+        phase = .downloading(latest: latest, fraction: nil)
+        task = Task { @MainActor [weak self] in
+            var work: URL?
+            do {
+                let folder: URL = try UpdateInstaller.makeWorkFolder(near: target)
+                work = folder
+                let zip: URL = try await UpdateController.fetch(
+                    asset.browserDownloadURL, to: folder.appendingPathComponent(ProjectLinks.assetName)
+                ) { [weak self] (fraction: Double) in
+                    guard let self, case .downloading = self.phase else { return }
+                    self.phase = .downloading(latest: latest, fraction: fraction)
+                }
+                let sums: URL = try await UpdateController.fetch(
+                    checksum.browserDownloadURL, to: folder.appendingPathComponent(ProjectLinks.checksumAssetName),
+                    progress: nil)
+                try Task.checkCancellation()
+                self?.phase = .verifying(latest: latest)
+                let current: String? = UpdateController.currentVersion
+                let newApp: URL = try await Task.detached(priority: TaskPriority.userInitiated) {
+                    try UpdateInstaller.verifyChecksum(zip: zip, checksumFile: sums)
+                    let app: URL = try UpdateInstaller.unzip(zip, into: folder.appendingPathComponent("new"))
+                    try UpdateInstaller.verify(
+                        app: app, bundleIdentifier: ProjectLinks.bundleIdentifier, currentVersion: current)
+                    return app
+                }.value
+                try Task.checkCancellation()
+                guard let self else { return }
+                self.prepared = UpdateInstaller.Prepared(
+                    version: latest, workFolder: folder, newApp: newApp, target: target)
+                self.phase = .ready(latest: latest)
+                self.showWindow()
+                if DebugUpdateTesting.autoInstall {
+                    if DebugUpdateTesting.takeLater() {
+                        self.later()
+                        self.check(userInitiated: true)
+                    } else {
+                        self.restartToUpdate()
+                    }
+                }
+            } catch {
+                if let work { try? FileManager.default.removeItem(at: work) }
+                guard let self, !(error is CancellationError), !Task.isCancelled else { return }
+                let message: String =
+                    (error as? UpdateInstaller.Failure)?.description
+                    ?? "The download failed. Check your internet connection and try again."
+                self.phase = .installFailed(message: message, release: release)
+            }
+        }
+    }
+
+    /// Downloads `url` to `destination`, reporting progress on the main actor.
+    nonisolated private static func fetch(
+        _ url: URL, to destination: URL, progress: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> URL {
+        var request: URLRequest = URLRequest(url: url, timeoutInterval: 120)
+        request.setValue(
+            UpdateRequest.headers(appVersion: nil)["User-Agent"], forHTTPHeaderField: "User-Agent")
+        let session: URLSession = URLSession(configuration: URLSessionConfiguration.ephemeral)
+        defer { session.finishTasksAndInvalidate() }
+        var observation: NSKeyValueObservation?
+        defer { observation?.invalidate() }
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URL, Error>) in
+                let download: URLSessionDownloadTask = session.downloadTask(with: request) {
+                    (temporary: URL?, response: URLResponse?, error: Error?) in
+                    do {
+                        if let error { throw error }
+                        if let http: HTTPURLResponse = response as? HTTPURLResponse, http.statusCode != 200 {
+                            throw URLError(URLError.Code.badServerResponse)
+                        }
+                        guard let temporary else { throw URLError(URLError.Code.cannotCreateFile) }
+                        try FileManager.default.moveItem(at: temporary, to: destination)
+                        continuation.resume(returning: destination)
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
+                if let progress {
+                    observation = download.progress.observe(\Progress.fractionCompleted) {
+                        (p: Progress, _: NSKeyValueObservedChange<Double>) in
+                        let fraction: Double = p.fractionCompleted
+                        Task { @MainActor in progress(fraction) }
+                    }
+                }
+                download.resume()
+            }
+        } onCancel: {
+            session.invalidateAndCancel()
+        }
+    }
+
+    /// "Restart to Update": quit normally (the save prompt may still cancel), then the helper swaps
+    /// the app once this process has exited.
+    func restartToUpdate() {
+        guard let prepared else { return }
+        installOnQuit = true
+        phase = .installing(latest: prepared.version)
+        NSApplication.shared.terminate(nil)
+    }
+
+    /// The quit was cancelled (Cancel in "Do you want to save this game?"): keep the update ready.
+    func quitWasCancelled() {
+        guard installOnQuit, let prepared else { return }
+        installOnQuit = false
+        phase = .ready(latest: prepared.version)
+    }
+
+    /// From `applicationWillTerminate`: start the helper if armed, otherwise drop the staged files.
+    func appWillTerminate() {
+        if installOnQuit, let prepared {
+            do {
+                try UpdateInstaller.launchHelper(for: prepared, relaunch: DebugUpdateTesting.relaunchCommand)
+                return
+            } catch {
+                DebugUpdateTesting.log("helper failed to start: \(error)")
+            }
+        }
+        discardPrepared()
+    }
+
+    /// "Later": the checked update is thrown away; the next check offers it again.
+    func later() {
+        discardPrepared()
+        phase = .idle
+        close()
+    }
+
+    private func discardPrepared() {
+        if let prepared { try? FileManager.default.removeItem(at: prepared.workFolder) }
+        prepared = nil
+        installOnQuit = false
+    }
+
+    /// The fallback: the zip into ~/Downloads, then show it in Finder.
+    private func downloadToDownloads(_ release: ReleaseInfo, asset: ReleaseInfo.Asset, reason: String?) {
+        let latest: String = release.version?.description ?? release.tagName
+        phase = .downloading(latest: latest, fraction: nil)
         task = Task { @MainActor [weak self] in
             do {
-                var request: URLRequest = URLRequest(url: asset.browserDownloadURL, timeoutInterval: 120)
-                request.setValue(
-                    UpdateRequest.headers(appVersion: UpdateController.currentVersion)["User-Agent"],
-                    forHTTPHeaderField: "User-Agent")
-                let (temporary, response): (URL, URLResponse) = try await URLSession.shared.download(for: request)
-                guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-                    throw URLError(URLError.Code.badServerResponse)
+                let temporary: URL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("SpiderSolitaire-\(UUID().uuidString).zip")
+                _ = try await UpdateController.fetch(asset.browserDownloadURL, to: temporary) {
+                    [weak self] (fraction: Double) in
+                    guard let self, case .downloading = self.phase else { return }
+                    self.phase = .downloading(latest: latest, fraction: fraction)
                 }
                 let file: URL = try UpdateController.moveToDownloads(temporary, name: "SpiderSolitaire-\(latest).zip")
                 guard let self else { return }
-                self.phase = .downloaded(file: file)
+                self.phase = .downloaded(file: file, reason: reason)
                 NSWorkspace.shared.activateFileViewerSelecting([file])
             } catch {
-                guard let self else { return }
+                guard let self, !(error is CancellationError), !Task.isCancelled else { return }
                 self.phase = .failed(message: "The download failed. You can get the new version from the release page.")
                 NSWorkspace.shared.open(release.htmlURL)
             }
@@ -142,8 +362,13 @@ final class UpdateController: ObservableObject {
         return target
     }
 
+    /// Cancel / Close / OK. A download in progress stops; a checked update stays ready until quit.
     func close() {
         task?.cancel()
+        switch phase {
+        case .downloading, .verifying: phase = .idle
+        default: break
+        }
         window?.close()
     }
 
@@ -169,6 +394,39 @@ final class UpdateController: ObservableObject {
     }
 }
 
+/// DEBUG builds only, for testing updates end to end without publishing a release:
+/// `SPIDER_UPDATE_TEST_FEED=/path/release.json` reads the "latest release" from that file (asset
+/// URLs may be file:// URLs), checks at launch, keeps the app's real data untouched (throwaway
+/// store, no last-check date) and logs each phase to stderr. `SPIDER_UPDATE_TEST_AUTO=1` also
+/// presses Install and Restart to Update; `SPIDER_UPDATE_TEST_RELAUNCH=/path/cmd` replaces
+/// /usr/bin/open for the relaunch. In release builds all of this is compiled out.
+enum DebugUpdateTesting {
+    #if DEBUG
+    private static let environment: [String: String] = ProcessInfo.processInfo.environment
+    static let feed: URL? = environment["SPIDER_UPDATE_TEST_FEED"].map { URL(fileURLWithPath: $0) }
+    /// "1": Install, then Restart to Update. "later": Install, Later, a new check, then the same.
+    static let autoInstall: Bool = feed != nil && ["1", "later"].contains(environment["SPIDER_UPDATE_TEST_AUTO"] ?? "")
+    private static var laterPending: Bool = feed != nil && environment["SPIDER_UPDATE_TEST_AUTO"] == "later"
+    static func takeLater() -> Bool {
+        defer { laterPending = false }
+        return laterPending
+    }
+    static let relaunchCommand: String =
+        (feed != nil ? environment["SPIDER_UPDATE_TEST_RELAUNCH"] : nil) ?? "/usr/bin/open"
+    static func log(_ value: Any) {
+        guard feed != nil else { return }
+        FileHandle.standardError.write(Data("update: \(value)\n".utf8))
+    }
+    #else
+    static let feed: URL? = nil
+    static let autoInstall: Bool = false
+    static func takeLater() -> Bool { false }
+    static let relaunchCommand: String = "/usr/bin/open"
+    static func log(_ value: Any) {}
+    #endif
+    static var isActive: Bool { feed != nil }
+}
+
 /// The update window: app icon, what was found, the release notes excerpt, and the buttons.
 struct UpdateView: View {
     @ObservedObject var controller: UpdateController
@@ -190,6 +448,9 @@ struct UpdateView: View {
 
     @ViewBuilder private var content: some View {
         switch controller.phase {
+        case .idle:
+            Text("No update in progress").font(Font.headline)
+            buttons(primary: ("OK", { controller.close() }), secondary: nil)
         case .checking:
             Text("Checking for updates…").font(Font.headline)
             ProgressView().progressViewStyle(LinearProgressViewStyle())
@@ -201,9 +462,11 @@ struct UpdateView: View {
             buttons(primary: ("OK", { controller.close() }), secondary: nil)
         case .available(let current, let latest, let notes, let release):
             Text("Spider Solitaire \(latest) is available").font(Font.headline)
-            Text("You have \(current). Download the new version, then replace the app in your Applications folder.")
-                .foregroundColor(Color.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                "You have \(current). Install downloads and checks the new version; nothing changes until you restart."
+            )
+            .foregroundColor(Color.secondary)
+            .fixedSize(horizontal: false, vertical: true)
             if !notes.isEmpty {
                 ScrollView {
                     Text(notes)
@@ -217,13 +480,51 @@ struct UpdateView: View {
             }
             Link("View the release on GitHub", destination: release.htmlURL)
                 .font(Font.callout)
-            buttons(primary: ("Download", { controller.download(release) }), secondary: "Later")
-        case .downloading(let latest):
+            buttons(primary: ("Install", { controller.install(release) }), secondary: "Later")
+        case .downloading(let latest, let fraction):
             Text("Downloading Spider Solitaire \(latest)…").font(Font.headline)
+            if let fraction {
+                ProgressView(value: fraction).progressViewStyle(LinearProgressViewStyle())
+            } else {
+                ProgressView().progressViewStyle(LinearProgressViewStyle())
+            }
+            buttons(primary: nil, secondary: "Cancel")
+        case .verifying(let latest):
+            Text("Checking Spider Solitaire \(latest)…").font(Font.headline)
+            Text("Making sure the download is complete and signed by its developer.")
+                .foregroundColor(Color.secondary)
             ProgressView().progressViewStyle(LinearProgressViewStyle())
             buttons(primary: nil, secondary: "Cancel")
-        case .downloaded(let file):
+        case .ready(let latest):
+            Text("Spider Solitaire \(latest) is ready to install").font(Font.headline)
+            Text(
+                "Restart to Update quits Spider Solitaire (you're asked about an unfinished game as usual), "
+                    + "replaces it with the new version and opens it again."
+            )
+            .foregroundColor(Color.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            Text("Later keeps this version and deletes the download; you'll be offered the update at the next check.")
+                .font(Font.callout)
+                .foregroundColor(Color.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button("Later") { controller.later() }
+                    .keyboardShortcut(KeyboardShortcut.cancelAction)
+                Button("Restart to Update") { controller.restartToUpdate() }
+                    .keyboardShortcut(KeyboardShortcut.defaultAction)
+            }
+            .padding(EdgeInsets(top: 4, leading: 0, bottom: 0, trailing: 0))
+        case .installing(let latest):
+            Text("Installing Spider Solitaire \(latest)…").font(Font.headline)
+            ProgressView().progressViewStyle(LinearProgressViewStyle())
+        case .downloaded(let file, let reason):
             Text("Downloaded").font(Font.headline)
+            if let reason {
+                Text(reason)
+                    .foregroundColor(Color.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Text(
                 "\(file.lastPathComponent) is in your Downloads folder. Open it, then drag Spider Solitaire to Applications."
             )
@@ -236,6 +537,14 @@ struct UpdateView: View {
                 .foregroundColor(Color.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             buttons(primary: ("Try Again", { controller.check(userInitiated: true) }), secondary: "Close")
+        case .installFailed(let message, let release):
+            Text("The update wasn't installed").font(Font.headline)
+            Text(message + " Nothing was changed.")
+                .foregroundColor(Color.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Link("Get it from the release page", destination: release.htmlURL)
+                .font(Font.callout)
+            buttons(primary: ("Try Again", { controller.install(release) }), secondary: "Close")
         }
     }
 
