@@ -102,16 +102,16 @@ final class UpdateController: ObservableObject {
                     if DebugUpdateTesting.autoInstall { self.install(release) }
                 case .unknownCurrent(let latest, let release)?:
                     self.phase = .available(
-                        current: "development build", latest: latest.description,
+                        current: loc("development build"), latest: latest.description,
                         notes: ReleaseNotes.excerpt(release.body), release: release)
                     if userInitiated { self.showWindow() }
                 case .upToDate(let current)?:
                     self.phase = .upToDate(version: current.description)
                 case nil:
-                    self.phase = .upToDate(version: UpdateController.currentVersion ?? "this version")
+                    self.phase = .upToDate(version: UpdateController.currentVersion ?? loc("this version"))
                 }
             case .failure(let failure):
-                self.phase = .failed(message: UpdateRequest.failureMessage(statusCode: failure.statusCode))
+                self.phase = .failed(message: loc(UpdateRequest.failureMessage(statusCode: failure.statusCode)))
             }
         }
     }
@@ -171,14 +171,14 @@ final class UpdateController: ObservableObject {
         let app: URL = Bundle.main.bundleURL
         switch UpdateInstaller.installPlan(for: app) {
         case .manual(let reason):
-            downloadToDownloads(release, asset: asset, reason: reason)
+            downloadToDownloads(release, asset: asset, reason: loc(reason))
         case .inPlace(let target):
             guard let checksum: ReleaseInfo.Asset = release.checksumAsset,
                 UpdateController.isAllowedAssetURL(checksum.browserDownloadURL)
             else {
                 downloadToDownloads(
                     release, asset: asset,
-                    reason: "This release has no checksum file, so it can't be installed automatically.")
+                    reason: loc("This release has no checksum file, so it can't be installed automatically."))
                 return
             }
             prepare(release, asset: asset, checksum: checksum, target: URL(fileURLWithPath: target))
@@ -232,7 +232,7 @@ final class UpdateController: ObservableObject {
                 guard let self, !(error is CancellationError), !Task.isCancelled else { return }
                 let message: String =
                     (error as? UpdateInstaller.Failure)?.description
-                    ?? "The download failed. Check your internet connection and try again."
+                    ?? loc("The download failed. Check your internet connection and try again.")
                 self.phase = .installFailed(message: message, release: release)
             }
         }
@@ -340,7 +340,8 @@ final class UpdateController: ObservableObject {
                 NSWorkspace.shared.activateFileViewerSelecting([file])
             } catch {
                 guard let self, !(error is CancellationError), !Task.isCancelled else { return }
-                self.phase = .failed(message: "The download failed. You can get the new version from the release page.")
+                self.phase = .failed(
+                    message: loc("The download failed. You can get the new version from the release page."))
                 NSWorkspace.shared.open(release.htmlURL)
             }
         }
@@ -381,7 +382,7 @@ final class UpdateController: ObservableObject {
                 controller.sizingOptions = [NSHostingSizingOptions.preferredContentSize]
                 let w: NSWindow = NSWindow(contentViewController: controller)
                 w.styleMask = [NSWindow.StyleMask.titled, NSWindow.StyleMask.closable]
-                w.title = "Software Update"
+                w.title = loc("Software Update")
                 w.isReleasedWhenClosed = false
                 w.tabbingMode = NSWindow.TabbingMode.disallowed
                 w.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenNone)
@@ -449,21 +450,23 @@ struct UpdateView: View {
     @ViewBuilder private var content: some View {
         switch controller.phase {
         case .idle:
-            Text("No update in progress").font(Font.headline)
-            buttons(primary: ("OK", { controller.close() }), secondary: nil)
+            Text(loc("No update in progress")).font(Font.headline)
+            buttons(primary: (loc("OK"), { controller.close() }), secondary: nil)
         case .checking:
-            Text("Checking for updates…").font(Font.headline)
+            Text(loc("Checking for updates…")).font(Font.headline)
             ProgressView().progressViewStyle(LinearProgressViewStyle())
-            buttons(primary: nil, secondary: "Cancel")
+            buttons(primary: nil, secondary: loc("Cancel"))
         case .upToDate(let version):
-            Text("You're up to date").font(Font.headline)
-            Text("Spider Solitaire \(version) is the newest version.")
+            Text(loc("You're up to date")).font(Font.headline)
+            Text(loc("Spider Solitaire %@ is the newest version.", version))
                 .foregroundColor(Color.secondary)
-            buttons(primary: ("OK", { controller.close() }), secondary: nil)
+            buttons(primary: (loc("OK"), { controller.close() }), secondary: nil)
         case .available(let current, let latest, let notes, let release):
-            Text("Spider Solitaire \(latest) is available").font(Font.headline)
+            Text(loc("Spider Solitaire %@ is available", latest)).font(Font.headline)
             Text(
-                "You have \(current). Install downloads and checks the new version; nothing changes until you restart."
+                loc(
+                    "You have %@. Install downloads and checks the new version; nothing changes until you restart.",
+                    current)
             )
             .foregroundColor(Color.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -478,73 +481,80 @@ struct UpdateView: View {
                 .frame(height: 140)
                 .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.05)))
             }
-            Link("View the release on GitHub", destination: release.htmlURL)
+            Link(loc("View the release on GitHub"), destination: release.htmlURL)
                 .font(Font.callout)
-            buttons(primary: ("Install", { controller.install(release) }), secondary: "Later")
+            buttons(primary: (loc("Install"), { controller.install(release) }), secondary: loc("Later"))
         case .downloading(let latest, let fraction):
-            Text("Downloading Spider Solitaire \(latest)…").font(Font.headline)
+            Text(loc("Downloading Spider Solitaire %@…", latest)).font(Font.headline)
             if let fraction {
                 ProgressView(value: fraction).progressViewStyle(LinearProgressViewStyle())
             } else {
                 ProgressView().progressViewStyle(LinearProgressViewStyle())
             }
-            buttons(primary: nil, secondary: "Cancel")
+            buttons(primary: nil, secondary: loc("Cancel"))
         case .verifying(let latest):
-            Text("Checking Spider Solitaire \(latest)…").font(Font.headline)
-            Text("Making sure the download is complete and signed by its developer.")
+            Text(loc("Checking Spider Solitaire %@…", latest)).font(Font.headline)
+            Text(loc("Making sure the download is complete and signed by its developer."))
                 .foregroundColor(Color.secondary)
             ProgressView().progressViewStyle(LinearProgressViewStyle())
-            buttons(primary: nil, secondary: "Cancel")
+            buttons(primary: nil, secondary: loc("Cancel"))
         case .ready(let latest):
-            Text("Spider Solitaire \(latest) is ready to install").font(Font.headline)
+            Text(loc("Spider Solitaire %@ is ready to install", latest)).font(Font.headline)
             Text(
-                "Restart to Update quits Spider Solitaire (you're asked about an unfinished game as usual), "
-                    + "replaces it with the new version and opens it again."
+                loc(
+                    "Restart to Update quits Spider Solitaire (you're asked about an unfinished game as usual), "
+                        + "replaces it with the new version and opens it again.")
             )
             .foregroundColor(Color.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            Text("Later keeps this version and deletes the download; you'll be offered the update at the next check.")
-                .font(Font.callout)
-                .foregroundColor(Color.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                loc(
+                    "Later keeps this version and deletes the download; you'll be offered the update at the next check."
+                )
+            )
+            .font(Font.callout)
+            .foregroundColor(Color.secondary)
+            .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
-                Button("Later") { controller.later() }
+                Button(loc("Later")) { controller.later() }
                     .keyboardShortcut(KeyboardShortcut.cancelAction)
-                Button("Restart to Update") { controller.restartToUpdate() }
+                Button(loc("Restart to Update")) { controller.restartToUpdate() }
                     .keyboardShortcut(KeyboardShortcut.defaultAction)
             }
             .padding(EdgeInsets(top: 4, leading: 0, bottom: 0, trailing: 0))
         case .installing(let latest):
-            Text("Installing Spider Solitaire \(latest)…").font(Font.headline)
+            Text(loc("Installing Spider Solitaire %@…", latest)).font(Font.headline)
             ProgressView().progressViewStyle(LinearProgressViewStyle())
         case .downloaded(let file, let reason):
-            Text("Downloaded").font(Font.headline)
+            Text(loc("Downloaded")).font(Font.headline)
             if let reason {
                 Text(reason)
                     .foregroundColor(Color.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text(
-                "\(file.lastPathComponent) is in your Downloads folder. Open it, then drag Spider Solitaire to Applications."
+                loc(
+                    "%@ is in your Downloads folder. Open it, then drag Spider Solitaire to Applications.",
+                    file.lastPathComponent)
             )
             .foregroundColor(Color.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            buttons(primary: ("Done", { controller.close() }), secondary: nil)
+            buttons(primary: (loc("Done"), { controller.close() }), secondary: nil)
         case .failed(let message):
-            Text("Couldn't check for updates").font(Font.headline)
+            Text(loc("Couldn't check for updates")).font(Font.headline)
             Text(message)
                 .foregroundColor(Color.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            buttons(primary: ("Try Again", { controller.check(userInitiated: true) }), secondary: "Close")
+            buttons(primary: (loc("Try Again"), { controller.check(userInitiated: true) }), secondary: loc("Close"))
         case .installFailed(let message, let release):
-            Text("The update wasn't installed").font(Font.headline)
-            Text(message + " Nothing was changed.")
+            Text(loc("The update wasn't installed")).font(Font.headline)
+            Text(loc("%@ Nothing was changed.", message))
                 .foregroundColor(Color.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Link("Get it from the release page", destination: release.htmlURL)
+            Link(loc("Get it from the release page"), destination: release.htmlURL)
                 .font(Font.callout)
-            buttons(primary: ("Try Again", { controller.install(release) }), secondary: "Close")
+            buttons(primary: (loc("Try Again"), { controller.install(release) }), secondary: loc("Close"))
         }
     }
 

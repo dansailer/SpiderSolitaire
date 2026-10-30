@@ -50,10 +50,10 @@ enum UpdateInstaller {
     static func verifyChecksum(zip: URL, checksumFile: URL) throws {
         let text: String = (try? String(contentsOf: checksumFile, encoding: .utf8)) ?? ""
         guard let expected: String = UpdateChecksum.parse(text) else {
-            throw Failure(description: "The release's checksum file could not be read.")
+            throw Failure(description: loc("The release's checksum file could not be read."))
         }
         guard UpdateChecksum.matches(try sha256(of: zip), expected) else {
-            throw Failure(description: "The download is damaged (its checksum does not match).")
+            throw Failure(description: loc("The download is damaged (its checksum does not match)."))
         }
     }
 
@@ -65,10 +65,12 @@ enum UpdateInstaller {
         process.arguments = ["-x", "-k", zip.path, folder.path]
         try process.run()
         process.waitUntilExit()
-        guard process.terminationStatus == 0 else { throw Failure(description: "The download could not be unpacked.") }
+        guard process.terminationStatus == 0 else {
+            throw Failure(description: loc("The download could not be unpacked."))
+        }
         let apps: [URL] = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
             .filter { (url: URL) -> Bool in url.pathExtension == "app" }
-        guard apps.count == 1 else { throw Failure(description: "The download does not contain the app.") }
+        guard apps.count == 1 else { throw Failure(description: loc("The download does not contain the app.")) }
         return apps[0]
     }
 
@@ -78,43 +80,43 @@ enum UpdateInstaller {
         try verifySignature(app: app, bundleIdentifier: bundleIdentifier)
         guard let info: NSDictionary = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist")),
             info["CFBundleIdentifier"] as? String == bundleIdentifier
-        else { throw Failure(description: "The downloaded app is not Spider Solitaire.") }
+        else { throw Failure(description: loc("The downloaded app is not Spider Solitaire.")) }
         guard UpdateTrust.isNewer(candidate: info["CFBundleShortVersionString"] as? String, than: currentVersion)
-        else { throw Failure(description: "The downloaded app is not newer than this one.") }
+        else { throw Failure(description: loc("The downloaded app is not newer than this one.")) }
     }
 
     static func verifySignature(app: URL, bundleIdentifier: String) throws {
         try checkSignature(
             app, requirement: UpdateTrust.requirement(bundleIdentifier: bundleIdentifier),
-            failure: "The downloaded app is not signed by Spider Solitaire's developer")
+            failure: loc("The downloaded app is not signed by Spider Solitaire's developer"))
     }
 
     /// A copy of this app (Move to Applications) is complete: its signature is valid for our
     /// identifier (any signer, so development builds pass too) and its Info.plist says it is us.
     static func verifyIntact(app: URL, bundleIdentifier: String) throws {
         try checkSignature(
-            app, requirement: "identifier \"\(bundleIdentifier)\"", failure: "The copy is incomplete or damaged")
+            app, requirement: "identifier \"\(bundleIdentifier)\"", failure: loc("The copy is incomplete or damaged"))
         let info: NSDictionary? = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist"))
         guard info?["CFBundleIdentifier"] as? String == bundleIdentifier else {
-            throw Failure(description: "The copy is not Spider Solitaire.")
+            throw Failure(description: loc("The copy is not Spider Solitaire."))
         }
     }
 
     private static func checkSignature(_ app: URL, requirement text: String, failure: String) throws {
         var code: SecStaticCode?
         guard SecStaticCodeCreateWithPath(app as CFURL, SecCSFlags(), &code) == errSecSuccess, let code else {
-            throw Failure(description: "\(app.lastPathComponent) could not be checked.")
+            throw Failure(description: loc("%@ could not be checked.", app.lastPathComponent))
         }
         var requirement: SecRequirement?
         guard SecRequirementCreateWithString(text as CFString, SecCSFlags(), &requirement) == errSecSuccess,
             let requirement
-        else { throw Failure(description: "The signature requirement is invalid.") }
+        else { throw Failure(description: loc("The signature requirement is invalid.")) }
         let flags: SecCSFlags = SecCSFlags(
             rawValue: kSecCSCheckAllArchitectures | kSecCSStrictValidate | kSecCSCheckNestedCode)
         let status: OSStatus = SecStaticCodeCheckValidity(code, flags, requirement)
         guard status == errSecSuccess else {
-            let reason: String = (SecCopyErrorMessageString(status, nil) as String?) ?? "error \(status)"
-            throw Failure(description: "\(failure) (\(reason)).")
+            let reason: String = (SecCopyErrorMessageString(status, nil) as String?) ?? loc("error %lld", Int(status))
+            throw Failure(description: loc("%@ (%@).", failure, reason))
         }
     }
 

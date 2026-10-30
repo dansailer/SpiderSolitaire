@@ -100,22 +100,22 @@ struct BoardView: View {
     private func alertButtons(_ current: BoardAlert) -> some View {
         switch current {
         case .info:
-            Button("OK", role: ButtonRole.cancel) {}
+            Button(loc("OK"), role: ButtonRole.cancel) {}
         case .noMoves:
             if model.canUndo {
-                Button("Undo") { model.undo() }
+                Button(loc("Undo")) { model.undo() }
             }
-            Button("New Game") { model.requestNewGameFromAlert() }
-            Button("OK", role: ButtonRole.cancel) {}
+            Button(loc("New Game")) { model.requestNewGameFromAlert() }
+            Button(loc("OK"), role: ButtonRole.cancel) {}
         case .won:
-            Button("Yes") { model.requestNewGameFromAlert() }
-            Button("No", role: ButtonRole.cancel) {}
+            Button(loc("Yes")) { model.requestNewGameFromAlert() }
+            Button(loc("No"), role: ButtonRole.cancel) {}
         case .confirmAbandon(let reason):
-            Button("Yes") { model.confirmAbandon(reason) }
-            Button("No", role: ButtonRole.cancel) {}
+            Button(loc("Yes")) { model.confirmAbandon(reason) }
+            Button(loc("No"), role: ButtonRole.cancel) {}
         case .openSavedGame:
-            Button("Yes") { model.answerOpenSavedGame(true) }
-            Button("No") { model.answerOpenSavedGame(false) }
+            Button(loc("Yes")) { model.answerOpenSavedGame(true) }
+            Button(loc("No")) { model.answerOpenSavedGame(false) }
         }
     }
 
@@ -169,9 +169,9 @@ struct ScoreBoxView: View {
     var body: some View {
         let fontSize: CGFloat = CGFloat(max(9, min(16, frame.height * 0.2)))
         VStack(spacing: CGFloat(frame.height * 0.04)) {
-            Text("Score: \(score)")
-            Text("Moves: \(moves)")
-            Text("Time: " + PlayClock.text(seconds))
+            Text(loc("Score: %lld", score))
+            Text(loc("Moves: %lld", moves))
+            Text(loc("Time: %@", PlayClock.text(seconds)))
                 .monospacedDigit()
         }
         .font(Font.system(size: fontSize, weight: Font.Weight.semibold))

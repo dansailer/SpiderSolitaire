@@ -11,10 +11,10 @@ enum SettingsTab: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .general: return "General"
-        case .gameplay: return "Gameplay"
-        case .appearance: return "Appearance"
-        case .credits: return "Credits"
+        case .general: return loc("General")
+        case .gameplay: return loc("Gameplay")
+        case .appearance: return loc("Appearance")
+        case .credits: return loc("Credits")
         }
     }
 
@@ -139,42 +139,42 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         SettingsPane {
-            Section("When you quit with a game in progress") {
-                Picker("When you quit", selection: optionBinding(model, \Options.saveOnExit)) {
-                    Text("Save it and pick up where you left off").tag(ExitSavePolicy.always)
-                    Text("Don't save it (it counts as a loss)").tag(ExitSavePolicy.never)
-                    Text("Ask me each time").tag(ExitSavePolicy.prompt)
+            Section(loc("When you quit with a game in progress")) {
+                Picker(loc("When you quit"), selection: optionBinding(model, \Options.saveOnExit)) {
+                    Text(loc("Save it and pick up where you left off")).tag(ExitSavePolicy.always)
+                    Text(loc("Don't save it (it counts as a loss)")).tag(ExitSavePolicy.never)
+                    Text(loc("Ask me each time")).tag(ExitSavePolicy.prompt)
                 }
                 .pickerStyle(RadioGroupPickerStyle())
                 .labelsHidden()
             }
-            Section("When the app opens") {
-                Picker("When the app opens", selection: optionBinding(model, \Options.openOnStart)) {
-                    Text("Open the saved game").tag(StartOpenPolicy.always)
-                    Text("Start a new game").tag(StartOpenPolicy.never)
-                    Text("Ask me each time").tag(StartOpenPolicy.prompt)
+            Section(loc("When the app opens")) {
+                Picker(loc("When the app opens"), selection: optionBinding(model, \Options.openOnStart)) {
+                    Text(loc("Open the saved game")).tag(StartOpenPolicy.always)
+                    Text(loc("Start a new game")).tag(StartOpenPolicy.never)
+                    Text(loc("Ask me each time")).tag(StartOpenPolicy.prompt)
                 }
                 .pickerStyle(RadioGroupPickerStyle())
                 .labelsHidden()
             }
             Section {
                 DescribedToggle(
-                    title: "Play sounds",
-                    detail: "Soft macOS sounds when you deal, drop a card, finish a suit or win.",
+                    title: loc("Play sounds"),
+                    detail: loc("Soft macOS sounds when you deal, drop a card, finish a suit or win."),
                     symbol: "speaker.wave.2.fill",
                     isOn: optionBinding(model, \Options.soundsEnabled))
             }
             Section {
                 DescribedToggle(
-                    title: "Check for updates automatically",
-                    detail: "Once a day at launch. You only hear about it when a new version is out.",
+                    title: loc("Check for updates automatically"),
+                    detail: loc("Once a day at launch. You only hear about it when a new version is out."),
                     symbol: "arrow.triangle.2.circlepath",
                     isOn: optionBinding(model, \Options.checkForUpdatesAutomatically))
                 HStack {
-                    Text("Version \(UpdateController.currentVersion ?? "development build")")
+                    Text(loc("Version %@", UpdateController.currentVersion ?? loc("development build")))
                         .foregroundColor(Color.secondary)
                     Spacer()
-                    Button("Check Now") { updates.check(userInitiated: true) }
+                    Button(loc("Check Now")) { updates.check(userInitiated: true) }
                 }
             }
         }
@@ -190,23 +190,24 @@ struct GameplaySettingsView: View {
         SettingsPane {
             Section {
                 DescribedToggle(
-                    title: "Only deal winnable games",
-                    detail:
-                        "Every new game is one a built-in solver has already won. Four suits can take a few seconds to deal.",
+                    title: loc("Only deal winnable games"),
+                    detail: loc(
+                        "Every new game is one a built-in solver has already won. Four suits can take a few seconds to deal."
+                    ),
                     symbol: "checkmark.seal.fill",
                     isOn: optionBinding(model, \Options.winnableDealsOnly))
             }
-            Section("Undo") {
-                Picker("Undo", selection: optionBinding(model, \Options.undoPolicy)) {
+            Section(loc("Undo")) {
+                Picker(loc("Undo"), selection: optionBinding(model, \Options.undoPolicy)) {
                     VStack(alignment: HorizontalAlignment.leading, spacing: 2) {
-                        Text("Unlimited")
-                        Text("Go all the way back to the start of the game.")
+                        Text(loc("Unlimited"))
+                        Text(loc("Go all the way back to the start of the game."))
                             .font(Font.callout).foregroundColor(Color.secondary)
                     }
                     .tag(UndoPolicy.unlimited)
                     VStack(alignment: HorizontalAlignment.leading, spacing: 2) {
-                        Text("Classic XP")
-                        Text("Undo stops at each deal and each completed suit, like the original.")
+                        Text(loc("Classic XP"))
+                        Text(loc("Undo stops at each deal and each completed suit, like the original."))
                             .font(Font.callout).foregroundColor(Color.secondary)
                     }
                     .tag(UndoPolicy.xpClassic)
@@ -217,7 +218,9 @@ struct GameplaySettingsView: View {
             Section {
                 Label {
                     Text(
-                        "Change the number of suits from Game ▸ Difficulty: one suit is gentle, four is a real challenge."
+                        loc(
+                            "Change the number of suits from Game ▸ Difficulty: one suit is gentle, four is a real challenge."
+                        )
                     )
                     .font(Font.callout)
                     .foregroundColor(Color.secondary)
@@ -237,25 +240,25 @@ struct AppearanceSettingsView: View {
 
     var body: some View {
         SettingsPane {
-            Section("Card faces") {
+            Section(loc("Card faces")) {
                 HStack(spacing: 14) {
                     FaceStyleTile(
-                        style: CardFaceStyle.classic, title: "Classic",
-                        detail: "Traditional English pattern art",
+                        style: CardFaceStyle.classic, title: loc("Classic"),
+                        detail: loc("Traditional English pattern art"),
                         selection: optionBinding(model, \Options.cardFaces))
                     FaceStyleTile(
-                        style: CardFaceStyle.simple, title: "Simple",
-                        detail: "Clean, drawn by the app",
+                        style: CardFaceStyle.simple, title: loc("Simple"),
+                        detail: loc("Clean, drawn by the app"),
                         selection: optionBinding(model, \Options.cardFaces))
                 }
                 .padding(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
             }
-            Section("Card back") {
+            Section(loc("Card back")) {
                 HStack(spacing: 16) {
                     CardBackPreview()
                     VStack(alignment: HorizontalAlignment.leading, spacing: 4) {
-                        Text("Gold rosette")
-                        Text("A gold rosette on deep blue, drawn at any size so it stays sharp.")
+                        Text(loc("Gold rosette"))
+                        Text(loc("A gold rosette on deep blue, drawn at any size so it stays sharp."))
                             .font(Font.callout)
                             .foregroundColor(Color.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -264,8 +267,8 @@ struct AppearanceSettingsView: View {
             }
             Section {
                 DescribedToggle(
-                    title: "Show animations",
-                    detail: "Cards glide into place and the XP style celebration plays when you win.",
+                    title: loc("Show animations"),
+                    detail: loc("Cards glide into place and the XP style celebration plays when you win."),
                     symbol: "sparkles",
                     isOn: optionBinding(model, \Options.animationsEnabled))
             }
@@ -330,7 +333,7 @@ struct FaceStyleTile: View {
         .onHover { (inside: Bool) in hovering = inside }
         .animation(reduceMotion ? nil : Animation.spring(response: 0.35, dampingFraction: 0.7), value: spread)
         .animation(Animation.easeOut(duration: 0.2), value: isSelected)
-        .accessibilityLabel(Text(title + " card faces"))
+        .accessibilityLabel(Text(loc("%@ card faces", title)))
         .accessibilityAddTraits(isSelected ? AccessibilityTraits.isSelected : [])
     }
 
@@ -366,20 +369,20 @@ struct CreditsSettingsView: View {
                         .accessibilityHidden(true)
                     VStack(alignment: HorizontalAlignment.leading, spacing: 2) {
                         Text("Spider Solitaire").font(Font.title3.weight(Font.Weight.semibold))
-                        Text("Version \(UpdateController.currentVersion ?? "development build")")
+                        Text(loc("Version %@", UpdateController.currentVersion ?? loc("development build")))
                             .foregroundColor(Color.secondary)
                     }
                 }
             }
             ForEach(Credits.all, id: \.title) { (credit: Credit) in
-                Section(credit.title) {
-                    Text(credit.detail)
+                Section(loc(credit.title)) {
+                    Text(loc(credit.detail))
                         .fixedSize(horizontal: false, vertical: true)
                     if !credit.links.isEmpty {
                         HStack(spacing: 14) {
                             ForEach(credit.links, id: \.url) { (link: Credit.Link) in
                                 if let url: URL = URL(string: link.url) {
-                                    Link(link.title, destination: url)
+                                    Link(loc(link.title), destination: url)
                                         .font(Font.callout)
                                 }
                             }

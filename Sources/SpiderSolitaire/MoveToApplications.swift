@@ -37,14 +37,14 @@ enum MoveToApplications {
         else { return }
         if !DebugMoveTesting.isActive {
             let alert: NSAlert = NSAlert()
-            alert.messageText = "Move Spider Solitaire to your Applications folder?"
-            alert.informativeText =
+            alert.messageText = loc("Move Spider Solitaire to your Applications folder?")
+            alert.informativeText = loc(
                 "It's running from your Downloads folder. In Applications it can install updates itself, "
-                + "and you'll find it in Launchpad and Spotlight."
-            alert.addButton(withTitle: "Move to Applications")
-            alert.addButton(withTitle: "Not Now")
+                    + "and you'll find it in Launchpad and Spotlight.")
+            alert.addButton(withTitle: loc("Move to Applications"))
+            alert.addButton(withTitle: loc("Not Now"))
             alert.showsSuppressionButton = true
-            alert.suppressionButton?.title = "Don't ask again"
+            alert.suppressionButton?.title = loc("Don't ask again")
             let response: NSApplication.ModalResponse = alert.runModal()
             if alert.suppressionButton?.state == NSControl.StateValue.on {
                 UserDefaults.standard.set(true, forKey: suppressKey)
@@ -55,8 +55,8 @@ enum MoveToApplications {
             try copyAndCheck(app, to: destination)
         } catch {
             show(
-                "Spider Solitaire couldn't be moved",
-                "Drag it to your Applications folder in Finder instead. (\(error))")
+                loc("Spider Solitaire couldn't be moved"),
+                loc("Drag it to your Applications folder in Finder instead. (%@)", String(describing: error)))
             return
         }
         pending = Pending(copy: destination, original: app)
@@ -87,8 +87,8 @@ enum MoveToApplications {
         guard let pending else { return }
         self.pending = nil
         show(
-            "Spider Solitaire is in your Applications folder",
-            "You're still using this copy. Quit and open Spider Solitaire from Applications when you're ready.")
+            loc("Spider Solitaire is in your Applications folder"),
+            loc("You're still using this copy. Quit and open Spider Solitaire from Applications when you're ready."))
         DebugMoveTesting.log("quit cancelled, copy kept at \(pending.copy.path)")
     }
 
@@ -116,8 +116,8 @@ enum MoveToApplications {
             DebugMoveTesting.log("helper started")
         } catch {
             show(
-                "Spider Solitaire is in your Applications folder",
-                "It couldn't be opened automatically. Open it from Applications. (\(error))")
+                loc("Spider Solitaire is in your Applications folder"),
+                loc("It couldn't be opened automatically. Open it from Applications. (%@)", String(describing: error)))
         }
     }
 
@@ -141,9 +141,10 @@ enum MoveToApplications {
             }
         case .moveFailed?:
             show(
-                "Spider Solitaire couldn't be opened from Applications",
-                "You're still using this copy. The copy in Applications was kept; open it from Finder to see "
-                    + "what macOS reports, or drag it to the Trash.")
+                loc("Spider Solitaire couldn't be opened from Applications"),
+                loc(
+                    "You're still using this copy. The copy in Applications was kept; open it from Finder to see "
+                        + "what macOS reports, or drag it to the Trash."))
         case nil:
             break
         }

@@ -15,30 +15,30 @@ struct StatisticsSheet: View {
     var body: some View {
         let stats: DifficultyStatistics = model.statistics[difficulty]
         VStack(alignment: HorizontalAlignment.leading, spacing: 12) {
-            Text("Statistics").font(Font.headline)
+            Text(loc("Statistics")).font(Font.headline)
             Picker("", selection: $difficulty) {
                 ForEach(Difficulty.allCases, id: \.self) { (d: Difficulty) in
-                    Text(d.displayName).tag(d)
+                    Text(loc(d.displayName)).tag(d)
                 }
             }
             .pickerStyle(SegmentedPickerStyle())
             .labelsHidden()
 
             VStack(alignment: HorizontalAlignment.leading, spacing: 6) {
-                StatRow(label: "Games played:", value: "\(stats.played)")
-                StatRow(label: "Games won:", value: "\(stats.won)")
-                StatRow(label: "Win percentage:", value: "\(stats.winPercentage)%")
-                StatRow(label: "High score:", value: "\(stats.highScore)")
+                StatRow(label: loc("Games played:"), value: "\(stats.played)")
+                StatRow(label: loc("Games won:"), value: "\(stats.won)")
+                StatRow(label: loc("Win percentage:"), value: loc("%lld%%", stats.winPercentage))
+                StatRow(label: loc("High score:"), value: "\(stats.highScore)")
                 Divider()
-                StatRow(label: "Current streak:", value: currentStreak(stats))
-                StatRow(label: "Longest winning streak:", value: "\(stats.longestWinStreak)")
-                StatRow(label: "Longest losing streak:", value: "\(stats.longestLossStreak)")
+                StatRow(label: loc("Current streak:"), value: currentStreak(stats))
+                StatRow(label: loc("Longest winning streak:"), value: "\(stats.longestWinStreak)")
+                StatRow(label: loc("Longest losing streak:"), value: "\(stats.longestLossStreak)")
             }
 
             HStack {
-                Button("Reset") { model.resetStatistics(difficulty) }
+                Button(loc("Reset")) { model.resetStatistics(difficulty) }
                 Spacer()
-                Button("OK") { model.showStatisticsSheet = false }
+                Button(loc("OK")) { model.showStatisticsSheet = false }
                     .keyboardShortcut(KeyboardShortcut.defaultAction)
             }
         }
@@ -48,10 +48,10 @@ struct StatisticsSheet: View {
 
     private func currentStreak(_ stats: DifficultyStatistics) -> String {
         if stats.currentWinStreak > 0 {
-            return "\(stats.currentWinStreak) win" + (stats.currentWinStreak == 1 ? "" : "s")
+            return loc("%lld wins", stats.currentWinStreak)
         }
         if stats.currentLossStreak > 0 {
-            return "\(stats.currentLossStreak) loss" + (stats.currentLossStreak == 1 ? "" : "es")
+            return loc("%lld losses", stats.currentLossStreak)
         }
         return "0"
     }

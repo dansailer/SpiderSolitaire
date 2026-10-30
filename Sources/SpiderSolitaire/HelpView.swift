@@ -13,9 +13,9 @@ struct HelpView: View {
             List(HelpContent.sections, selection: $selection) { (section: HelpSection) in
                 // No explicit .tag: List(data, selection:) tags each row with its `id`, which
                 // matches the optional selection.
-                Label(section.title, systemImage: section.symbol)
+                Label(loc(section.title), systemImage: section.symbol)
             }
-            .navigationSplitViewColumnWidth(min: 150, ideal: 170, max: 220)
+            .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 240)
         } detail: {
             let section: HelpSection = HelpContent.section(selection ?? HelpSection.ID.rules)
             ScrollView {
@@ -25,7 +25,7 @@ struct HelpView: View {
             }
             .id(section.id)
         }
-        .frame(minWidth: 520, idealWidth: 560, minHeight: 420, idealHeight: 640)
+        .frame(minWidth: 540, idealWidth: 600, minHeight: 420, idealHeight: 640)
     }
 }
 
@@ -34,7 +34,7 @@ struct HelpSectionView: View {
 
     var body: some View {
         VStack(alignment: HorizontalAlignment.leading, spacing: 10) {
-            Text(section.title)
+            Text(loc(section.title))
                 .font(Font.title2.weight(Font.Weight.semibold))
             ForEach(Array(section.blocks.enumerated()), id: \.offset) { (item: (offset: Int, element: HelpBlock)) in
                 HelpBlockView(block: item.element)
@@ -50,18 +50,18 @@ struct HelpBlockView: View {
     var body: some View {
         switch block {
         case .heading(let text):
-            Text(text)
+            Text(loc(text))
                 .font(Font.headline)
                 .padding(EdgeInsets(top: 6, leading: 0, bottom: 0, trailing: 0))
         case .paragraph(let text):
-            Text(text)
+            Text(loc(text))
                 .fixedSize(horizontal: false, vertical: true)
         case .bullets(let items):
             VStack(alignment: HorizontalAlignment.leading, spacing: 4) {
                 ForEach(Array(items.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
                     HStack(alignment: VerticalAlignment.firstTextBaseline, spacing: 6) {
                         Text("•")
-                        Text(item.element)
+                        Text(loc(item.element))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -81,7 +81,7 @@ struct HelpTableView: View {
         Grid(alignment: Alignment.leading, horizontalSpacing: 14, verticalSpacing: 6) {
             GridRow {
                 ForEach(Array(header.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
-                    Text(item.element)
+                    Text(loc(item.element))
                         .font(Font.caption.weight(Font.Weight.semibold))
                         .foregroundColor(Color.secondary)
                 }
@@ -90,7 +90,7 @@ struct HelpTableView: View {
             ForEach(Array(rows.enumerated()), id: \.offset) { (row: (offset: Int, element: [String])) in
                 GridRow(alignment: VerticalAlignment.firstTextBaseline) {
                     ForEach(Array(row.element.enumerated()), id: \.offset) { (cell: (offset: Int, element: String)) in
-                        Text(cell.element)
+                        Text(loc(cell.element))
                             .font(cell.offset == 0 ? Font.body.weight(Font.Weight.medium) : Font.body)
                             .fixedSize(horizontal: false, vertical: true)
                     }
