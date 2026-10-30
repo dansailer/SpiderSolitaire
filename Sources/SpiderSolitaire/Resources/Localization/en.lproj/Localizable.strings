@@ -47,8 +47,12 @@
 "Yes" = "Yes";
 "No" = "No";
 "Cancel" = "Cancel";
-"Congratulations, you won!" = "Congratulations, you won!";
-"Score: %lld. Do you want to start another game?" = "Score: %lld. Do you want to start another game?";
+"You win!" = "You win!";
+"New high score" = "New high score";
+"Score" = "Score";
+"Moves" = "Moves";
+"Unlocked in this game" = "Unlocked in this game";
+"Play Again" = "Play Again";
 "There are no more moves." = "There are no more moves.";
 "This game is in progress and will count as a loss. Do you want to quit this game?" = "This game is in progress and will count as a loss. Do you want to quit this game?";
 "Do you want to open your previously saved game?" = "Do you want to open your previously saved game?";

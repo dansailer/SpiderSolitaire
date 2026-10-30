@@ -62,6 +62,20 @@ public enum LaunchDecision: Hashable, Sendable {
     case discardSaved
 }
 
+/// What the win panel shows: this game's result next to the difficulty's record (after the win).
+public struct WinSummary: Sendable, Hashable {
+    public let difficulty: Difficulty
+    public let score: Int
+    public let moves: Int
+    public let seconds: Int
+    public let currentStreak: Int
+    public let longestStreak: Int
+    /// The score beat the difficulty's previous high score.
+    public let isNewHighScore: Bool
+    /// Achievements unlocked while this game was played, in unlock order.
+    public let achievements: [AchievementID]
+}
+
 /// Every rule about game lifecycle and statistics, with no I/O. The app does the file reads and
 /// writes and asks this type what should happen.
 public struct SessionController: Sendable {
@@ -70,6 +84,10 @@ public struct SessionController: Sendable {
     public private(set) var achievements: AchievementBook
     /// Unlocked since the last `commitUnlocks`, in order (the app dates, stores and announces them).
     public private(set) var pendingUnlocks: [AchievementID] = []
+    /// Unlocked by playing the current game (for the win panel); cleared when the game is replaced.
+    public private(set) var unlockedThisGame: [AchievementID] = []
+    /// The current game's win beat the high score it had before.
+    private var winBeatHighScore = false
     public var options: Options {
         didSet { session.game.undoPolicy = options.undoPolicy }
     }
@@ -96,15 +114,17 @@ public struct SessionController: Sendable {
     public mutating func startNewGame(difficulty: Difficulty, seed: UInt64) {
         recordLossIfInProgress()
         options.difficulty = difficulty
-        session = SavedSession(game: SpiderGame(difficulty: difficulty, seed: seed, undoPolicy: options.undoPolicy))
+        replaceSession(
+            SavedSession(game: SpiderGame(difficulty: difficulty, seed: seed, undoPolicy: options.undoPolicy)))
     }
 
     /// Same deal again from the start (same seed and difficulty). Counts as a loss if in progress.
     public mutating func restart() {
         let state = session.game.state
         recordLossIfInProgress()
-        session = SavedSession(
-            game: SpiderGame(difficulty: state.difficulty, seed: state.seed, undoPolicy: options.undoPolicy))
+        replaceSession(
+            SavedSession(
+                game: SpiderGame(difficulty: state.difficulty, seed: state.seed, undoPolicy: options.undoPolicy)))
     }
 
     /// Continue a saved game (⌘O, or resume at launch). The current game counts as a loss if in progress.
@@ -112,7 +132,13 @@ public struct SessionController: Sendable {
         recordLossIfInProgress()
         var saved = saved
         saved.game.undoPolicy = options.undoPolicy
-        session = saved
+        replaceSession(saved)
+    }
+
+    private mutating func replaceSession(_ next: SavedSession) {
+        session = next
+        unlockedThisGame = []
+        winBeatHighScore = false
     }
 
     /// The player declined a saved game at launch (or options say never open): it is abandoned.
@@ -140,13 +166,29 @@ public struct SessionController: Sendable {
     }
 
     private mutating func recordPlayed(_ outcome: ActionOutcome) -> ActionOutcome {
+        let before = pendingUnlocks.count
         evaluate(.played)
         if outcome.didWin, !session.resultRecorded {
-            statistics[session.game.state.difficulty].recordWin(score: session.game.state.score)
+            let difficulty = session.game.state.difficulty
+            winBeatHighScore = session.game.state.score > statistics[difficulty].highScore
+            statistics[difficulty].recordWin(score: session.game.state.score)
             session.resultRecorded = true
             evaluate(.resultRecorded)
         }
+        unlockedThisGame += pendingUnlocks[before...]
         return outcome
+    }
+
+    /// The win panel's facts, once the current game is won (nil before).
+    public var winSummary: WinSummary? {
+        let state = session.game.state
+        guard state.isWon else { return nil }
+        let stats = statistics[state.difficulty]
+        return WinSummary(
+            difficulty: state.difficulty, score: state.score, moves: state.moves,
+            seconds: Int(session.tracker.elapsedSeconds), currentStreak: stats.currentWinStreak,
+            longestStreak: stats.longestWinStreak, isNewHighScore: winBeatHighScore,
+            achievements: unlockedThisGame)
     }
 
     /// Undo is not offered once the game is won (its result is already counted).

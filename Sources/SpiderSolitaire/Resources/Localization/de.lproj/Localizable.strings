@@ -47,8 +47,12 @@
 "Yes" = "Ja";
 "No" = "Nein";
 "Cancel" = "Abbrechen";
-"Congratulations, you won!" = "Herzlichen Glückwunsch, du hast gewonnen!";
-"Score: %lld. Do you want to start another game?" = "Punkte: %lld. Möchtest du ein neues Spiel beginnen?";
+"You win!" = "Gewonnen!";
+"New high score" = "Neue Höchstpunktzahl";
+"Score" = "Punkte";
+"Moves" = "Züge";
+"Unlocked in this game" = "In diesem Spiel freigeschaltet";
+"Play Again" = "Noch einmal spielen";
 "There are no more moves." = "Es sind keine Züge mehr möglich.";
 "This game is in progress and will count as a loss. Do you want to quit this game?" = "Dieses Spiel läuft noch und wird als verloren gewertet. Möchtest du es wirklich beenden?";
 "Do you want to open your previously saved game?" = "Möchtest du dein zuletzt gesichertes Spiel öffnen?";

@@ -10,7 +10,6 @@ import SwiftUI
 enum BoardAlert: Identifiable, Sendable {
     case info(String)
     case noMoves
-    case won(score: Int)
     case confirmAbandon(AbandonReason)
     case openSavedGame
 
@@ -18,24 +17,17 @@ enum BoardAlert: Identifiable, Sendable {
         switch self {
         case .info(let text): return "info:" + text
         case .noMoves: return "noMoves"
-        case .won: return "won"
         case .confirmAbandon: return "abandon"
         case .openSavedGame: return "openSaved"
         }
     }
 
-    var title: String {
-        switch self {
-        case .won: return loc("Congratulations, you won!")
-        default: return "Spider Solitaire"
-        }
-    }
+    var title: String { "Spider Solitaire" }
 
     var message: String {
         switch self {
         case .info(let text): return text
         case .noMoves: return loc("There are no more moves.")
-        case .won(let score): return loc("Score: %lld. Do you want to start another game?", score)
         case .confirmAbandon:
             return loc("This game is in progress and will count as a loss. Do you want to quit this game?")
         case .openSavedGame: return loc("Do you want to open your previously saved game?")
@@ -63,17 +55,21 @@ final class GameModel: ObservableObject {
     @Published private(set) var hasSavedGame: Bool = false
     @Published var alert: BoardAlert?
     @Published var showStatisticsSheet: Bool = false
-    /// The running win animation (nil when none). The view samples it every frame.
+    /// The win animation (nil when none). The view samples it every frame while it runs, and
+    /// keeps its last frame under the win panel once it has stopped.
     @Published private(set) var celebration: Celebration?
+    /// The win panel ("You win!") over the finished board (nil when none).
+    @Published private(set) var winSummary: WinSummary?
     /// Set while a winnable deal is being searched for (the board shows "Dealing a winnable game…").
     @Published private(set) var dealingDifficulty: Difficulty?
     /// The achievement banner at the top of the board (nil when none).
     @Published private(set) var toast: Achievement?
 
     struct Celebration: Sendable {
-        let suits: [Suit]
-        let seed: UInt64
+        let show: WinCelebration
         let start: Date
+        /// Show time at which it stopped (it ended, or a click or key skipped it); nil while running.
+        var stoppedAt: Double?
     }
 
     private let store: SpiderStore
@@ -220,6 +216,13 @@ final class GameModel: ObservableObject {
         alert = nil
     }
 
+    /// `--snapshot --win-frames`: the bundled deal played to its win, which is then announced as
+    /// after a real winning move (the celebration, or the win panel straight away).
+    func prepareWinSnapshot(difficulty: Difficulty) {
+        prepareSnapshot(difficulty: difficulty, moves: Int.max)
+        announceEndState()
+    }
+
     func resetStatistics(_ difficulty: Difficulty) {
         session.resetStatistics(difficulty)
         persistStatistics()
@@ -322,7 +325,7 @@ final class GameModel: ObservableObject {
     // MARK: Pointer (one DragGesture with minimumDistance 0 drives everything)
 
     func pointerChanged(start: CGPoint, translation: CGSize, layout: BoardLayout) {
-        guard celebration == nil else { return }
+        guard celebration == nil, winSummary == nil else { return }
         if suppressedGesture.ignoresChange(start: BoardPoint(start)) { return }
         if animations.isDealing {
             // First click during a deal (until its last card has landed) finishes it at once
@@ -344,6 +347,7 @@ final class GameModel: ObservableObject {
             skipCelebration()
             return
         }
+        if winSummary != nil { return }
         if suppressedGesture.ignoresEnd(start: BoardPoint(start)) { return }
         var next: PointerController = pointer
         let result: PointerController.Result = next.pointerEnded(
@@ -542,6 +546,8 @@ final class GameModel: ObservableObject {
         let unlocked: [AchievementID] = session.commitUnlocks(at: Date().timeIntervalSince1970)
         guard !unlocked.isEmpty else { return }
         persistAchievements()
+        // The win panel lists what the winning move unlocked; no banner over the celebration.
+        guard !game.state.isWon else { return }
         toastQueue += unlocked.map { (id: AchievementID) -> Achievement in Achievement.with(id) }
         if toast == nil { showNextToast() }
     }
@@ -594,6 +600,7 @@ final class GameModel: ObservableObject {
 
     private func resetTransientState() {
         celebration = nil
+        winSummary = nil
         celebrationID += 1
         winAnnounced = false
         settleAnimations(announce: false)
@@ -708,7 +715,7 @@ final class GameModel: ObservableObject {
         case .present(let next):
             alert = next
         case .endCelebration(let id):
-            if id == celebrationID, celebration != nil { finishCelebration() }
+            if id == celebrationID, isCelebrating { finishCelebration(fade: WinPanelTiming.afterShow) }
         case .hideToast(let id):
             guard id == toastID, toast != nil else { return }
             animate(Animation.easeIn(duration: 0.3)) {
@@ -726,33 +733,19 @@ final class GameModel: ObservableObject {
             guard !winAnnounced else { return }
             winAnnounced = true
             play(SoundCue.win)
-            if session.options.animationsEnabled {
+            if dealsAnimate {
                 celebrationID += 1
-                celebration = Celebration(suits: game.state.completed, seed: game.state.seed, start: Date())
-                schedule(Step.endCelebration(celebrationID), after: WinCelebration.nominalDuration, cancellable: false)
+                let show: WinCelebration = WinCelebration(suits: game.state.completed, seed: game.state.seed)
+                celebration = Celebration(show: show, start: Date())
+                schedule(Step.endCelebration(celebrationID), after: show.endTime, cancellable: false)
             } else {
-                alert = BoardAlert.won(score: game.state.score)
+                // Reduce Motion: a calm cross-fade to the panel; animations off: at once.
+                showWinSummary(fade: session.options.animationsEnabled ? WinPanelTiming.reduceMotion : nil)
             }
         } else if game.state.isStuck {
             play(SoundCue.noMoves)
             alert = BoardAlert.noMoves
         }
-    }
-
-    // MARK: Win celebration
-
-    var isCelebrating: Bool { celebration != nil }
-
-    /// Click or key press during the win animation: stop it and show the dialog.
-    func skipCelebration() {
-        guard celebration != nil else { return }
-        finishCelebration()
-    }
-
-    private func finishCelebration() {
-        celebration = nil
-        celebrationID += 1
-        alert = BoardAlert.won(score: game.state.score)
     }
 
     private func play(_ cue: SoundCue) {
@@ -799,6 +792,51 @@ final class GameModel: ObservableObject {
             }
             self.apply(step)
         }
+    }
+}
+
+// MARK: - Win celebration and win panel
+
+extension GameModel {
+    /// The win animation is running (a click or any key skips to the win panel).
+    var isCelebrating: Bool { celebration != nil && celebration?.stoppedAt == nil }
+
+    /// Click or key press during the win animation: stop it and show the win panel.
+    func skipCelebration() {
+        guard isCelebrating else { return }
+        finishCelebration(fade: WinPanelTiming.afterSkip)
+    }
+
+    private func finishCelebration(fade: Double) {
+        guard var current: Celebration = celebration else { return }
+        celebrationID += 1
+        current.stoppedAt = min(Date().timeIntervalSince(current.start), current.show.endTime)
+        celebration = current
+        showWinSummary(fade: fade)
+    }
+
+    private func showWinSummary(fade: Double?) {
+        guard let summary: WinSummary = session.winSummary else { return }
+        if let fade {
+            withAnimation(Animation.easeInOut(duration: fade)) { winSummary = summary }
+        } else {
+            winSummary = summary
+        }
+    }
+
+    /// Win panel ▸ Close: back to the finished board (the piles return to the foundation).
+    func closeWinSummary() {
+        animate(Animation.easeOut(duration: 0.25)) {
+            winSummary = nil
+            celebration = nil
+        }
+    }
+
+    /// Win panel ▸ Play Again: a new game at the same difficulty (a won game needs no confirmation).
+    func playAgain() {
+        winSummary = nil
+        celebration = nil
+        requestNewGame(nil)
     }
 }
 

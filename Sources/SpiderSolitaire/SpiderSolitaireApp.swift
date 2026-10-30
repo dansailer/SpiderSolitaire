@@ -166,6 +166,10 @@ enum SnapshotMode {
     static var dealFrames: Bool { CommandLine.arguments.contains("--deal-frames") }
 
     static func run(model: GameModel, windows: WindowController, into directory: URL) {
+        if winFrames {
+            runWinFrames(model: model, windows: windows, into: directory)
+            return
+        }
         if dealFrames {
             runDealFrames(model: model, windows: windows, into: directory)
             return
@@ -212,7 +216,7 @@ enum SnapshotMode {
         }
     }
 
-    private static func save(_ window: NSWindow?, _ name: String, _ directory: URL) {
+    static func save(_ window: NSWindow?, _ name: String, _ directory: URL) {
         guard let view: NSView = window?.contentView,
             let rep: NSBitmapImageRep = view.bitmapImageRepForCachingDisplay(in: view.bounds)
         else { return }

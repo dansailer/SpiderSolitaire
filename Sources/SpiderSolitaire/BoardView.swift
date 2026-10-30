@@ -27,15 +27,22 @@ struct BoardView: View {
                 EmptySlotView(size: layout.foundationAreaFrame.cgSize, dashed: true)
                     .position(layout.foundationAreaFrame.cgCenter)
 
-                ForEach(layout.foundationPlacements(for: state, animations: model.animations)) {
-                    (placement: CardPlacement) in
-                    CardView(card: placement.card, size: placement.frame.cgSize)
-                        .position(placement.frame.cgCenter)
-                        .zIndex(placement.zIndex)
+                // During the win animation its Canvas draws the piles as they empty.
+                if model.celebration == nil {
+                    ForEach(layout.foundationPlacements(for: state, animations: model.animations)) {
+                        (placement: CardPlacement) in
+                        CardView(card: placement.card, size: placement.frame.cgSize)
+                            .position(placement.frame.cgCenter)
+                            .zIndex(placement.zIndex)
+                    }
                 }
 
                 ScoreBoxView(
-                    score: state.score, moves: state.moves, seconds: model.elapsedSeconds, frame: layout.scoreBoxFrame)
+                    score: state.score, moves: state.moves, seconds: model.elapsedSeconds, frame: layout.scoreBoxFrame
+                )
+                // Out of the way of the bouncing cards while the win animation runs.
+                .opacity(model.celebration == nil ? 1 : 0)
+                .animation(Animation.easeInOut(duration: 0.4), value: model.celebration == nil)
 
                 ForEach(
                     layout.placements(
@@ -52,7 +59,7 @@ struct BoardView: View {
                 }
 
                 if let celebration = model.celebration {
-                    WinCelebrationView(celebration: celebration, layout: layout, onSkip: { model.skipCelebration() })
+                    WinCelebrationView(celebration: celebration, layout: layout)
                         .frame(width: geo.size.width, height: geo.size.height)
                         .zIndex(10_000)
                 }
@@ -74,6 +81,12 @@ struct BoardView: View {
             .overlay {
                 if model.dealingDifficulty != nil {
                     DealingOverlay(onCancel: { model.cancelWinnableDeal() })
+                }
+            }
+            .overlay {
+                if let summary: WinSummary = model.winSummary {
+                    WinSummaryOverlay(
+                        summary: summary, onPlayAgain: { model.playAgain() }, onClose: { model.closeWinSummary() })
                 }
             }
             .overlay(alignment: Alignment.top) {
@@ -107,9 +120,6 @@ struct BoardView: View {
             }
             Button(loc("New Game")) { model.requestNewGameFromAlert() }
             Button(loc("OK"), role: ButtonRole.cancel) {}
-        case .won:
-            Button(loc("Yes")) { model.requestNewGameFromAlert() }
-            Button(loc("No"), role: ButtonRole.cancel) {}
         case .confirmAbandon(let reason):
             Button(loc("Yes")) { model.confirmAbandon(reason) }
             Button(loc("No"), role: ButtonRole.cancel) {}
