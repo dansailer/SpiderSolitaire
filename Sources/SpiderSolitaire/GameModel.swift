@@ -105,8 +105,8 @@ final class GameModel: ObservableObject {
 
     /// One timed step of an animation, hint flash or deferred request.
     private enum Step: Sendable {
-        /// A dealt card leaves the stock; `sound` plays the deal cue with it.
-        case releaseDealt(Int, sound: Bool)
+        /// A dealt card leaves the stock, with the deal click.
+        case releaseDealt(Int)
         /// A dealt card reached its column (the deal is over once the last one has).
         case landDealt(Int)
         case land(Int)
@@ -488,7 +488,7 @@ final class GameModel: ObservableObject {
     /// Every card of a deal leaves the stock (with its click) and later lands, at its own time.
     private func scheduleDeal(_ kind: DealPacing.Kind, ids: [Int], delay: Double = 0) {
         for step in DealPacing.steps(kind, ids: ids, delay: delay) {
-            schedule(Step.releaseDealt(step.id, sound: step.sound), after: step.release)
+            schedule(Step.releaseDealt(step.id), after: step.release)
             schedule(Step.landDealt(step.id), after: step.landing)
         }
     }
@@ -684,12 +684,13 @@ final class GameModel: ObservableObject {
 
     private func apply(_ step: Step) {
         switch step {
-        case .releaseDealt(let id, let sound):
+        case .releaseDealt(let id):
             withAnimation(Animation.easeOut(duration: DealPacing.flightDuration)) {
                 _ = animations.releaseDealtCard(id)
             }
-            if sound { play(SoundCue.deal) }
+            play(SoundCue.deal)
         case .landDealt(let id):
+            // Not animated: a card dealt face up turns over at once as it lands.
             _ = animations.landDealtCard(id)
         case .land(let id):
             withAnimation(Animation.easeIn(duration: BoardAnimations.flyDuration)) {

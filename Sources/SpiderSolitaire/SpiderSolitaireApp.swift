@@ -198,7 +198,9 @@ enum SnapshotMode {
             model.prepareSnapshot(difficulty: Difficulty.twoSuits, moves: 0)
             let board: NSWindow = windows.showBoard()
             try? await Task.sleep(nanoseconds: 1_000_000_000)
-            for (name, times) in [("initial", [0.3, 0.8, 1.3, 1.9, 2.5, 3.6]), ("stock", [0.1, 0.3, 0.5, 0.7, 1.3])] {
+            for (name, times) in [
+                ("initial", [0.6, 2.0, 4.0, 5.2, 5.5, 5.8, 6.1, 7.0]), ("stock", [0.2, 0.5, 0.8, 1.6]),
+            ] {
                 if name == "initial" { model.requestRestart() } else { model.deal() }
                 let start: Double = ProcessInfo.processInfo.systemUptime
                 for t in times {
