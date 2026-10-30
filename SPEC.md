@@ -143,7 +143,12 @@ The look is "XP-like", not a copy of the XP assets.
     action (undo, hint, deal…) settles it first. The deal sound plays with every card. macOS Reduce Motion
     makes deals instant too,
   - a completed run flies to the foundation one card at a time, starting with the top card (A) and ending with the K, staggered by 40 ms, about 0.3 s per card. The foundation king appears once all 13 cards have landed,
-  - an exposed card flips over.
+  - an exposed card flips over,
+  - a card in motion is always drawn above every column, for its whole trip: dealt cards flying from the
+    stock (the one dealt last on top), a run gliding to another column after a move, click-to-move, undo
+    or redo, a dragged run and a run snapping back after an illegal drop, and completed runs flying to the
+    foundation (`CardPlacement.zIndex`; SwiftUI applies a new z order at once, so a card ordered with its
+    destination column would pass behind taller columns).
   Settings → "Show animations" turns all of these off.
 
 ### 3.5 Menus and shortcuts

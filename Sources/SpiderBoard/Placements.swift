@@ -27,6 +27,13 @@ extension BoardLayout {
     /// the state changes inside an animation, SwiftUI moves each card from its old frame to its
     /// new one (stock to column on deal, column to column on move, dragged spot to target or back).
     ///
+    /// Drawing order (`zIndex`), bottom to top: stock 0+, held deal cards 60+, column cards 100+,
+    /// cards gliding after a move (`animations.movingIDs`) 1000+, dealt cards flying to their
+    /// column 1500+ (in release order), the dragged run 2000+, completed runs flying to the
+    /// foundation 3000+. SwiftUI applies a new `zIndex` at once, not over the animation, so a card
+    /// that travels is raised for its whole trip; with its destination's column order it would
+    /// pass behind taller columns.
+    ///
     /// - `animations`: dealt cards still held on the stock, and completed-run cards flying to the
     ///   foundation (they are no longer in `state`).
     /// - `highlightedIDs`: cards to draw inverted for the hint flash.
@@ -41,9 +48,11 @@ extension BoardLayout {
         let deals = state.dealsRemaining
         for (i, card) in state.stock.enumerated() {
             guard let frame = stockFrame(forStockIndex: i, dealsRemaining: deals) else { continue }
+            // Raised while an undone deal glides back to the stock.
+            let z = (animations.movingIDs.contains(card.id) ? 1000.0 : 0) + Double(i)
             result.append(
                 CardPlacement(
-                    card: card, frame: frame, zIndex: Double(i),
+                    card: card, frame: frame, zIndex: z,
                     isHighlighted: highlightedIDs.contains(card.id)))
         }
 
@@ -52,6 +61,10 @@ extension BoardLayout {
             animations.dealHold.map { hold in
                 Dictionary(uniqueKeysWithValues: hold.waitingIDs.enumerated().map { ($0.element, $0.offset) })
             } ?? [:]
+
+        // Dealt cards in the air, by release: the one that left the stock last is drawn on top.
+        let inAir: [Int: Int] = Dictionary(
+            uniqueKeysWithValues: animations.landingDealtIDs.enumerated().map { ($0.element, $0.offset) })
 
         for column in state.columns.indices {
             let frames = cardFrames(column: column, cards: state.columns[column])
@@ -67,12 +80,22 @@ extension BoardLayout {
                 // A dealt card flies face down and turns over as it lands, as in XP. Turning it in
                 // flight would swap its back for a new face view, which SwiftUI fades in at the
                 // column instead of moving it from the stock.
+                let released = inAir[card.id]
                 var drawn = card
-                if animations.landingDealtIDs.contains(card.id) { drawn.isFaceUp = false }
+                if released != nil { drawn.isFaceUp = false }
                 let lifted = drag.map { $0.from == column && index >= $0.index } ?? false
                 var frame = frames[index]
                 if lifted, let drag { frame = frame.offsetBy(dx: drag.translation.width, dy: drag.translation.height) }
-                let z = (lifted ? 1000.0 : 100.0) + Double(index)
+                let z: Double
+                if lifted {
+                    z = 2000 + Double(index)
+                } else if let released {
+                    z = 1500 + Double(released)
+                } else if animations.movingIDs.contains(card.id) {
+                    z = 1000 + Double(index)
+                } else {
+                    z = 100 + Double(index)
+                }
                 result.append(
                     CardPlacement(
                         card: drawn, frame: frame, zIndex: z, isLifted: lifted,
