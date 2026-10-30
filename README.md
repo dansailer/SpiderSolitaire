@@ -101,7 +101,8 @@ Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
   instant; otherwise "Dealing a winnable game…" appears for up to 5 s (Cancel deals a random game).
 - **Achievements** (Game ▸ Achievements…, ⇧⌘A): 14 medals, listed with their thresholds in SPEC.md §7.
   A banner appears at the top of the board when one unlocks. The score box shows the game's play time.
-- After a win, click or press any key to skip the celebration.
+- After a win, the cards cascade off the foundation with fireworks, then a summary shows your score,
+  time, moves, streaks and new achievements. Click or press any key to skip straight to it.
 
 ### Menus and shortcuts
 | Menu | Item | Shortcut |
@@ -191,6 +192,7 @@ python3 scripts/site_assets.py /tmp/snaps <icon.svg> <back.svg> <fontsource dir>
 ```
 `--snapshot <dir>` uses a temporary store and a fixed two suit deal, plays 38 solver moves and writes
 PNGs of the board, help, achievements and every Settings tab (no screen recording permission needed).
+`--snapshot <dir> --win-frames` plays that deal to its win and writes frames of the win animation and panel.
 `--menu-probe <seconds>` plays moves while checking that the menu bar never changes (exit 0 if so).
 
 ## Solver tool (developers)

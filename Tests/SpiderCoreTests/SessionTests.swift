@@ -57,6 +57,38 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(c.statistics[.fourSuits].played, 1, "restarting an untouched game is free")
     }
 
+    func testWinSummaryShowsTheGameAndTheRecord() throws {
+        var c = controller()
+        c.open(nearWin())
+        XCTAssertNil(c.winSummary)
+        c.addPlayTime(75)
+        try c.perform(.move(from: 1, index: 0, to: 0))
+        let first = try XCTUnwrap(c.winSummary)
+        XCTAssertEqual(first.difficulty, .oneSuit)
+        XCTAssertEqual(first.score, 1099)
+        XCTAssertEqual(first.moves, c.game.state.moves)
+        XCTAssertEqual(first.seconds, 75)
+        XCTAssertEqual(first.currentStreak, 1)
+        XCTAssertEqual(first.longestStreak, 1)
+        XCTAssertTrue(first.isNewHighScore)
+        XCTAssertTrue(first.achievements.contains(.firstWin))
+        XCTAssertEqual(first.achievements, c.unlockedThisGame)
+        _ = c.commitUnlocks(at: 1)
+
+        c.open(nearWin())
+        XCTAssertNil(c.winSummary)
+        XCTAssertEqual(c.unlockedThisGame, [], "a new game starts with nothing unlocked")
+        try c.perform(.move(from: 1, index: 0, to: 0))
+        let second = try XCTUnwrap(c.winSummary)
+        XCTAssertFalse(second.isNewHighScore, "the same score again is not a new high score")
+        XCTAssertEqual(second.currentStreak, 2)
+        XCTAssertFalse(second.achievements.contains(.firstWin), "already unlocked")
+        XCTAssertEqual(c.statistics[.oneSuit].won, 2, "statistics are recorded as before")
+
+        c.startNewGame(difficulty: .oneSuit, seed: 3)
+        XCTAssertNil(c.winSummary)
+    }
+
     func testWinIsRecordedOnceWithScoreAndBlocksUndo() throws {
         var c = controller()
         c.open(nearWin())

@@ -225,13 +225,33 @@ Why these keys:
   want to quit this game?" If the player confirms, the abandoned game counts as a loss, as in XP.
 
 ### 3.6 Win
-- The XP-style celebration plays: card fireworks or bouncing cards rendered with a SwiftUI `Canvas`
-  and `TimelineView`.
-- Then the dialog "Congratulations, you won! Do you want to start another game?" appears with
-  Yes/No buttons and shows the final score.
-- The win animation (completed suits' K/Q/J/10 bouncing out of the foundation with trails, plus
-  firework sparks, about 10 s) can be skipped with a click or any key. With animations off, the dialog
-  appears straight away.
+- The celebration (`WinCelebration`, drawn by one SwiftUI `Canvas` in a `TimelineView` capped at
+  60 fps that pauses once the show stops) is the classic Windows card cascade:
+  - All 13 cards of every completed suit (104) leave the foundation one every 0.095 s, pile by pile
+    from the rightmost (top) pile, king first; the piles visibly empty. The score box fades out.
+  - Each card flies left (30 %) or right, seeded by the deal so a game always plays the same show,
+    jumps 30–80 % of the board height (never past the top), falls with gravity and bounces off the
+    bottom edge with damping (restitution 0.72) until it has left the board.
+  - Each card leaves a trail painted on the felt: every 1/30 s of show time it is stamped into one
+    offscreen bitmap the size of the board (only new stamps are drawn per frame; the bitmap is
+    capped at 2.5 MP, below the display scale on large Retina windows, while the flying cards stay
+    sharp). The trail fades by half every 0.5 s so the felt shows recent paths rather than a solid
+    wall. Resizing the window mid-show clears the trails and carries on.
+  - Firework bursts (28 sparks of one of six colours, fading over 1.4 s, drawn behind the cards)
+    start after 2 s, come closer together, pause, and end in a finale of three bursts at once.
+  - The show ends when the last card has left and the last spark has faded (about 13 s); a click
+    or any key skips it. Then the trails fade out and the win panel fades in.
+- The win panel (over the slightly dimmed felt): "You win!", the difficulty, a "New high score"
+  badge when the score beat the difficulty's previous best, Score, Time and Moves, the current and
+  longest winning streak at that difficulty, and the achievements this game unlocked (no banners
+  for those). **Play Again** (Return) deals a new game at the same difficulty; **Close** (Escape)
+  leaves the finished board, with the kings back on the foundation. A won game is never offered for
+  saving at quit.
+- With macOS Reduce Motion on, nothing flies: the panel cross-fades in over 1 s. With Settings ▸
+  Show animations off, it appears at once.
+- `SpiderSolitaire --snapshot <dir> --win-frames` plays the bundled two-suit deal to its win and
+  writes board frames across the celebration, then the win panel and the board after Close (the
+  panel's appearance time is printed as `WINPANEL <ms>`).
 
 ### 3.6a Card faces
 - Settings → Card faces: **Classic** (default) or **Simple**. It is saved in options.json; older files
