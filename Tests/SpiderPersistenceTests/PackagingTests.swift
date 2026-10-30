@@ -42,6 +42,19 @@ final class PackagingTests: XCTestCase {
         XCTAssertTrue(category.hasPrefix("public.app-category.") && category.contains("games"), category)
     }
 
+    /// CFBundleLocalizations lists exactly the app's translations, so macOS localizes its own menu
+    /// items and panels (Services, Hide, Quit, the About panel...) in the same languages.
+    func testInfoPlistListsEveryLanguage() throws {
+        let plist: [String: Any] = try substitutedPlist()
+        XCTAssertEqual(plist["CFBundleDevelopmentRegion"] as? String, "en")
+        let declared: [String] = try XCTUnwrap(plist["CFBundleLocalizations"] as? [String])
+        let folder: URL = repoRoot.appendingPathComponent("Sources/SpiderSolitaire/Resources/Localization")
+        let shipped: [String] = try FileManager.default.contentsOfDirectory(atPath: folder.path)
+            .filter { $0.hasSuffix(".lproj") }.map { String($0.dropLast(6)) }
+        XCTAssertEqual(declared.sorted(), shipped.sorted())
+        XCTAssertTrue(shipped.contains("de"))
+    }
+
     func testExecutableNameMatchesPackageProduct() throws {
         let manifest: String = try String(contentsOf: repoRoot.appendingPathComponent("Package.swift"), encoding: .utf8)
         XCTAssertTrue(manifest.contains("name: \"SpiderSolitaire\""))

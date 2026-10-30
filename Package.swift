@@ -3,6 +3,8 @@ import PackageDescription
 
 let package = Package(
     name: "SpiderSolitaire",
+    // English is the source language; translations live in the app's Resources/Localization/<lang>.lproj.
+    defaultLocalization: "en",
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "SpiderCore", targets: ["SpiderCore"]),
@@ -23,9 +25,10 @@ let package = Package(
         // Update check logic: versions, GitHub release JSON, policy (Foundation only, testable on Linux).
         .target(name: "SpiderUpdates"),
         // Resources/Cards: the Classic card faces (CC0 art, see Resources/Cards/CREDITS.md).
+        // Resources/Localization: Localizable.strings / .stringsdict per language (en, de).
         .executableTarget(
             name: "SpiderSolitaire", dependencies: ["SpiderCore", "SpiderBoard", "SpiderPersistence", "SpiderUpdates"],
-            resources: [.copy("Resources/Cards")]),
+            resources: [.copy("Resources/Cards"), .process("Resources/Localization")]),
         // Renders the 1024 px app icon PNG (CoreGraphics); used by scripts/package.sh.
         .executableTarget(name: "SpiderIcon", dependencies: ["SpiderBoard", "SpiderCore"]),
         // Developer tool (not shipped): solver benchmarks and the bundled winnable-seed list.
@@ -36,5 +39,8 @@ let package = Package(
         .testTarget(name: "SpiderBoardTests", dependencies: ["SpiderBoard", "SpiderCore"]),
         .testTarget(name: "SpiderPersistenceTests", dependencies: ["SpiderPersistence", "SpiderCore"]),
         .testTarget(name: "SpiderUpdatesTests", dependencies: ["SpiderUpdates"]),
+        // Checks the app's string tables against each other, the app sources and the shared modules' texts.
+        .testTarget(
+            name: "SpiderLocalizationTests", dependencies: ["SpiderCore", "SpiderBoard", "SpiderUpdates"]),
     ]
 )

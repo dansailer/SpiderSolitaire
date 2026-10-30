@@ -27,11 +27,11 @@ enum MainMenuBuilder {
         let app: NSApplication = NSApplication.shared
         let bar: NSMenu = NSMenu(title: "Main Menu")
         for top in MenuBarLayout.menuBar {
-            let menu: NSMenu = NSMenu(title: top.title)
+            let menu: NSMenu = NSMenu(title: loc(top.title))
             for entry in top.entries {
                 menu.addItem(item(for: entry, target: target, app: app))
             }
-            let holder: NSMenuItem = NSMenuItem(title: top.title, action: nil, keyEquivalent: "")
+            let holder: NSMenuItem = NSMenuItem(title: loc(top.title), action: nil, keyEquivalent: "")
             holder.submenu = menu
             bar.addItem(holder)
             switch top.role {
@@ -48,32 +48,33 @@ enum MainMenuBuilder {
         case .separator:
             return NSMenuItem.separator()
         case .services:
-            let item: NSMenuItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
-            let services: NSMenu = NSMenu(title: "Services")
+            let item: NSMenuItem = NSMenuItem(title: loc("Services"), action: nil, keyEquivalent: "")
+            let services: NSMenu = NSMenu(title: loc("Services"))
             item.submenu = services
             app.servicesMenu = services
             return item
         case .submenu(let menu, let children):
-            let item: NSMenuItem = NSMenuItem(title: menu.rawValue, action: nil, keyEquivalent: "")
-            let sub: NSMenu = NSMenu(title: menu.rawValue)
+            let item: NSMenuItem = NSMenuItem(title: loc(menu.rawValue), action: nil, keyEquivalent: "")
+            let sub: NSMenu = NSMenu(title: loc(menu.rawValue))
             for child in children { sub.addItem(self.item(for: child, target: target, app: app)) }
             item.submenu = sub
             return item
         case .standard(let standard):
             // No target: AppKit sends it to the key window or the application.
-            return make(standard.title, selector: Selector(standard.selector), shortcut: standard.shortcut, target: nil)
+            return make(
+                loc(standard.title), selector: Selector(standard.selector), shortcut: standard.shortcut, target: nil)
         case .app(let appItem):
             let item: NSMenuItem = make(
-                appItem.title, selector: #selector(MenuController.performAppItem(_:)),
+                loc(appItem.title), selector: #selector(MenuController.performAppItem(_:)),
                 shortcut: appItem.shortcut, target: target)
             item.representedObject = appItem.rawValue
             return item
         case .command(let command):
             if let selector: String = command.standardSelector {
-                return make(command.title, selector: Selector(selector), shortcut: command.shortcut, target: nil)
+                return make(loc(command.title), selector: Selector(selector), shortcut: command.shortcut, target: nil)
             }
             let item: NSMenuItem = make(
-                command.title, selector: #selector(MenuController.performCommand(_:)),
+                loc(command.title), selector: #selector(MenuController.performCommand(_:)),
                 shortcut: command.shortcut, target: target)
             item.representedObject = command.rawValue
             return item
@@ -191,11 +192,13 @@ final class MenuController: NSObject, NSMenuItemValidation {
 /// Spider Solitaire ▸ About Spider Solitaire: the standard panel (name and version from
 /// Info.plist) with the card art credits.
 enum AboutPanel {
-    static let creditsText: String = """
-        Classic card faces: "English pattern" playing cards by Dmitry Fomin (CC0 1.0).
-        Ornate ace of spades: Byron Knoll, vector-playing-cards (public domain).
-        Sounds are the built-in macOS system sounds.
-        """
+    static var creditsText: String {
+        [
+            loc("Classic card faces: “English pattern” playing cards by Dmitry Fomin (CC0 1.0)."),
+            loc("Ornate ace of spades: Byron Knoll, vector-playing-cards (public domain)."),
+            loc("Sounds are the built-in macOS system sounds."),
+        ].joined(separator: "\n")
+    }
 
     @MainActor
     static func show() {
@@ -214,7 +217,7 @@ enum AboutPanel {
         ]
         // Running unbundled (swift run) there is no version in Info.plist.
         if Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") == nil {
-            options[NSApplication.AboutPanelOptionKey.applicationVersion] = "development build"
+            options[NSApplication.AboutPanelOptionKey.applicationVersion] = loc("development build")
         }
         NSApplication.shared.orderFrontStandardAboutPanel(options: options)
     }

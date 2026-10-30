@@ -26,13 +26,13 @@ struct AchievementToastView: View {
         HStack(spacing: 10) {
             BadgeView(emblem: achievement.emblem, unlocked: true, size: 40)
             VStack(alignment: HorizontalAlignment.leading, spacing: 2) {
-                Text("Achievement unlocked")
+                Text(loc("Achievement unlocked"))
                     .font(Font.caption)
                     .foregroundColor(Color(red: 0.45, green: 0.30, blue: 0.05))
-                Text(achievement.title)
+                Text(loc(achievement.title))
                     .font(Font.headline)
                     .foregroundColor(Color.black)
-                Text(achievement.hint)
+                Text(loc(achievement.hint))
                     .font(Font.caption)
                     .foregroundColor(Color(white: 0.3))
                     .lineLimit(2)
@@ -50,7 +50,7 @@ struct AchievementToastView: View {
                 .shadow(color: Color.black.opacity(0.35), radius: 6, x: 0, y: 3)
         )
         .accessibilityElement(children: AccessibilityChildBehavior.combine)
-        .accessibilityLabel(Text("Achievement unlocked: " + achievement.title))
+        .accessibilityLabel(Text(loc("Achievement unlocked: %@", loc(achievement.title))))
     }
 }
 
@@ -66,9 +66,9 @@ struct DealingOverlay: View {
             VStack(spacing: 12) {
                 ProgressView()
                     .controlSize(ControlSize.regular)
-                Text("Dealing a winnable game…")
+                Text(loc("Dealing a winnable game…"))
                     .font(Font.headline)
-                Button("Cancel") { onCancel() }
+                Button(loc("Cancel")) { onCancel() }
                     .keyboardShortcut(KeyboardShortcut.cancelAction)
             }
             .padding(EdgeInsets(top: 18, leading: 26, bottom: 16, trailing: 26))
@@ -90,7 +90,7 @@ struct AchievementsView: View {
         let book: AchievementBook = model.achievements
         let unlockedCount: Int = Achievement.all.filter { (a: Achievement) -> Bool in book.isUnlocked(a.id) }.count
         VStack(alignment: HorizontalAlignment.leading, spacing: 12) {
-            Text("\(unlockedCount) of \(Achievement.all.count) unlocked")
+            Text(loc("%lld of %lld unlocked", unlockedCount, Achievement.all.count))
                 .font(Font.headline)
             ScrollView {
                 LazyVGrid(
@@ -117,20 +117,21 @@ struct AchievementTile: View {
         let unlocked: Bool = unlockedAt != nil
         VStack(spacing: 6) {
             BadgeView(emblem: achievement.emblem, unlocked: unlocked, size: 84)
-            Text(achievement.title)
+            Text(loc(achievement.title))
                 .font(Font.headline)
                 .foregroundColor(unlocked ? Color.primary : Color.secondary)
-            Text(achievement.hint)
+            Text(loc(achievement.hint))
                 .font(Font.caption)
                 .foregroundColor(Color.secondary)
                 .multilineTextAlignment(TextAlignment.center)
                 .fixedSize(horizontal: false, vertical: true)
             if let unlockedAt {
                 Text(
-                    "Unlocked "
-                        + Date(timeIntervalSince1970: unlockedAt).formatted(
+                    loc(
+                        "Unlocked %@",
+                        Date(timeIntervalSince1970: unlockedAt).formatted(
                             date: Date.FormatStyle.DateStyle.abbreviated,
-                            time: Date.FormatStyle.TimeStyle.omitted)
+                            time: Date.FormatStyle.TimeStyle.omitted))
                 )
                 .font(Font.caption.weight(Font.Weight.semibold))
                 .foregroundColor(Color(red: 0.55, green: 0.38, blue: 0.05))

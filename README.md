@@ -4,6 +4,7 @@ A native macOS clone of Windows XP Spider Solitaire, written in Swift and SwiftU
 
 - The rules and UI are described in [SPEC.md](SPEC.md).
 - It builds, tests and packages on macOS 14; the rules engine also builds and tests on Linux.
+- In English and German; it follows the macOS language (SPEC.md §3.8 explains how to add one).
 - Website: https://dansailer.github.io/SpiderSolitaire/ · Downloads: https://github.com/dansailer/SpiderSolitaire/releases/latest
 - Code: MIT ([LICENSE](LICENSE)). Card art: CC0 / public domain ([CREDITS.md](Sources/SpiderSolitaire/Resources/Cards/CREDITS.md)).
 - Outside contributions are not accepted ([CONTRIBUTING.md](CONTRIBUTING.md)); report security issues privately ([SECURITY.md](SECURITY.md)).
@@ -222,6 +223,7 @@ Sources/SpiderSolitaire/   SwiftUI views in an AppKit app (app delegate, windows
 Sources/SpiderIcon/        renders VectorArt (app icon, card back, badges) to PNG (CoreGraphics) or SVG (any platform)
 Sources/SpiderTools/       dev-only solver tool: bench, find, seeds, bundled (not part of the app)
 Sources/SpiderSolitaire/Resources/Cards/  Classic card faces (52 vector PDFs, CC0/public domain, see CREDITS.md)
+Sources/SpiderSolitaire/Resources/Localization/  en.lproj and de.lproj string tables (SPEC.md §3.8)
 scripts/cards/             build_classic_cards.py (download, licence check, pip fix, PDF), preview.py, preview_faces.py
 Packaging/Info.plist       app bundle Info.plist template
 scripts/package.sh         builds, signs and zips build/Spider Solitaire.app
@@ -230,5 +232,6 @@ scripts/install-swiftlint.sh  downloads the pinned, checksum-verified SwiftLint 
 Tests/SpiderCoreTests/     XCTest suite for the rules
 Tests/SpiderBoardTests/    XCTest suite for layout, hit-testing, drag/drop and double-click
 Tests/SpiderPersistenceTests/ XCTest suite for saving, loading and quit/resume
+Tests/SpiderLocalizationTests/ XCTest suite for the string tables (complete, consistent, nothing hardcoded)
 SPEC.md
 ```

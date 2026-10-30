@@ -117,6 +117,14 @@ if [[ "$CARD_COUNT" != "52" ]]; then
     echo "error: expected 52 card images in $DEST_BUNDLE, found $CARD_COUNT" >&2
     exit 1
 fi
+# The app's languages (Resources/Localization/<language>.lproj, listed in Packaging/Info.plist's
+# CFBundleLocalizations so macOS also shows its own menu items and panels in that language).
+for lproj in "$ROOT"/Sources/SpiderSolitaire/Resources/Localization/*.lproj; do
+    if [[ ! -f "$DEST_BUNDLE/Contents/Resources/$(basename "$lproj")/Localizable.strings" ]]; then
+        echo "error: $(basename "$lproj") is missing from $DEST_BUNDLE" >&2
+        exit 1
+    fi
+done
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD_NUMBER/" \
     "$ROOT/Packaging/Info.plist" > "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"

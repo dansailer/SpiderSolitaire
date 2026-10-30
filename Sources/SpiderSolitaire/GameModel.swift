@@ -26,7 +26,7 @@ enum BoardAlert: Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .won: return "Congratulations, you won!"
+        case .won: return loc("Congratulations, you won!")
         default: return "Spider Solitaire"
         }
     }
@@ -34,11 +34,19 @@ enum BoardAlert: Identifiable, Sendable {
     var message: String {
         switch self {
         case .info(let text): return text
-        case .noMoves: return "There are no more moves."
-        case .won(let score): return "Score: \(score). Do you want to start another game?"
-        case .confirmAbandon: return "This game is in progress and will count as a loss. Do you want to quit this game?"
-        case .openSavedGame: return "Do you want to open your previously saved game?"
+        case .noMoves: return loc("There are no more moves.")
+        case .won(let score): return loc("Score: %lld. Do you want to start another game?", score)
+        case .confirmAbandon:
+            return loc("This game is in progress and will count as a loss. Do you want to quit this game?")
+        case .openSavedGame: return loc("Do you want to open your previously saved game?")
         }
+    }
+}
+
+extension GameModel {
+    /// XP's message when a deal is refused.
+    static var cannotDealMessage: String {
+        loc("You are not allowed to deal a new row while there are any empty slots.")
     }
 }
 
@@ -48,8 +56,6 @@ enum BoardAlert: Identifiable, Sendable {
 /// This class sequences those in time and wraps them in `withAnimation`.
 @MainActor
 final class GameModel: ObservableObject {
-    static let cannotDealMessage: String = "You are not allowed to deal a new row while there are any empty slots."
-
     @Published private(set) var session: SessionController
     @Published private(set) var pointer: PointerController = PointerController()
     @Published private(set) var animations: BoardAnimations = BoardAnimations()
@@ -179,7 +185,7 @@ final class GameModel: ObservableObject {
     func requestOpenSavedGame() {
         guard store.hasSavedGame else {
             hasSavedGame = false
-            alert = BoardAlert.info("There is no saved game.")
+            alert = BoardAlert.info(loc("There is no saved game."))
             return
         }
         requestAbandon(AbandonReason.openSavedGame)
@@ -189,9 +195,9 @@ final class GameModel: ObservableObject {
         do {
             try store.saveGame(session.session)
             hasSavedGame = true
-            alert = BoardAlert.info("Your game has been saved.")
+            alert = BoardAlert.info(loc("Your game has been saved."))
         } catch {
-            alert = BoardAlert.info("The game could not be saved: \(error.localizedDescription)")
+            alert = BoardAlert.info(loc("The game could not be saved: %@", error.localizedDescription))
         }
     }
 
@@ -392,7 +398,8 @@ final class GameModel: ObservableObject {
                 session.open(saved)
             } else {
                 schedule(
-                    Step.present(BoardAlert.info("The saved game could not be opened.")), after: 0.3, cancellable: false
+                    Step.present(BoardAlert.info(loc("The saved game could not be opened."))), after: 0.3,
+                    cancellable: false
                 )
             }
             hasSavedGame = store.hasSavedGame
@@ -447,7 +454,7 @@ final class GameModel: ObservableObject {
         } else {
             startDeal(difficulty, seed: GameModel.randomSeed())
             schedule(
-                Step.present(BoardAlert.info("No winnable deal was found in time, so this is a random deal.")),
+                Step.present(BoardAlert.info(loc("No winnable deal was found in time, so this is a random deal."))),
                 after: 0.3, cancellable: false)
         }
         prefillWinnableSeeds(difficulty)

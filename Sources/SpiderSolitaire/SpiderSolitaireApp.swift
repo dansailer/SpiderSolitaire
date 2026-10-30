@@ -58,7 +58,7 @@ final class WindowController: NSObject, NSWindowDelegate {
         let window: NSWindow =
             achievements
             ?? makeWindow(
-                title: "Achievements", autosave: "SpiderSolitaireAchievements",
+                title: loc("Achievements"), autosave: "SpiderSolitaireAchievements",
                 size: NSSize(width: 720, height: 560), resizable: true,
                 content: AchievementsView(model: model))
         achievements = window
@@ -71,8 +71,8 @@ final class WindowController: NSObject, NSWindowDelegate {
         let window: NSWindow =
             help
             ?? makeWindow(
-                title: MenuCommand.help.title, autosave: "SpiderSolitaireHelp",
-                size: NSSize(width: 560, height: 640), resizable: true,
+                title: loc(MenuCommand.help.title), autosave: "SpiderSolitaireHelp",
+                size: NSSize(width: 600, height: 640), resizable: true,
                 content: HelpView())
         help = window
         window.makeKeyAndOrderFront(nil)
@@ -248,7 +248,9 @@ enum MenuProbe {
             }
             let app: NSApplication = NSApplication.shared
             let tops: [String] = app.mainMenu?.items.map { (item: NSMenuItem) -> String in item.title } ?? []
-            let expected: [String] = MenuBarLayout.menuBar.map { (top: MenuBarLayout.TopMenu) -> String in top.title }
+            let expected: [String] = MenuBarLayout.menuBar.map { (top: MenuBarLayout.TopMenu) -> String in
+                loc(top.title)
+            }
             let fullScreen: Int =
                 app.windowsMenu?.items.filter { (item: NSMenuItem) -> Bool in
                     !item.isHidden && item.action == #selector(NSWindow.toggleFullScreen(_:))
@@ -342,11 +344,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             model.discardForQuit()
         case .ask:
             let alert: NSAlert = NSAlert()
-            alert.messageText = "Do you want to save this game?"
-            alert.informativeText = "If you don't save it, it counts as a loss."
-            alert.addButton(withTitle: "Save")
-            alert.addButton(withTitle: "Don't Save")
-            alert.addButton(withTitle: "Cancel")
+            alert.messageText = loc("Do you want to save this game?")
+            alert.informativeText = loc("If you don't save it, it counts as a loss.")
+            alert.addButton(withTitle: loc("Save"))
+            alert.addButton(withTitle: loc("Don't Save"))
+            alert.addButton(withTitle: loc("Cancel"))
             let response: NSApplication.ModalResponse = alert.runModal()
             if response == NSApplication.ModalResponse.alertFirstButtonReturn {
                 model.saveForQuit()

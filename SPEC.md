@@ -318,6 +318,30 @@ Why these keys:
 - The cues are built-in macOS system sounds played with `NSSound(named:)` (Pop, Tink, Basso, Ping, Funk,
   Glass, Hero, and Purr for an achievement); no Microsoft or bundled audio. Settings → "Play sounds" is off by default.
 
+### 3.8 Languages
+- The app is in English and German (Standard German: ß, „…“ quotes, informal "du"). It follows the
+  system language (System Settings ▸ General ▸ Language & Region, including the per-app language
+  there); any other language gets English. The website stays English.
+- The English text is the key. The tables are
+  `Sources/SpiderSolitaire/Resources/Localization/<language>.lproj/Localizable.strings`, plus
+  `Localizable.stringsdict` for plurals ("1 win", "3 wins"), processed into the app's resource bundle.
+  `Packaging/Info.plist` lists the languages in `CFBundleLocalizations`, so macOS's own items (Services,
+  the Enter Full Screen item, the About panel, standard alert buttons) follow too.
+- The app looks every text up with `loc("…")` / `loc("Score: %lld", score)` (`Localization.swift`),
+  which picks the `.lproj` itself from the user's preferred languages (so `swift run` is localized
+  too) and falls back to the English key. SpiderCore, SpiderBoard and SpiderUpdates stay English and
+  Foundation-free; the app passes their texts (menu titles, help, achievements, credits, update
+  messages) through `loc` where it shows them.
+- Kept as they are in every language: the name Spider Solitaire, keyboard shortcuts, people's names,
+  "English pattern", CC0 1.0 and other licence names, and release notes from GitHub.
+- `SpiderLocalizationTests` (runs on Linux too) fails when a language misses a key or has a stale
+  one, a translation drops or changes a placeholder, a `loc("…")` key or a shared module's text has
+  no entry, an entry is unused, an app view or alert uses a bare string literal, or German text
+  uses ASCII quotes or "...".
+- Adding a language: copy `en.lproj` to `<code>.lproj`, translate the values (keep the keys and the
+  `%@` / `%lld` placeholders; reorder with `%1$@` / `%2$@`), add the plural forms that language needs
+  to its `.stringsdict`, and add the code to `CFBundleLocalizations` in `Packaging/Info.plist`.
+
 ## 4. Persistence and statistics
 - **Statistics** (`Statistics`, `DifficultyStatistics` in the core), kept per difficulty:
   - games played and won, and the win percentage,
