@@ -3,47 +3,41 @@ import XCTest
 
 @testable import SpiderBoard
 
-/// The deal pacing the player sees: each card visibly flies on its own, and the totals stay in
-/// the agreed window (stock deal about 1 s, new game about 2.5–3.5 s).
+/// The deal pacing the player sees: XP deals about 8–10 cards a second, so every card is seen
+/// being placed. The totals stay in the agreed window (stock deal about 1.2 s, new game about 6.4 s).
 final class DealPacingTests: XCTestCase {
     func testStockDealTakesAboutOneSecond() {
         let total = DealPacing.totalDuration(.stock, cards: GameState.columnCount)
-        XCTAssertEqual(total, 9 * 0.08 + 0.24, accuracy: 1e-9)
-        XCTAssertTrue((0.8...1.2).contains(total), "\(total)")
+        XCTAssertEqual(total, 9 * 0.1 + 0.3, accuracy: 1e-9)
+        XCTAssertTrue((1.0...1.5).contains(total), "\(total)")
     }
 
-    func testNewGameDealTakesAboutThreeSeconds() {
+    func testNewGameDealTakesAboutSixSeconds() {
         let game = SpiderGame(difficulty: .oneSuit, seed: 1)
         XCTAssertEqual(game.state.tableauCardCount, 54)
         let total = DealPacing.totalDuration(.initial, cards: 54)
-        XCTAssertEqual(total, 0.15 + 53 * 0.05 + 0.24, accuracy: 1e-9)
-        XCTAssertTrue((2.5...3.5).contains(total), "\(total)")
+        XCTAssertEqual(total, 0.3 + 53 * 0.11 + 0.3, accuracy: 1e-9)
+        XCTAssertTrue((5.5...7.0).contains(total), "\(total)")
     }
 
-    /// Cards follow each other closely enough to read as one deal, yet several are never
-    /// launched within one flight's first third, so every landing can be followed.
+    /// 8–10 cards a second, like XP: slow enough to follow each card, and at most a few in the
+    /// air at once.
     func testEveryCardIsSeenOnItsOwn() {
         for kind in [DealPacing.Kind.initial, .stock] {
-            let stagger = DealPacing.stagger(kind)
-            XCTAssertGreaterThanOrEqual(stagger, 0.05, "\(kind)")
-            XCTAssertLessThanOrEqual(stagger, 0.08, "\(kind)")
-            XCTAssertGreaterThan(stagger, DealPacing.flightDuration / 5, "\(kind)")
+            let cardsPerSecond = 1 / DealPacing.stagger(kind)
+            XCTAssertTrue((8.0...10.0).contains(cardsPerSecond), "\(kind): \(cardsPerSecond)")
+            XCTAssertGreaterThan(DealPacing.stagger(kind), DealPacing.flightDuration / 4, "\(kind)")
         }
-        XCTAssertTrue((0.2...0.25).contains(DealPacing.flightDuration))
+        XCTAssertTrue((0.25...0.35).contains(DealPacing.flightDuration))
     }
 
     func testReleaseTimesAreEvenlySpacedAfterTheLeadIn() {
         XCTAssertEqual(DealPacing.releaseTime(.stock, index: 0), 0)
-        XCTAssertEqual(DealPacing.releaseTime(.stock, index: 3), 0.24, accuracy: 1e-9)
+        XCTAssertEqual(DealPacing.releaseTime(.stock, index: 3), 0.3, accuracy: 1e-9)
         XCTAssertEqual(DealPacing.releaseTime(.initial, index: 0), DealPacing.initialLeadIn)
-        XCTAssertEqual(DealPacing.releaseTime(.initial, index: 10), DealPacing.initialLeadIn + 0.5, accuracy: 1e-9)
+        XCTAssertEqual(DealPacing.releaseTime(.initial, index: 10), DealPacing.initialLeadIn + 1.1, accuracy: 1e-9)
         XCTAssertEqual(DealPacing.releaseTime(.stock, index: -2), 0)
         XCTAssertEqual(DealPacing.totalDuration(.stock, cards: 0), 0)
-    }
-
-    func testSoundPlaysPerStockCardAndPerRowOfTheNewGameDeal() {
-        XCTAssertEqual((0..<10).filter { DealPacing.playsSound(.stock, index: $0) }.count, 10)
-        XCTAssertEqual((0..<54).filter { DealPacing.playsSound(.initial, index: $0) }, [0, 10, 20, 30, 40, 50])
     }
 
     /// Like dealing by hand: across the row, then the next row; columns 1–4 get the sixth card.
@@ -84,13 +78,51 @@ final class DealPacingTests: XCTestCase {
         XCTAssertEqual(byID[order[0]]!.frame, layout.cardFrames(in: game.state)[0][0])
 
         for id in order.dropFirst() { anim.releaseDealtCard(id) }
-        XCTAssertEqual(layout.placements(for: game.state, animations: anim), layout.placements(for: game.state))
         XCTAssertTrue(anim.isDealing, "the last card is still in the air")
         for id in order.dropLast() { anim.landDealtCard(id) }
         XCTAssertTrue(anim.isDealing)
         anim.landDealtCard(order.last!)
         XCTAssertFalse(anim.isDealing)
         XCTAssertTrue(anim.isIdle)
+        XCTAssertEqual(layout.placements(for: game.state, animations: anim), layout.placements(for: game.state))
+    }
+
+    /// XP: every card leaves the stock face down, the top card of each column too, flies to its
+    /// column like the others and only turns face up once it has landed. (Drawn face up in flight,
+    /// SwiftUI swapped its back for a new face view that faded in at the column instead.)
+    func testTheTopCardOfEachColumnFliesFaceDownAndTurnsOverWhenItLands() {
+        let layout = BoardLayout(boardSize: BoardSize(width: 900, height: 700))
+        let game = SpiderGame(difficulty: .oneSuit, seed: 5)
+        let tops = game.state.columns.map { $0.last! }
+        XCTAssertEqual(tops.count, 10)
+        XCTAssertTrue(tops.allSatisfy(\.isFaceUp))
+        var anim = BoardAnimations()
+        anim.beginInitialDeal(game.state)
+        let order = DealPacing.initialDealOrder(game.state.columns)
+        XCTAssertEqual(Set(order).intersection(tops.map(\.id)).count, 10, "the top cards are dealt too")
+        func placement(_ id: Int) -> CardPlacement {
+            layout.placements(for: game.state, animations: anim).first { $0.id == id }!
+        }
+        let pile = layout.stockFrames(dealsRemaining: game.state.dealsRemaining).last!
+        let frames = layout.cardFrames(in: game.state)
+        for top in tops {
+            XCTAssertEqual(placement(top.id).frame, pile, "waits on the stock")
+            XCTAssertFalse(placement(top.id).card.isFaceUp)
+        }
+        // In deal order: columns 5–10 get their top card in row 5, columns 1–4 in row 6.
+        let columnsInDealOrder = tops.indices.sorted {
+            order.firstIndex(of: tops[$0].id)! < order.firstIndex(of: tops[$1].id)!
+        }
+        for column in columnsInDealOrder {
+            let top = tops[column]
+            XCTAssertEqual(placement(top.id).frame, pile, "still on the stock until its turn")
+            for id in order.prefix(through: order.firstIndex(of: top.id)!) { anim.releaseDealtCard(id) }
+            XCTAssertEqual(placement(top.id).frame, frames[column].last!, "flies to its column")
+            XCTAssertFalse(placement(top.id).card.isFaceUp, "face down in the air")
+            XCTAssertTrue(anim.landDealtCard(top.id))
+            XCTAssertTrue(placement(top.id).card.isFaceUp, "turned over on landing")
+            XCTAssertEqual(placement(top.id).frame, frames[column].last!)
+        }
     }
 
     /// Each card lands one flight after it leaves; the deal ends when the last one lands.
@@ -102,7 +134,6 @@ final class DealPacingTests: XCTestCase {
             for (i, step) in steps.enumerated() {
                 XCTAssertEqual(step.release, 0.35 + DealPacing.releaseTime(kind, index: i), accuracy: 1e-9)
                 XCTAssertEqual(step.landing, step.release + DealPacing.flightDuration, accuracy: 1e-9)
-                XCTAssertEqual(step.sound, DealPacing.playsSound(kind, index: i))
             }
             XCTAssertEqual(steps.last!.landing, 0.35 + DealPacing.totalDuration(kind, cards: count), accuracy: 1e-9)
         }

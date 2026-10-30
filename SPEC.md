@@ -133,13 +133,15 @@ The look is "XP-like", not a copy of the XP assets.
 - **Click-to-move:** double-clicking a movable run sends it to the best legal target,
   using the same ordering as the hints.
 - **Animations:**
-  - dealing, XP style, one card after another so each landing can be followed (`DealPacing`): a stock deal
-    sends its 10 cards 80 ms apart, each flying 240 ms with ease-out (about 1 s); a new game or restart deals
-    its 54 cards row by row from the stock, 50 ms apart (about 3 s). Each card stays face down on the pile
-    until it leaves. The game state is complete at once; only the drawing lags. A click or plain key press
-    finishes the deal instantly and does nothing else; any menu action (undo, hint, deal…) settles it first.
-    The deal sound plays per stock card and once per row of the new-game deal. macOS Reduce Motion makes
-    deals instant too,
+  - dealing, XP style, one card after another, about 8–10 cards a second, so each card can be seen being
+    placed (`DealPacing`): a stock deal sends its 10 cards 100 ms apart, each flying 300 ms with ease-out
+    (about 1.2 s); a new game or restart waits 300 ms, then deals its 54 cards row by row from the stock,
+    110 ms apart (about 6.4 s). Every card, the top card of each column too, leaves the pile face down,
+    flies to its column and turns face up only as it lands (a card drawn face up in flight would be a new
+    view that SwiftUI fades in at the column instead of moving). The game state is complete at once; only
+    the drawing lags. A click or plain key press finishes the deal instantly and does nothing else; any menu
+    action (undo, hint, deal…) settles it first. The deal sound plays with every card. macOS Reduce Motion
+    makes deals instant too,
   - a completed run flies to the foundation one card at a time, starting with the top card (A) and ending with the K, staggered by 40 ms, about 0.3 s per card. The foundation king appears once all 13 cards have landed,
   - an exposed card flips over.
   Settings → "Show animations" turns all of these off.

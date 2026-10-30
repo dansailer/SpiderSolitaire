@@ -3,7 +3,7 @@ import SpiderCore
 /// One card to draw: where, how high in the stack, and how.
 public struct CardPlacement: Hashable, Sendable, Identifiable {
     /// The card as it should be drawn (`isFaceUp` may differ from the game state while a dealt
-    /// card is still waiting on the stock).
+    /// card is still waiting on the stock or flying to its column).
     public let card: Card
     /// Frame including any drag translation or animation override.
     public let frame: BoardRect
@@ -64,13 +64,18 @@ extension BoardLayout {
                         CardPlacement(card: faceDown, frame: heldFrame, zIndex: 60 + Double(held.count - order)))
                     continue
                 }
+                // A dealt card flies face down and turns over as it lands, as in XP. Turning it in
+                // flight would swap its back for a new face view, which SwiftUI fades in at the
+                // column instead of moving it from the stock.
+                var drawn = card
+                if animations.landingDealtIDs.contains(card.id) { drawn.isFaceUp = false }
                 let lifted = drag.map { $0.from == column && index >= $0.index } ?? false
                 var frame = frames[index]
                 if lifted, let drag { frame = frame.offsetBy(dx: drag.translation.width, dy: drag.translation.height) }
                 let z = (lifted ? 1000.0 : 100.0) + Double(index)
                 result.append(
                     CardPlacement(
-                        card: card, frame: frame, zIndex: z, isLifted: lifted,
+                        card: drawn, frame: frame, zIndex: z, isLifted: lifted,
                         isHighlighted: highlightedIDs.contains(card.id)))
             }
         }

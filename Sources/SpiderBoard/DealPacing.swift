@@ -1,8 +1,8 @@
 import SpiderCore
 
-/// Timing of the two deal animations, XP style: cards leave the stock one after another and
-/// each one flies (ease-out) to its column, so you can follow every card landing. All deal
-/// timing lives here; `DealPacingTests` pins the totals.
+/// Timing of the two deal animations, XP style: cards leave the stock one after another, about
+/// ten a second, and each one flies (ease-out) to its column, so you can follow every card being
+/// placed. All deal timing lives here; `DealPacingTests` pins the totals.
 public enum DealPacing {
     public enum Kind: Hashable, Sendable {
         /// The 54 cards of a new game (or a restart).
@@ -12,13 +12,14 @@ public enum DealPacing {
     }
 
     /// Flight time of one card, stock to column (ease-out).
-    public static let flightDuration: Double = 0.24
-    /// Time between two cards leaving the stock.
-    public static let stockStagger: Double = 0.08
-    /// The initial deal staggers a little tighter, so 54 cards take about 3 s, not 4.5 s.
-    public static let initialStagger: Double = 0.05
+    public static let flightDuration: Double = 0.3
+    /// Time between two cards leaving the stock: 10 cards a second, about 1.2 s for a row.
+    public static let stockStagger: Double = 0.1
+    /// A new game hands out its 54 cards about 9 a second (about 6.4 s), slow enough to see
+    /// every card placed, as in XP.
+    public static let initialStagger: Double = 0.11
     /// Pause before a new game's first card leaves, so the empty board is seen first.
-    public static let initialLeadIn: Double = 0.15
+    public static let initialLeadIn: Double = 0.3
 
     public static func stagger(_ kind: Kind) -> Double {
         switch kind {
@@ -42,31 +43,21 @@ public enum DealPacing {
         return releaseTime(kind, index: cards - 1) + flightDuration
     }
 
-    /// Whether card `index` plays the deal sound. Every card of a stock deal clicks; the initial
-    /// deal clicks once per row of ten (a click every 50 ms would be one long buzz).
-    public static func playsSound(_ kind: Kind, index: Int) -> Bool {
-        switch kind {
-        case .stock: return true
-        case .initial: return index.isMultiple(of: GameState.columnCount)
-        }
-    }
-
-    /// One card of a deal: when it leaves the stock, when it lands, and whether it clicks.
+    /// One card of a deal: when it leaves the stock (with the deal click) and when it lands.
     public struct CardStep: Hashable, Sendable {
         public let id: Int
         public let release: Double
         public let landing: Double
-        public let sound: Bool
     }
 
-    /// A timed step for every card of a deal, in deal order, `delay` seconds after now. A stock
-    /// card the deal completed into a run does not wait on the stock (it flies to the foundation),
-    /// but it keeps its step, so it still clicks at its place in the rhythm.
+    /// A timed step for every card of a deal, in deal order, `delay` seconds after now. Every card
+    /// clicks as it leaves. A stock card the deal completed into a run does not wait on the stock
+    /// (it flies to the foundation), but it keeps its step, so it still clicks at its place in the
+    /// rhythm.
     public static func steps(_ kind: Kind, ids: [Int], delay: Double = 0) -> [CardStep] {
         ids.enumerated().map { i, id in
             let release = delay + releaseTime(kind, index: i)
-            return CardStep(
-                id: id, release: release, landing: release + flightDuration, sound: playsSound(kind, index: i))
+            return CardStep(id: id, release: release, landing: release + flightDuration)
         }
     }
 

@@ -35,7 +35,8 @@ public struct BoardAnimations: Hashable, Sendable {
     public static let flyDuration: Double = 0.28
 
     public private(set) var dealHold: DealHold?
-    /// Dealt cards that have left the stock and are still flying to their column.
+    /// Dealt cards that have left the stock and are still flying to their column. They fly face
+    /// down; a card dealt face up turns over when it lands (`landDealtCard`).
     public private(set) var landingDealtIDs: Set<Int> = []
     public private(set) var flying: [FlyingCard] = []
 
