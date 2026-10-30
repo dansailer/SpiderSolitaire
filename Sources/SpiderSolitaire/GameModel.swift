@@ -105,6 +105,8 @@ final class GameModel: ObservableObject {
         case releaseDealt(Int)
         /// A dealt card reached its column (the deal is over once the last one has).
         case landDealt(Int)
+        /// Moved cards finished gliding; they go back to their column's drawing order.
+        case endMoves
         case land(Int)
         case finishSlot(Int)
         case afterAnimations
@@ -261,22 +263,6 @@ final class GameModel: ObservableObject {
         perform(Action.deal)
     }
 
-    /// Redo (⇧⌘Z): plays the last undone action again, with the usual animations.
-    func redo() {
-        guard let action: Action = game.nextRedo, session.canRedo else { return }
-        perform(action, redo: true)
-    }
-
-    func undo() {
-        guard session.canUndo else { return }
-        settleAnimations(announce: false)
-        clearHighlight()
-        pointer.reset()
-        animate(Animation.easeInOut(duration: 0.2)) {
-            _ = try? session.undo()
-        }
-    }
-
     // MARK: Quit (called by AppDelegate.applicationShouldTerminate)
 
     var quitDecision: QuitDecision { session.quitDecision }
@@ -358,10 +344,17 @@ final class GameModel: ObservableObject {
         case .none:
             pointer = next
         case .snapBack:
-            // Clearing the drag inside the animation glides the run back to its column.
+            // Clearing the drag inside the animation glides the run back to its column, above
+            // the other columns.
+            let run: Set<Int> =
+                pointer.drag.map { (drag: PointerController.Drag) -> Set<Int> in
+                    Set(game.state.columns[drag.from][drag.index...].map(\.id))
+                } ?? Set<Int>()
             animate(Animation.spring(response: 0.3, dampingFraction: 0.8)) {
                 pointer = next
+                animations.beginMoves(run)
             }
+            schedule(Step.endMoves, after: GameModel.snapBackGlide)
         case .hint:
             pointer = next
             showHint()
@@ -653,13 +646,18 @@ final class GameModel: ObservableObject {
                 flightsStart = DealPacing.totalDuration(DealPacing.Kind.stock, cards: outcome.dealtCardIDs.count)
             }
         } else {
+            let before: GameState = game.state
             animate(Animation.easeOut(duration: 0.22)) {
                 pointer.reset()
                 outcome = try? (redo ? session.redo() : session.perform(action))
                 if let outcome, animated {
+                    // The moved run glides above the other columns (and the dragged run, lifted
+                    // until now, stays on top on its way to the target).
+                    animations.beginMoves(BoardAnimations.movedCardIDs(from: before, to: game.state))
                     animations.beginFlights(outcome.completedRuns, columns: game.state.columns)
                 }
             }
+            if animated { schedule(Step.endMoves, after: GameModel.moveGlide) }
             flightsStart = 0.25
         }
 
@@ -699,6 +697,8 @@ final class GameModel: ObservableObject {
         case .landDealt(let id):
             // Not animated: a card dealt face up turns over at once as it lands.
             _ = animations.landDealtCard(id)
+        case .endMoves:
+            animations.endMoves()
         case .land(let id):
             withAnimation(Animation.easeIn(duration: BoardAnimations.flyDuration)) {
                 animations.land(id)
@@ -758,10 +758,9 @@ final class GameModel: ObservableObject {
     private func settleAnimations(announce: Bool) {
         let wasRunning: Bool = !animations.isIdle
         animationGeneration += 1
-        if wasRunning {
-            animations = BoardAnimations()
-            if announce { announceEndState() }
-        }
+        // Also drops cards still raised for a glide (their end step is cancelled).
+        if wasRunning || !animations.movingIDs.isEmpty { animations = BoardAnimations() }
+        if wasRunning, announce { announceEndState() }
     }
 
     private func clearHighlight() {
@@ -855,4 +854,33 @@ extension BoardRect {
     var cgCenter: CGPoint { CGPoint(x: CGFloat(midX), y: CGFloat(midY)) }
     var cgSize: CGSize { CGSize(width: CGFloat(width), height: CGFloat(height)) }
 }
+
+// MARK: - Undo and redo
+
+extension GameModel {
+    /// Redo (⇧⌘Z): plays the last undone action again, with the usual animations.
+    func redo() {
+        guard let action: Action = game.nextRedo, session.canRedo else { return }
+        perform(action, redo: true)
+    }
+
+    func undo() {
+        guard session.canUndo else { return }
+        settleAnimations(announce: false)
+        clearHighlight()
+        pointer.reset()
+        let before: GameState = game.state
+        animate(Animation.easeInOut(duration: 0.2)) {
+            _ = try? session.undo()
+            animations.beginMoves(BoardAnimations.movedCardIDs(from: before, to: game.state))
+        }
+        schedule(Step.endMoves, after: GameModel.moveGlide)
+    }
+
+    /// How long the cards of a move, undo or redo glide (their animations take 0.2–0.22 s).
+    static let moveGlide: Double = 0.25
+    /// A run snapping back after a drop that was not allowed (spring, response 0.3).
+    static let snapBackGlide: Double = 0.6
+}
+
 #endif

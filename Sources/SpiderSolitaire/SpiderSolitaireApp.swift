@@ -162,7 +162,8 @@ enum SnapshotMode {
     }
 
     /// `--snapshot <dir> --deal-frames`: instead of the website set, board frames taken while a
-    /// new game is dealt and then while the stock deals a row (checks `DealPacing` by eye).
+    /// new game is dealt, while the stock deals a row, and later in the game while a row is dealt
+    /// and a move undone over tall columns (checks `DealPacing` and that moving cards stay on top).
     static var dealFrames: Bool { CommandLine.arguments.contains("--deal-frames") }
 
     static func run(model: GameModel, windows: WindowController, into directory: URL) {
@@ -202,19 +203,47 @@ enum SnapshotMode {
             model.prepareSnapshot(difficulty: Difficulty.twoSuits, moves: 0)
             let board: NSWindow = windows.showBoard()
             try? await Task.sleep(nanoseconds: 1_000_000_000)
-            for (name, times) in [
-                ("initial", [0.6, 2.0, 4.0, 5.2, 5.5, 5.8, 6.1, 7.0]), ("stock", [0.2, 0.5, 0.8, 1.6]),
-            ] {
-                if name == "initial" { model.requestRestart() } else { model.deal() }
-                let start: Double = ProcessInfo.processInfo.systemUptime
-                for t in times {
-                    let wait: Double = max(0, start + t - ProcessInfo.processInfo.systemUptime)
-                    try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
-                    let ms: Int = Int((ProcessInfo.processInfo.systemUptime - start) * 1000)
-                    save(board, String(format: "deal-%@-%04dms", name, ms), directory)
+            model.requestRestart()
+            await capture(board, "deal-initial", at: [0.6, 2.0, 4.0, 5.2, 5.5, 5.8, 6.1, 7.0], into: directory)
+            model.deal()
+            await capture(board, "deal-stock", at: [0.2, 0.5, 0.8, 1.6], into: directory)
+
+            // Later in the game, before the deal with the tallest columns: a stock deal, whose
+            // cards cross the other columns on their way, and undoing the move before it (its run
+            // glides back across). Saving a big board takes long, so each frame is its own run.
+            let seed: UInt64 = WinnableDeals.bundled[Difficulty.twoSuits]?.first ?? 1
+            let line: [Action] = Solver.winningLine(difficulty: Difficulty.twoSuits, seed: seed) ?? []
+            var replay: SpiderGame = SpiderGame(difficulty: Difficulty.twoSuits, seed: seed)
+            var tallest: (moves: Int, height: Int)?
+            for (i, action) in line.enumerated() {
+                let height: Int = replay.state.columns.map(\.count).max() ?? 0
+                if action == Action.deal, height > (tallest?.height ?? 0) { tallest = (i, height) }
+                _ = try? replay.perform(action)
+            }
+            if let moves: Int = tallest?.moves {
+                for (name, t) in [
+                    ("deal-late-stock", [0.05, 0.12, 0.2, 0.3, 0.45]), ("deal-late-undo", [0.06, 0.12]),
+                ] {
+                    for seconds in t {
+                        model.prepareSnapshot(difficulty: Difficulty.twoSuits, moves: moves)
+                        try? await Task.sleep(nanoseconds: 600_000_000)
+                        if name == "deal-late-stock" { model.deal() } else { model.undo() }
+                        await capture(board, name, at: [seconds], into: directory)
+                    }
                 }
             }
             exit(0)
+        }
+    }
+
+    /// Saves the board at each of `times` (seconds from now).
+    private static func capture(_ board: NSWindow, _ name: String, at times: [Double], into directory: URL) async {
+        let start: Double = ProcessInfo.processInfo.systemUptime
+        for t in times {
+            let wait: Double = max(0, start + t - ProcessInfo.processInfo.systemUptime)
+            try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+            let ms: Int = Int((ProcessInfo.processInfo.systemUptime - start) * 1000)
+            save(board, String(format: "%@-%04dms", name, ms), directory)
         }
     }
 

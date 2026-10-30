@@ -35,14 +35,40 @@ public struct BoardAnimations: Hashable, Sendable {
     public static let flyDuration: Double = 0.28
 
     public private(set) var dealHold: DealHold?
-    /// Dealt cards that have left the stock and are still flying to their column. They fly face
-    /// down; a card dealt face up turns over when it lands (`landDealtCard`).
-    public private(set) var landingDealtIDs: Set<Int> = []
+    /// Dealt cards that have left the stock and are still flying to their column, in release
+    /// order. They fly face down; a card dealt face up turns over when it lands (`landDealtCard`).
+    public private(set) var landingDealtIDs: [Int] = []
     public private(set) var flying: [FlyingCard] = []
+    /// Cards gliding to another column (a move, undo or redo) or back to their own (a drop that
+    /// was not allowed). They are drawn above every column until `endMoves`, so they never pass
+    /// behind one on the way.
+    public private(set) var movingIDs: Set<Int> = []
 
     public init() {}
 
+    /// No deal or completed-run flight is running. Gliding moves (`movingIDs`) do not count: they
+    /// only raise cards for a moment and announce nothing.
     public var isIdle: Bool { dealHold == nil && landingDealtIDs.isEmpty && flying.isEmpty }
+
+    public mutating func beginMoves(_ ids: Set<Int>) { movingIDs.formUnion(ids) }
+
+    /// The glide is over: the cards go back to their column's drawing order.
+    public mutating func endMoves() { movingIDs.removeAll() }
+
+    /// Cards that `after` has in another column than `before` did, or that went between the stock
+    /// and a column (undoing a deal). Cards that left the tableau are not included.
+    public static func movedCardIDs(from before: GameState, to after: GameState) -> Set<Int> {
+        func places(_ state: GameState) -> [Int: Int] {
+            var place: [Int: Int] = [:]
+            for card in state.stock { place[card.id] = -1 }
+            for (column, cards) in state.columns.enumerated() {
+                for card in cards { place[card.id] = column }
+            }
+            return place
+        }
+        let old = places(before)
+        return Set(places(after).compactMap { id, place in old[id] == place ? nil : id })
+    }
 
     /// Start a deal animation: `outcome.dealtCardIDs` wait on the stock, minus cards that the deal
     /// completed into a run (those fly to the foundation instead).
@@ -72,14 +98,16 @@ public struct BoardAnimations: Hashable, Sendable {
         guard var hold = dealHold, hold.waitingIDs.contains(id) else { return false }
         hold.release(id)
         dealHold = hold.waitingIDs.isEmpty ? nil : hold
-        landingDealtIDs.insert(id)
+        landingDealtIDs.append(id)
         return true
     }
 
     /// A released dealt card reached its column. Returns false if it was not in the air.
     @discardableResult
     public mutating func landDealtCard(_ id: Int) -> Bool {
-        landingDealtIDs.remove(id) != nil
+        guard let i = landingDealtIDs.firstIndex(of: id) else { return false }
+        landingDealtIDs.remove(at: i)
+        return true
     }
 
     /// Put the cards of each completed run in the air, still at their column positions.
