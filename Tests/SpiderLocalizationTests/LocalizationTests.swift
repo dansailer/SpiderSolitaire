@@ -90,12 +90,18 @@ final class LocalizationTests: XCTestCase {
         }
     }
 
-    /// German typography: „…“ quotes and the … character, not ASCII stand-ins.
+    /// German typography as in Apple's German macOS: „…“ quotes, and the … character with a space
+    /// before it ("Einstellungen …", "Spider Solitaire wird geladen …"), never "...".
     func testGermanTypography() throws {
         let german: [String: String] = try Self.strings("de")
         for (key, value) in german {
             XCTAssertFalse(value.contains("\""), "de: straight quotes in \(key)")
             XCTAssertFalse(value.contains("..."), "de: three dots in \(key)")
+            let chars: [Character] = Array(value)
+            for (i, c) in chars.enumerated() where c == "…" {
+                XCTAssertTrue(
+                    i > 0 && (chars[i - 1] == " " || chars[i - 1] == "\u{A0}"), "de: no space before … in \(key)")
+            }
             XCTAssertFalse(value.contains("“") && !value.contains("„"), "de: German quotes open with „ in \(key)")
         }
     }

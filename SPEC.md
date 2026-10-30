@@ -319,7 +319,9 @@ Why these keys:
   Glass, Hero, and Purr for an achievement); no Microsoft or bundled audio. Settings → "Play sounds" is off by default.
 
 ### 3.8 Languages
-- The app is in English and German (Standard German: ß, „…“ quotes, informal "du"). It follows the
+- The app is in English and German (Standard German following Apple's German macOS: ß, „…“
+  quotes, "du", a space before the ellipsis as in „Einstellungen …“, and Apple's terms such as
+  Widerrufen, Sichern, Einblenden, Im Dock ablegen). It follows the
   system language (System Settings ▸ General ▸ Language & Region, including the per-app language
   there); any other language gets English. The website stays English.
 - The English text is the key. The tables are
@@ -337,7 +339,7 @@ Why these keys:
 - `SpiderLocalizationTests` (runs on Linux too) fails when a language misses a key or has a stale
   one, a translation drops or changes a placeholder, a `loc("…")` key or a shared module's text has
   no entry, an entry is unused, an app view or alert uses a bare string literal, or German text
-  uses ASCII quotes or "...".
+  uses ASCII quotes, "..." or an ellipsis without a space before it.
 - Adding a language: copy `en.lproj` to `<code>.lproj`, translate the values (keep the keys and the
   `%@` / `%lld` placeholders; reorder with `%1$@` / `%2$@`), add the plural forms that language needs
   to its `.stringsdict`, and add the code to `CFBundleLocalizations` in `Packaging/Info.plist`.

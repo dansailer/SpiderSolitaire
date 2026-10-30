@@ -1,11 +1,11 @@
-/* Spider Solitaire: German (Standard German: ß, „…“ quotes, informal du).
+/* Spider Solitaire: German (Standard German as in Apple's German macOS: ß, „…“ quotes, du, a space before …).
    Keys are the English texts; see SPEC.md §3.8 for how to add a language. */
 
 
 /* Menu bar (SpiderBoard MenuBarLayout / MenuCommand) and standard macOS items */
 "About Spider Solitaire" = "Über Spider Solitaire";
-"Check for Updates…" = "Nach Updates suchen…";
-"Settings…" = "Einstellungen…";
+"Check for Updates…" = "Nach Updates suchen …";
+"Settings…" = "Einstellungen …";
 "Services" = "Dienste";
 "Hide Spider Solitaire" = "Spider Solitaire ausblenden";
 "Hide Others" = "Andere ausblenden";
@@ -14,18 +14,18 @@
 "Game" = "Spiel";
 "New Game" = "Neues Spiel";
 "Restart Game" = "Spiel neu starten";
-"Undo" = "Rückgängig";
+"Undo" = "Widerrufen";
 "Redo" = "Wiederholen";
 "Deal Next Row" = "Nächste Reihe austeilen";
-"Show Hint" = "Hinweis anzeigen";
+"Show Hint" = "Hinweis einblenden";
 "Difficulty" = "Schwierigkeit";
 "One Suit" = "Eine Farbe";
 "Two Suits" = "Zwei Farben";
 "Four Suits" = "Vier Farben";
-"Statistics…" = "Statistik…";
-"Achievements…" = "Erfolge…";
-"Save Game" = "Spiel speichern";
-"Open Saved Game" = "Gespeichertes Spiel öffnen";
+"Statistics…" = "Statistik …";
+"Achievements…" = "Erfolge …";
+"Save Game" = "Spiel sichern";
+"Open Saved Game" = "Gesichertes Spiel öffnen";
 "Close Window" = "Fenster schließen";
 "Window" = "Fenster";
 "Minimize" = "Im Dock ablegen";
@@ -51,18 +51,18 @@
 "Score: %lld. Do you want to start another game?" = "Punkte: %lld. Möchtest du ein neues Spiel beginnen?";
 "There are no more moves." = "Es sind keine Züge mehr möglich.";
 "This game is in progress and will count as a loss. Do you want to quit this game?" = "Dieses Spiel läuft noch und wird als verloren gewertet. Möchtest du es wirklich beenden?";
-"Do you want to open your previously saved game?" = "Möchtest du dein zuletzt gespeichertes Spiel öffnen?";
+"Do you want to open your previously saved game?" = "Möchtest du dein zuletzt gesichertes Spiel öffnen?";
 "You are not allowed to deal a new row while there are any empty slots." = "Du kannst keine neue Reihe austeilen, solange ein Stapel leer ist.";
-"There is no saved game." = "Es gibt kein gespeichertes Spiel.";
-"Your game has been saved." = "Dein Spiel wurde gespeichert.";
-"The game could not be saved: %@" = "Das Spiel konnte nicht gespeichert werden: %@";
-"The saved game could not be opened." = "Das gespeicherte Spiel konnte nicht geöffnet werden.";
+"There is no saved game." = "Es gibt kein gesichertes Spiel.";
+"Your game has been saved." = "Dein Spiel wurde gesichert.";
+"The game could not be saved: %@" = "Das Spiel konnte nicht gesichert werden: %@";
+"The saved game could not be opened." = "Das gesicherte Spiel konnte nicht geöffnet werden.";
 "No winnable deal was found in time, so this is a random deal." = "Es wurde nicht rechtzeitig ein gewinnbares Spiel gefunden, daher ist dies ein zufälliges.";
-"Dealing a winnable game…" = "Gewinnbares Spiel wird ausgeteilt…";
-"Do you want to save this game?" = "Möchtest du dieses Spiel speichern?";
-"If you don't save it, it counts as a loss." = "Wenn du es nicht speicherst, wird es als verloren gewertet.";
-"Save" = "Speichern";
-"Don't Save" = "Nicht speichern";
+"Dealing a winnable game…" = "Gewinnbares Spiel wird ausgeteilt …";
+"Do you want to save this game?" = "Möchtest du dieses Spiel sichern?";
+"If you don't save it, it counts as a loss." = "Wenn du es nicht sicherst, wird es als verloren gewertet.";
+"Save" = "Sichern";
+"Don't Save" = "Nicht sichern";
 
 /* Statistics */
 "Statistics" = "Statistik";
@@ -87,11 +87,11 @@
 "Win a game with two suits." = "Gewinne ein Spiel mit zwei Farben.";
 "Win a game with four suits." = "Gewinne ein Spiel mit vier Farben.";
 "Purist" = "Purist";
-"Win a game without using Undo." = "Gewinne ein Spiel, ohne „Rückgängig“ zu verwenden.";
+"Win a game without using Undo." = "Gewinne ein Spiel, ohne „Widerrufen“ zu verwenden.";
 "No Peeking" = "Ohne Spicken";
 "Win a game without asking for a hint." = "Gewinne ein Spiel, ohne einen Hinweis anzufordern.";
 "Grandmaster" = "Großmeister";
-"Win with four suits without using Undo." = "Gewinne mit vier Farben, ohne „Rückgängig“ zu verwenden.";
+"Win with four suits without using Undo." = "Gewinne mit vier Farben, ohne „Widerrufen“ zu verwenden.";
 "Speedster" = "Blitzschnell";
 "Win within 5 minutes (one suit), 12 (two suits) or 25 (four suits)." = "Gewinne in höchstens 5 Minuten (eine Farbe), 12 (zwei Farben) oder 25 (vier Farben).";
 "Efficient" = "Effizient";
@@ -116,11 +116,11 @@
 "Credits" = "Mitwirkende";
 "When you quit with a game in progress" = "Beim Beenden während eines laufenden Spiels";
 "When you quit" = "Beim Beenden";
-"Save it and pick up where you left off" = "Speichern und später dort weiterspielen";
-"Don't save it (it counts as a loss)" = "Nicht speichern (zählt als verloren)";
+"Save it and pick up where you left off" = "Sichern und später dort weiterspielen";
+"Don't save it (it counts as a loss)" = "Nicht sichern (zählt als verloren)";
 "Ask me each time" = "Jedes Mal fragen";
 "When the app opens" = "Beim Öffnen der App";
-"Open the saved game" = "Gespeichertes Spiel öffnen";
+"Open the saved game" = "Gesichertes Spiel öffnen";
 "Start a new game" = "Neues Spiel beginnen";
 "Play sounds" = "Töne abspielen";
 "Soft macOS sounds when you deal, drop a card, finish a suit or win." = "Dezente macOS-Töne beim Austeilen, Ablegen einer Karte, Vervollständigen einer Farbe und beim Sieg.";
@@ -135,7 +135,7 @@
 "Unlimited" = "Unbegrenzt";
 "Go all the way back to the start of the game." = "Bis zum Anfang des Spiels zurückgehen.";
 "Classic XP" = "Klassisch (XP)";
-"Undo stops at each deal and each completed suit, like the original." = "„Rückgängig“ endet wie im Original bei jedem Austeilen und jeder vervollständigten Farbe.";
+"Undo stops at each deal and each completed suit, like the original." = "„Widerrufen“ endet wie im Original bei jedem Austeilen und jeder vervollständigten Farbe.";
 "Change the number of suits from Game ▸ Difficulty: one suit is gentle, four is a real challenge." = "Die Anzahl der Farben änderst du unter Spiel ▸ Schwierigkeit: Eine Farbe ist leicht, vier sind eine echte Herausforderung.";
 "Card faces" = "Kartenbilder";
 "Classic" = "Klassisch";
@@ -146,7 +146,7 @@
 "Card back" = "Kartenrücken";
 "Gold rosette" = "Goldene Rosette";
 "A gold rosette on deep blue, drawn at any size so it stays sharp." = "Eine goldene Rosette auf tiefem Blau, in jeder Größe gestochen scharf gezeichnet.";
-"Show animations" = "Animationen zeigen";
+"Show animations" = "Animationen anzeigen";
 "Cards glide into place and the XP style celebration plays when you win." = "Karten gleiten an ihren Platz, und bei einem Sieg gibt es die Feier im XP-Stil.";
 
 /* Credits (Settings ▸ Credits, About panel). Names of people, works and licences stay as they are. */
@@ -170,23 +170,23 @@
 
 /* Software update */
 "Software Update" = "Softwareupdate";
-"No update in progress" = "Kein Update in Arbeit";
-"Checking for updates…" = "Nach Updates suchen…";
-"You're up to date" = "Du bist auf dem neuesten Stand";
+"No update in progress" = "Kein Update aktiv";
+"Checking for updates…" = "Nach Updates suchen …";
+"You're up to date" = "Spider Solitaire ist auf dem neuesten Stand";
 "Spider Solitaire %@ is the newest version." = "Spider Solitaire %@ ist die neueste Version.";
 "Spider Solitaire %@ is available" = "Spider Solitaire %@ ist verfügbar";
-"You have %@. Install downloads and checks the new version; nothing changes until you restart." = "Du hast %@. „Installieren“ lädt die neue Version und prüft sie; bis zum Neustart ändert sich nichts.";
-"View the release on GitHub" = "Release auf GitHub ansehen";
-"Install" = "Installieren";
+"You have %@. Install downloads and checks the new version; nothing changes until you restart." = "Du hast %@. „Jetzt installieren“ lädt die neue Version und prüft sie; bis zum Neustart ändert sich nichts.";
+"View the release on GitHub" = "Release auf GitHub anzeigen";
+"Install" = "Jetzt installieren";
 "Later" = "Später";
-"Downloading Spider Solitaire %@…" = "Spider Solitaire %@ wird geladen…";
-"Checking Spider Solitaire %@…" = "Spider Solitaire %@ wird geprüft…";
+"Downloading Spider Solitaire %@…" = "Spider Solitaire %@ wird geladen …";
+"Checking Spider Solitaire %@…" = "Spider Solitaire %@ wird geprüft …";
 "Making sure the download is complete and signed by its developer." = "Es wird sichergestellt, dass der Download vollständig und vom Entwickler signiert ist.";
 "Spider Solitaire %@ is ready to install" = "Spider Solitaire %@ ist bereit zur Installation";
-"Restart to Update quits Spider Solitaire (you're asked about an unfinished game as usual), replaces it with the new version and opens it again." = "„Zum Aktualisieren neu starten“ beendet Spider Solitaire (zu einem laufenden Spiel wirst du wie gewohnt gefragt), ersetzt es durch die neue Version und öffnet es wieder.";
+"Restart to Update quits Spider Solitaire (you're asked about an unfinished game as usual), replaces it with the new version and opens it again." = "„Neu starten“ beendet Spider Solitaire (zu einem laufenden Spiel wirst du wie gewohnt gefragt), ersetzt es durch die neue Version und öffnet es wieder.";
 "Later keeps this version and deletes the download; you'll be offered the update at the next check." = "„Später“ behält diese Version und löscht den Download; das Update wird dir bei der nächsten Suche wieder angeboten.";
-"Restart to Update" = "Zum Aktualisieren neu starten";
-"Installing Spider Solitaire %@…" = "Spider Solitaire %@ wird installiert…";
+"Restart to Update" = "Neu starten";
+"Installing Spider Solitaire %@…" = "Spider Solitaire %@ wird installiert …";
 "Downloaded" = "Geladen";
 "%@ is in your Downloads folder. Open it, then drag Spider Solitaire to Applications." = "%@ liegt in deinem Ordner „Downloads“. Öffne die Datei und zieh Spider Solitaire in den Ordner „Programme“.";
 "Done" = "Fertig";
@@ -224,9 +224,9 @@
 /* Move to Applications */
 "Move Spider Solitaire to your Applications folder?" = "Spider Solitaire in den Ordner „Programme“ verschieben?";
 "It's running from your Downloads folder. In Applications it can install updates itself, and you'll find it in Launchpad and Spotlight." = "Die App läuft aus deinem Ordner „Downloads“. Im Ordner „Programme“ kann sie Updates selbst installieren, und du findest sie im Launchpad und in Spotlight.";
-"Move to Applications" = "In den Programme-Ordner verschieben";
-"Not Now" = "Nicht jetzt";
-"Don't ask again" = "Nicht mehr fragen";
+"Move to Applications" = "In „Programme“ verschieben";
+"Not Now" = "Später";
+"Don't ask again" = "Nicht erneut fragen";
 "Spider Solitaire couldn't be moved" = "Spider Solitaire konnte nicht verschoben werden";
 "Drag it to your Applications folder in Finder instead. (%@)" = "Zieh die App stattdessen im Finder in den Ordner „Programme“. (%@)";
 "Spider Solitaire is in your Applications folder" = "Spider Solitaire ist jetzt im Ordner „Programme“";
@@ -262,31 +262,31 @@
 "Points" = "Punkte";
 "Each completed suit" = "Jede vervollständigte Farbe";
 "Each move" = "Jeder Zug";
-"Each undo" = "Jedes Rückgängigmachen";
-"−1 (the undone move's point is not given back)" = "−1 (der Punkt des zurückgenommenen Zugs wird nicht erstattet)";
+"Each undo" = "Jedes Widerrufen";
+"−1 (the undone move's point is not given back)" = "−1 (der Punkt des widerrufenen Zugs wird nicht erstattet)";
 "Each redo" = "Jedes Wiederholen";
 "−1 (it counts as a move)" = "−1 (zählt als Zug)";
 "Dealing a row" = "Eine Reihe austeilen";
 "free" = "kostenlos";
-"So a perfect game would score 1300 points (500 + 8 × 100), and every move and undo takes 1 point off. The Moves counter counts moves, undos and deals. In a won game with the usual 5 deals, your final score is 1305 minus the Moves counter: fewer moves, higher score." = "Ein perfektes Spiel brächte also 1300 Punkte (500 + 8 × 100), und jeder Zug und jedes Rückgängigmachen kostet 1 Punkt. Der Zähler „Züge“ zählt Züge, Rücknahmen und Austeilen. In einem gewonnenen Spiel mit den üblichen 5 Runden Austeilen ist dein Endstand 1305 minus der Zähler „Züge“: weniger Züge, mehr Punkte.";
+"So a perfect game would score 1300 points (500 + 8 × 100), and every move and undo takes 1 point off. The Moves counter counts moves, undos and deals. In a won game with the usual 5 deals, your final score is 1305 minus the Moves counter: fewer moves, higher score." = "Ein perfektes Spiel brächte also 1300 Punkte (500 + 8 × 100), und jeder Zug und jedes Widerrufen kostet 1 Punkt. Der Zähler „Züge“ zählt Züge, Widerrufe und Austeilen. In einem gewonnenen Spiel mit den üblichen 5 Runden Austeilen ist dein Endstand 1305 minus der Zähler „Züge“: weniger Züge, mehr Punkte.";
 "Time" = "Zeit";
-"The score box also shows how long you've played this game. The clock pauses while Spider Solitaire is in the background or a dialog is open, and it is saved with the game. Time doesn't change the score, but some achievements ask for a quick win." = "Das Punktefeld zeigt auch, wie lange du dieses Spiel schon spielst. Die Uhr hält an, solange Spider Solitaire im Hintergrund ist oder ein Dialog offen ist, und wird mit dem Spiel gespeichert. Die Zeit ändert die Punkte nicht, aber einige Erfolge verlangen einen schnellen Sieg.";
+"The score box also shows how long you've played this game. The clock pauses while Spider Solitaire is in the background or a dialog is open, and it is saved with the game. Time doesn't change the score, but some achievements ask for a quick win." = "Das Punktefeld zeigt auch, wie lange du dieses Spiel schon spielst. Die Uhr hält an, solange Spider Solitaire im Hintergrund ist oder ein Dialog offen ist, und wird mit dem Spiel gesichert. Die Zeit ändert die Punkte nicht, aber einige Erfolge verlangen einen schnellen Sieg.";
 "Tips" = "Tipps";
 "Ask for a hint" = "Einen Hinweis anfordern";
-"Choose Game ▸ Show Hint (⌘T) or click the score box. The cards that can move light up, then where they can go. Ask again to see the next idea. If there are no moves left, the game tells you." = "Wähle Spiel ▸ Hinweis anzeigen (⌘T) oder klicke auf das Punktefeld. Erst leuchten die Karten auf, die sich bewegen lassen, dann ihr Ziel. Frag erneut, um den nächsten Vorschlag zu sehen. Gibt es keine Züge mehr, sagt dir das Spiel Bescheid.";
+"Choose Game ▸ Show Hint (⌘T) or click the score box. The cards that can move light up, then where they can go. Ask again to see the next idea. If there are no moves left, the game tells you." = "Wähle Spiel ▸ Hinweis einblenden (⌘T) oder klicke auf das Punktefeld. Erst leuchten die Karten auf, die sich bewegen lassen, dann ihr Ziel. Frag erneut, um den nächsten Vorschlag zu sehen. Gibt es keine Züge mehr, sagt dir das Spiel Bescheid.";
 "Play winnable deals" = "Gewinnbare Spiele spielen";
 "Turn on \"Only deal winnable games\" in Settings and every new game is one a built-in solver has already won. It usually takes a moment at most; with four suits it can take a few seconds." = "Schalte in den Einstellungen „Nur gewinnbare Spiele austeilen“ ein, dann hat ein eingebauter Löser jedes neue Spiel bereits gewonnen. Das dauert meist höchstens einen Augenblick, mit vier Farben auch ein paar Sekunden.";
-"Undo the way you like" = "Rückgängig nach deinem Geschmack";
-"Undo (⌘Z) can go back to the start of the game, and Redo (⇧⌘Z) brings moves back. For a stricter game, choose Classic XP undo in Settings: then undo stops at each deal and each completed suit, like the original." = "„Rückgängig“ (⌘Z) kann bis zum Anfang des Spiels zurückgehen, und „Wiederholen“ (⇧⌘Z) holt Züge zurück. Für ein strengeres Spiel wähle in den Einstellungen „Klassisch (XP)“: Dann endet „Rückgängig“ wie im Original bei jedem Austeilen und jeder vervollständigten Farbe.";
+"Undo the way you like" = "Widerrufen nach deinem Geschmack";
+"Undo (⌘Z) can go back to the start of the game, and Redo (⇧⌘Z) brings moves back. For a stricter game, choose Classic XP undo in Settings: then undo stops at each deal and each completed suit, like the original." = "„Widerrufen“ (⌘Z) kann bis zum Anfang des Spiels zurückgehen, und „Wiederholen“ (⇧⌘Z) holt Züge zurück. Für ein strengeres Spiel wähle in den Einstellungen „Klassisch (XP)“: Dann endet „Widerrufen“ wie im Original bei jedem Austeilen und jeder vervollständigten Farbe.";
 "A few strategy ideas" = "Ein paar Strategietipps";
 "Uncover face-down cards early, especially in the tallest columns." = "Decke verdeckte Karten früh auf, vor allem in den höchsten Stapeln.";
 "Build in one suit when you can; mixed runs have to be taken apart later." = "Baue nach Möglichkeit in einer Farbe; gemischte Folgen musst du später wieder auseinandernehmen.";
 "Keep an empty column free for as long as possible rather than parking a single card there." = "Halte einen leeren Stapel so lange wie möglich frei, statt dort eine einzelne Karte abzulegen.";
 "Before dealing, tidy up: a deal drops a card on every column, including your best runs." = "Räum vor dem Austeilen auf: Beim Austeilen landet auf jedem Stapel eine Karte, auch auf deinen besten Folgen.";
-"Achievements unlock as you play and stay unlocked. A banner slides in when you earn one, and Game ▸ Achievements… (⇧⌘A) shows them all, with the date you earned each." = "Erfolge schaltest du beim Spielen frei, und sie bleiben freigeschaltet. Für jeden neuen Erfolg erscheint ein Banner, und Spiel ▸ Erfolge… (⇧⌘A) zeigt alle mit dem Datum, an dem du sie erreicht hast.";
+"Achievements unlock as you play and stay unlocked. A banner slides in when you earn one, and Game ▸ Achievements… (⇧⌘A) shows them all, with the date you earned each." = "Erfolge schaltest du beim Spielen frei, und sie bleiben freigeschaltet. Für jeden neuen Erfolg erscheint ein Banner, und Spiel ▸ Erfolge … (⇧⌘A) zeigt alle mit dem Datum, an dem du sie erreicht hast.";
 "Achievement" = "Erfolg";
 "How to earn it" = "So erreichst du ihn";
-"Wins and streaks count from your Statistics. A game resumed from a save made by an older version can't earn the ones about undo, hints or time, because its history isn't known." = "Siege und Serien zählen aus deiner Statistik. Ein Spiel, das aus einem Spielstand einer älteren Version fortgesetzt wird, kann die Erfolge zu „Rückgängig“, Hinweisen und Zeit nicht erreichen, weil sein Verlauf unbekannt ist.";
+"Wins and streaks count from your Statistics. A game resumed from a save made by an older version can't earn the ones about undo, hints or time, because its history isn't known." = "Siege und Serien zählen aus deiner Statistik. Ein Spiel, das aus einem Spielstand einer älteren Version fortgesetzt wird, kann die Erfolge zu „Widerrufen“, Hinweisen und Zeit nicht erreichen, weil sein Verlauf unbekannt ist.";
 "Keyboard Shortcuts" = "Tastaturkurzbefehle";
 "Keys" = "Tasten";
 "Command" = "Befehl";
