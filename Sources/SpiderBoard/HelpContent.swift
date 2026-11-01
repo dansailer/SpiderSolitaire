@@ -56,7 +56,8 @@ public enum HelpContent {
                     "You can move several cards at once only if they are in order and all the same suit, "
                         + "such as 9♥ 8♥ 7♥.",
                     "When a move uncovers a face-down card, it turns over by itself.",
-                    "Double-click a card to send it (with the cards on top of it) to the best place.",
+                    "Click a card to send it (with the cards on top of it) to the best place: a card one higher in the "
+                        + "same suit, then one higher in any suit, then an empty column.",
                 ]),
                 .heading("Empty columns"),
                 .paragraph(
@@ -198,7 +199,7 @@ public enum HelpContent {
                 .bullets([
                     "Click the stock to deal a row.",
                     "Click the score box for a hint.",
-                    "Double-click a card to move it to the best place.",
+                    "Click a card to move it to the best place.",
                     "During the win celebration, click or press any key to skip it.",
                 ]),
             ])

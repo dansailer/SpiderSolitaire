@@ -320,7 +320,10 @@ final class GameModel: ObservableObject {
             suppressedGesture.suppress(start: BoardPoint(start))
             return
         }
-        if !animations.isIdle { settleAnimations(announce: true) }
+        // The second press of a double-click lets the run moved by the first click finish its glide.
+        let repeatClick: Bool = pointer.continuesDoubleClick(
+            start: BoardPoint(start), translation: BoardSize(translation), time: ProcessInfo.processInfo.systemUptime)
+        if !animations.isIdle, !repeatClick { settleAnimations(announce: true) }
         if highlight != nil { clearHighlight() }
         var next: PointerController = pointer
         next.pointerChanged(
@@ -336,6 +339,8 @@ final class GameModel: ObservableObject {
         if winSummary != nil { return }
         if suppressedGesture.ignoresEnd(start: BoardPoint(start)) { return }
         var next: PointerController = pointer
+        // The user's double-click speed, capped so a very slow setting cannot swallow ordinary clicks.
+        next.doubleClickInterval = min(NSEvent.doubleClickInterval, GameModel.maxDoubleClickInterval)
         let result: PointerController.Result = next.pointerEnded(
             start: BoardPoint(start), translation: BoardSize(translation),
             time: ProcessInfo.processInfo.systemUptime, state: game.state, layout: layout)
@@ -361,6 +366,8 @@ final class GameModel: ObservableObject {
         case .perform(let action):
             // `perform` clears the drag inside the same animation as the state change.
             perform(action)
+            // Keep the click just handled, so the second click of a double-click is ignored.
+            if case .move = action { pointer = next }
         }
     }
 
@@ -881,6 +888,8 @@ extension GameModel {
     static let moveGlide: Double = 0.25
     /// A run snapping back after a drop that was not allowed (spring, response 0.3).
     static let snapBackGlide: Double = 0.6
+    /// Upper bound (seconds) for the double-click window that keeps a double-click to one move.
+    static let maxDoubleClickInterval: Double = 1.0
 }
 
 #endif

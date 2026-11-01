@@ -249,7 +249,7 @@
 "Drag a face-up card onto a card exactly one rank higher, in any suit: a 7 goes on any 8." = "Drag a face-up card onto a card exactly one rank higher, in any suit: a 7 goes on any 8.";
 "You can move several cards at once only if they are in order and all the same suit, such as 9♥ 8♥ 7♥." = "You can move several cards at once only if they are in order and all the same suit, such as 9♥ 8♥ 7♥.";
 "When a move uncovers a face-down card, it turns over by itself." = "When a move uncovers a face-down card, it turns over by itself.";
-"Double-click a card to send it (with the cards on top of it) to the best place." = "Double-click a card to send it (with the cards on top of it) to the best place.";
+"Click a card to send it (with the cards on top of it) to the best place: a card one higher in the same suit, then one higher in any suit, then an empty column." = "Click a card to send it (with the cards on top of it) to the best place: a card one higher in the same suit, then one higher in any suit, then an empty column.";
 "Empty columns" = "Empty columns";
 "Any card, or any run in one suit, can go into an empty column. Empty columns are your best tool for sorting cards, so use them carefully." = "Any card, or any run in one suit, can go into an empty column. Empty columns are your best tool for sorting cards, so use them carefully.";
 "Dealing" = "Dealing";
@@ -301,5 +301,5 @@
 "Mouse" = "Mouse";
 "Click the stock to deal a row." = "Click the stock to deal a row.";
 "Click the score box for a hint." = "Click the score box for a hint.";
-"Double-click a card to move it to the best place." = "Double-click a card to move it to the best place.";
+"Click a card to move it to the best place." = "Click a card to move it to the best place.";
 "During the win celebration, click or press any key to skip it." = "During the win celebration, click or press any key to skip it.";

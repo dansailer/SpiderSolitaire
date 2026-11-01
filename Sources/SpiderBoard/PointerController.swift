@@ -34,8 +34,10 @@ public struct GestureSuppression: Hashable, Sendable {
 public struct PointerController: Sendable {
     /// Pointer travel (points) before a press becomes a drag.
     public static let dragThreshold: Double = 3
-    /// Max seconds between two clicks on the same card to count as a double-click.
-    public static let doubleClickInterval: Double = 0.35
+    /// Default for `doubleClickInterval` when the system value is not known (Linux tests).
+    public static let defaultDoubleClickInterval: Double = 0.35
+    /// Max distance (points) between two clicks that still makes them one double-click.
+    public static let doubleClickSlop: Double = 5
 
     /// A run currently being dragged.
     public struct Drag: Hashable, Sendable {
@@ -45,7 +47,7 @@ public struct PointerController: Sendable {
     }
 
     public enum Result: Hashable, Sendable {
-        /// Nothing to do (click on felt, first click of a double-click, ...).
+        /// Nothing to do (click on felt, a card with nowhere to go, second click of a double-click, ...).
         case none
         /// Run the action. For drags the view should animate cards to their new places.
         case perform(Action)
@@ -60,7 +62,14 @@ public struct PointerController: Sendable {
     /// Where the current press began; a different start means a new gesture (the old one was
     /// cancelled without an end event), so stale state is dropped.
     private var pressStart: BoardPoint?
-    private var lastClick: (location: CardLocation, time: Double)?
+    /// The last click that acted on a card. Further clicks at the same spot within
+    /// `doubleClickInterval` belong to the same double-click and are ignored, so a double-click
+    /// moves a run once instead of also moving whatever card ends up under the pointer.
+    private var lastClick: (point: BoardPoint, time: Double)?
+
+    /// Max seconds between clicks at the same spot that make them one double-click. The app sets
+    /// the user's macOS setting here.
+    public var doubleClickInterval: Double = PointerController.defaultDoubleClickInterval
 
     public init() {}
 
@@ -115,19 +124,25 @@ public struct PointerController: Sendable {
             return .hint
         }
 
+        if continuesDoubleClick(start: start, translation: translation, time: time) { return .none }
+
         guard let location = layout.card(at: start, in: state) else {
             lastClick = nil
             return .none
         }
-        if let last = lastClick, last.location == location, time - last.time <= PointerController.doubleClickInterval {
-            lastClick = nil
-            if let to = state.bestDestination(from: location.column, index: location.index) {
-                return .perform(.move(from: location.column, index: location.index, to: to))
-            }
-            return .none
+        // A single click sends the card and the run on top of it to the best place.
+        lastClick = (start, time)
+        if let to = state.bestDestination(from: location.column, index: location.index) {
+            return .perform(.move(from: location.column, index: location.index, to: to))
         }
-        lastClick = (location, time)
         return .none
+    }
+
+    /// Whether a press at `start` (moved by `translation` so far) at `time` is a further click of
+    /// the double-click whose first click already acted. Such a click does nothing.
+    public func continuesDoubleClick(start: BoardPoint, translation: BoardSize, time: Double) -> Bool {
+        guard let last = lastClick, !PointerController.exceedsThreshold(translation) else { return false }
+        return time - last.time <= doubleClickInterval && PointerController.isNear(last.point, start)
     }
 
     /// Forget an in-flight gesture (e.g. new game started mid-drag).
@@ -136,6 +151,11 @@ public struct PointerController: Sendable {
         pressed = nil
         pressStart = nil
         lastClick = nil
+    }
+
+    static func isNear(_ a: BoardPoint, _ b: BoardPoint) -> Bool {
+        let dx = a.x - b.x, dy = a.y - b.y
+        return dx * dx + dy * dy <= doubleClickSlop * doubleClickSlop
     }
 
     /// Compares squared lengths (no square root, so no libm dependency on Linux).

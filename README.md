@@ -91,7 +91,8 @@ Xcode opens the Swift package directly, so no `.xcodeproj` is needed.
 ## Controls
 - **Drag** any face-up card that starts a same-suit descending run (the run comes with it) onto a
   card one rank higher, or onto an empty column. An illegal drop slides the cards back.
-- **Double-click** a card to send its run to the best legal column.
+- **Click** a card to send its run to the best legal column: a same-suit card one rank higher first,
+  then any card one rank higher, then an empty column. A card with nowhere to go stays put.
 - **Click the stock** (bottom right) or choose Game ▸ Deal Next Row (⌘D) to deal a row.
 - **Click the score box**, or Game ▸ Show Hint (⌘T), to flash the next available move. Repeat to cycle.
 - **Settings…** (⌘,) has animations, sounds (off by default; macOS system sounds), **Card faces:
@@ -232,7 +233,7 @@ scripts/package.sh         builds, signs and zips build/Spider Solitaire.app
 scripts/lint.sh            swift-format and SwiftLint (.swift-format, .swiftlint.yml), as in CI
 scripts/install-swiftlint.sh  downloads the pinned, checksum-verified SwiftLint to .build/tools
 Tests/SpiderCoreTests/     XCTest suite for the rules
-Tests/SpiderBoardTests/    XCTest suite for layout, hit-testing, drag/drop and double-click
+Tests/SpiderBoardTests/    XCTest suite for layout, hit-testing, drag/drop and click-to-move
 Tests/SpiderPersistenceTests/ XCTest suite for saving, loading and quit/resume
 Tests/SpiderLocalizationTests/ XCTest suite for the string tables (complete, consistent, nothing hardcoded)
 SPEC.md
