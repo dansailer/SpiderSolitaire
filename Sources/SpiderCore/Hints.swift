@@ -85,17 +85,24 @@ extension GameState {
 }
 
 extension GameState {
-    /// Where a double-click on the card at `index` in `column` should send its run, or nil.
+    /// Where a click on the card at `index` in `column` should send its run, or nil.
     /// Preference (same as the hint order): a same-suit card one higher, then any card one higher,
     /// then an empty column (only when the run does not already fill its own column).
-    /// Ties go to the nearest column to the right, wrapping around, like reading order from the source.
+    /// Among same-suit targets the one whose own same-suit run is longest wins, so the move builds
+    /// the longest run. Remaining ties go to the nearest column to the right, wrapping around,
+    /// like reading order from the source.
     public func bestDestination(from column: Int, index: Int) -> Int? {
         guard canPickUp(column: column, from: index) else { return nil }
         let card = columns[column][index]
         let order = (1..<GameState.columnCount).map { (column + $0) % GameState.columnCount }
         let legal = order.filter { canMove(from: column, index: index, to: $0) }
 
-        if let to = legal.first(where: { columns[$0].last?.suit == card.suit }) { return to }
+        var sameSuit: (column: Int, runLength: Int)?
+        for to in legal where columns[to].last?.suit == card.suit {
+            let runLength = columns[to].count - (movableRunStart(in: to) ?? columns[to].count)
+            if runLength > sameSuit?.runLength ?? 0 { sameSuit = (to, runLength) }
+        }
+        if let sameSuit { return sameSuit.column }
         if let to = legal.first(where: { !columns[$0].isEmpty }) { return to }
         if index > 0, let to = legal.first(where: { columns[$0].isEmpty }) { return to }
         return nil

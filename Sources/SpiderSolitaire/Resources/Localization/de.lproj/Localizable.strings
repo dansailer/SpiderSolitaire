@@ -249,7 +249,7 @@
 "Drag a face-up card onto a card exactly one rank higher, in any suit: a 7 goes on any 8." = "Zieh eine offene Karte auf eine Karte, die genau einen Wert höher ist, egal in welcher Farbe: Eine 7 passt auf jede 8.";
 "You can move several cards at once only if they are in order and all the same suit, such as 9♥ 8♥ 7♥." = "Mehrere Karten auf einmal kannst du nur bewegen, wenn sie in absteigender Reihenfolge liegen und alle dieselbe Farbe haben, etwa 9♥ 8♥ 7♥.";
 "When a move uncovers a face-down card, it turns over by itself." = "Wird durch einen Zug eine verdeckte Karte frei, dreht sie sich von selbst um.";
-"Double-click a card to send it (with the cards on top of it) to the best place." = "Doppelklicke auf eine Karte, um sie (mit den Karten darauf) an den besten Platz zu schicken.";
+"Click a card to send it (with the cards on top of it) to the best place: a card one higher in the same suit, then one higher in any suit, then an empty column." = "Klicke auf eine Karte, um sie (mit den Karten darauf) an den besten Platz zu schicken: auf eine um eins höhere Karte derselben Farbe, sonst auf eine um eins höhere Karte einer anderen Farbe, sonst auf einen leeren Stapel.";
 "Empty columns" = "Leere Stapel";
 "Any card, or any run in one suit, can go into an empty column. Empty columns are your best tool for sorting cards, so use them carefully." = "Auf einen leeren Stapel passt jede Karte und jede Folge in einer Farbe. Leere Stapel sind dein bestes Werkzeug zum Sortieren, also setze sie mit Bedacht ein.";
 "Dealing" = "Austeilen";
@@ -301,5 +301,5 @@
 "Mouse" = "Maus";
 "Click the stock to deal a row." = "Klicke auf den Talon, um eine Reihe auszuteilen.";
 "Click the score box for a hint." = "Klicke auf das Punktefeld, um einen Hinweis zu erhalten.";
-"Double-click a card to move it to the best place." = "Doppelklicke auf eine Karte, um sie an den besten Platz zu bewegen.";
+"Click a card to move it to the best place." = "Klicke auf eine Karte, um sie an den besten Platz zu bewegen.";
 "During the win celebration, click or press any key to skip it." = "Während der Siegesfeier überspringst du sie mit einem Klick oder einer beliebigen Taste.";

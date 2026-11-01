@@ -130,8 +130,13 @@ The look is "XP-like", not a copy of the XP assets.
     most.
   - An illegal drop animates the run back.
   - Cards the player cannot lift give no drag feedback.
-- **Click-to-move:** double-clicking a movable run sends it to the best legal target,
-  using the same ordering as the hints.
+- **Click-to-move:** a single click (a press that moves less than 3 points) on a movable card sends it
+  and the run on top of it to the best legal target, using the same ordering as the hints: a same-suit
+  card one rank higher, then any card one rank higher, then an empty column (only if the run does not
+  already fill its own column). Among same-suit targets the one with the longest same-suit run wins;
+  other ties go to the nearest column to the right, wrapping around. With no legal target nothing
+  happens. Further clicks at the same spot within the macOS double-click interval (capped at 1 s) are
+  ignored, so a double-click moves the run once. The move animates, counts and undoes like a drag.
 - **Animations:**
   - dealing, XP style, one card after another, about 8–10 cards a second, so each card can be seen being
     placed (`DealPacing`): a stock deal sends its 10 cards 100 ms apart, each flying 300 ms with ease-out

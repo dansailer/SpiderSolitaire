@@ -78,35 +78,113 @@ final class PointerControllerTests: XCTestCase {
         XCTAssertNil(p.drag)
         XCTAssertEqual(
             p.pointerEnded(
-                start: start, translation: BoardSize(width: 1, height: 1), time: 1, state: state, layout: layout), .none
-        )
+                start: start, translation: BoardSize(width: 1, height: 1), time: 1, state: state, layout: layout),
+            .perform(.move(from: 0, index: 0, to: 1)), "a click moves the card")
     }
 
-    func testDoubleClickAutoMovesToBestTarget() {
+    func testSingleClickAutoMovesToBestTarget() {
         var k = Cards()
         let state = k.state([[k.c(.five, .hearts)], [k.c(.six, .clubs)], [k.c(.six, .hearts)]])
         var p = PointerController()
         let start = center(state, 0, 0)
+        p.pointerChanged(start: start, translation: .zero, state: state, layout: layout)
+        XCTAssertNil(p.drag, "a press alone lifts nothing")
         XCTAssertEqual(
-            p.pointerEnded(start: start, translation: .zero, time: 10.0, state: state, layout: layout), .none)
-        XCTAssertEqual(
-            p.pointerEnded(start: start, translation: .zero, time: 10.2, state: state, layout: layout),
+            p.pointerEnded(start: start, translation: .zero, time: 10, state: state, layout: layout),
             .perform(.move(from: 0, index: 0, to: 2)))
-        // A third click starts a new pair.
-        XCTAssertEqual(
-            p.pointerEnded(start: start, translation: .zero, time: 10.3, state: state, layout: layout), .none)
     }
 
-    func testSlowOrDifferentCardClicksAreNotDoubleClicks() {
+    func testClickMovesTheRunOnTopOfTheCard() {
         var k = Cards()
-        let state = k.state([[k.c(.five, .hearts)], [k.c(.six, .hearts)], [k.c(.four, .clubs)]])
+        let state = k.state([
+            [k.c(.two, up: false), k.c(.nine, .hearts), k.c(.eight, .hearts), k.c(.seven, .hearts)],
+            [k.c(.nine, .clubs)],
+        ])
         var p = PointerController()
-        let a = center(state, 0, 0), b = center(state, 2, 0)
-        _ = p.pointerEnded(start: a, translation: .zero, time: 0, state: state, layout: layout)
         XCTAssertEqual(
-            p.pointerEnded(start: a, translation: .zero, time: 1, state: state, layout: layout), .none, "too slow")
+            p.pointerEnded(start: center(state, 0, 2), translation: .zero, time: 0, state: state, layout: layout),
+            .perform(.move(from: 0, index: 2, to: 1)))
+    }
+
+    func testClickWithNowhereToGoOrOnAnUnmovableCardDoesNothing() {
+        var k = Cards()
+        // No empty columns, so the jack has nowhere to go.
+        let kings = (3..<GameState.columnCount).map { _ in [k.c(.king)] }
+        let state = k.state(
+            [[k.c(.seven, .hearts), k.c(.six)], [k.c(.eight)], [k.c(.three, up: false), k.c(.jack)]] + kings)
+        var p = PointerController()
         XCTAssertEqual(
-            p.pointerEnded(start: b, translation: .zero, time: 1.1, state: state, layout: layout), .none, "other card")
+            p.pointerEnded(start: center(state, 0, 0), translation: .zero, time: 0, state: state, layout: layout),
+            .none, "mixed suits can't be lifted")
+        XCTAssertEqual(
+            p.pointerEnded(start: center(state, 2, 0), translation: .zero, time: 1, state: state, layout: layout),
+            .none, "face-down card")
+        XCTAssertEqual(
+            p.pointerEnded(start: center(state, 2, 1), translation: .zero, time: 2, state: state, layout: layout),
+            .none, "no target")
+    }
+
+    func testDoubleClickMovesOnlyOnce() throws {
+        var k = Cards()
+        var game = SpiderGame(
+            state: k.state([
+                [k.c(.seven, .clubs), k.c(.five, .hearts)], [k.c(.eight, .diamonds)], [k.c(.six, .hearts)],
+            ]))
+        var p = PointerController()
+        let spot = center(game.state, 0, 1)
+        let first = p.pointerEnded(start: spot, translation: .zero, time: 10, state: game.state, layout: layout)
+        XCTAssertEqual(first, .perform(.move(from: 0, index: 1, to: 2)))
+        try game.perform(.move(from: 0, index: 1, to: 2))
+        // The 7♣ is now under the pointer and could go on the 8♦, but the second click of the
+        // double-click (and a third one right after) must not move it.
+        XCTAssertEqual(game.state.bestDestination(from: 0, index: 0), 1)
+        XCTAssertTrue(p.continuesDoubleClick(start: spot, translation: .zero, time: 10.2))
+        XCTAssertFalse(
+            p.continuesDoubleClick(start: spot, translation: BoardSize(width: 10, height: 0), time: 10.2),
+            "a drag is not a click")
+        XCTAssertEqual(
+            p.pointerEnded(start: spot, translation: .zero, time: 10.2, state: game.state, layout: layout), .none)
+        XCTAssertEqual(
+            p.pointerEnded(
+                start: BoardPoint(x: spot.x + 2, y: spot.y + 1), translation: .zero, time: 10.3, state: game.state,
+                layout: layout), .none)
+        // A later click is a new click.
+        XCTAssertEqual(
+            p.pointerEnded(start: spot, translation: .zero, time: 11, state: game.state, layout: layout),
+            .perform(.move(from: 0, index: 0, to: 1)))
+    }
+
+    func testQuickClicksOnOtherCardsOrTheStockStillAct() {
+        var k = Cards()
+        let state = k.state(
+            [[k.c(.five, .hearts)], [k.c(.six, .hearts)], [k.c(.four, .clubs)], [k.c(.king)]]
+                + (4..<10).map { _ in
+                    [k.c(.king)]
+                }, stock: 10)
+        var p = PointerController()
+        _ = p.pointerEnded(start: center(state, 0, 0), translation: .zero, time: 0, state: state, layout: layout)
+        XCTAssertEqual(
+            p.pointerEnded(start: center(state, 2, 0), translation: .zero, time: 0.1, state: state, layout: layout),
+            .perform(.move(from: 2, index: 0, to: 0)), "other card")
+        let stock = layout.stockFrames(dealsRemaining: 1)[0]
+        XCTAssertEqual(
+            p.pointerEnded(start: stock.center, translation: .zero, time: 0.15, state: state, layout: layout),
+            .perform(.deal))
+        XCTAssertEqual(
+            p.pointerEnded(start: stock.center, translation: .zero, time: 0.2, state: state, layout: layout),
+            .perform(.deal), "the stock deals on every click")
+    }
+
+    func testDoubleClickIntervalFollowsTheSetting() {
+        var k = Cards()
+        let state = k.state([[k.c(.five, .hearts)], [k.c(.six, .clubs)], [k.c(.six, .hearts)]])
+        var p = PointerController()
+        p.doubleClickInterval = 0.1
+        let start = center(state, 0, 0)
+        _ = p.pointerEnded(start: start, translation: .zero, time: 0, state: state, layout: layout)
+        XCTAssertEqual(
+            p.pointerEnded(start: start, translation: .zero, time: 0.2, state: state, layout: layout),
+            .perform(.move(from: 0, index: 0, to: 2)))
     }
 
     func testClickOnStockDeals() {
